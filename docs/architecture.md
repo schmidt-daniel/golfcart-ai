@@ -1,0 +1,1352 @@
+# System Architecture
+
+## 1. Purpose
+
+This document defines the technical architecture of the autonomous golf trolley.
+
+The architecture is designed around the following principles:
+
+1. Safety has priority over autonomous functionality.
+2. High-level features request motion; they do not directly control motors.
+3. Hardware-specific implementations are isolated behind interfaces.
+4. Sensor data is timestamped, validated, and monitored for freshness.
+5. The system should be testable without physical hardware wherever practical.
+6. ROS 2 provides the robotics middleware and communication layer.
+7. C++ is preferred for hardware-facing and safety-critical components; Python is used where it provides significant advantages for perception, AI, experimentation, or tooling.
+
+This document is the detailed architecture reference. `AGENT.md` contains the rules an autonomous coding agent must follow.
+
+---
+
+# 2. Target Platform
+
+## Hardware
+
+- Raspberry Pi 5 — main onboard computer
+- ODrive 3.6 — motor controller
+- Two hoverboard-style DC motors with integrated encoders
+- FHL-LD19P LiDAR
+- Raspberry Pi HQ Camera
+- IMU
+- GPS
+- Force sensors in the handle
+- TFT display
+- Game-controller joystick
+- 36 V Li-Ion battery
+
+## Software
+
+- Ubuntu 24.04
+- ROS 2 Jazzy
+- C++ for safety-critical and hardware-facing components
+- Python for perception, AI, experimentation, and tooling where appropriate
+- RViz 2 for visualization
+- ROS 2 bags for recording and replay
+
+---
+
+# 3. High-Level Architecture
+
+```text
+                         ┌─────────────────────────┐
+                         │      Raspberry Pi 5      │
+                         │       Ubuntu 24.04       │
+                         │         ROS 2            │
+                         └────────────┬────────────┘
+                                      │
+             ┌────────────────────────┼────────────────────────┐
+             │                        │                        │
+             ▼                        ▼                        ▼
+       Sensor Layer             Perception Layer         HMI Layer
+             │                        │                        │
+       ┌─────┼─────┐             ┌────┴────┐                  │
+       │     │     │             │         │                  │
+     LiDAR  IMU   GPS          Person    Obstacle          Joystick
+       │     │     │           Tracking   Detection           │
+       │     │     │             │         │                  │
+       └─────┼─────┴─────────────┴─────────┴──────────────────┘
+             │
+             ▼
+      ┌──────────────────┐
+      │ State Estimation │
+      └────────┬─────────┘
+               │
+               ▼
+      ┌──────────────────┐
+      │ Behavior Layer   │
+      │                  │
+      │ Manual           │
+      │ Hill Assist      │
+      │ Hill Descent     │
+      │ Rollback         │
+      │ Follow Me        │
+      └────────┬─────────┘
+               │
+               │ MotionRequest
+               ▼
+      ┌──────────────────┐
+      │ Safety Controller│
+      │                  │
+      │ Fault handling   │
+      │ Obstacle stop    │
+      │ Speed limits     │
+      │ Sensor timeouts  │
+      │ Safety states    │
+      └────────┬─────────┘
+               │
+               │ SafeMotionCommand
+               ▼
+      ┌──────────────────┐
+      │ Motion Controller│
+      │                  │
+      │ Differential     │
+      │ drive conversion │
+      │ acceleration     │
+      │ deceleration     │
+      └────────┬─────────┘
+               │
+               ▼
+          ODrive Driver
+               │
+          ┌────┴────┐
+          ▼         ▼
+      Left Motor  Right Motor
+```
+
+The exact ROS 2 node decomposition may evolve. The responsibility boundaries are more important than the exact number of processes.
+
+---
+
+# 4. Architectural Boundaries
+
+The system is divided into five conceptual layers.
+
+## 4.1 Hardware Layer
+
+Responsible for communicating with physical devices.
+
+Examples:
+
+- ODrive
+- LiDAR
+- IMU
+- GPS
+- Camera
+- Force sensors
+- Joystick
+- Display
+
+Hardware drivers must expose application-level data and status rather than leaking unnecessary hardware-specific details upward.
+
+---
+
+## 4.2 Perception and State Estimation
+
+Responsible for turning raw sensor data into useful information.
+
+Examples:
+
+- obstacle detection
+- person detection
+- person tracking
+- inclination estimation
+- wheel odometry
+- sensor health
+- localization
+
+This layer should not directly command motors.
+
+---
+
+## 4.3 Behavior Layer
+
+Responsible for deciding what the trolley wants to do.
+
+Examples:
+
+- Manual
+- Hill Assist
+- Hill Descent Brake
+- Rollback Protection
+- Follow Me
+
+Behavior nodes generate `MotionRequest` messages.
+
+They do not directly communicate with the ODrive.
+
+---
+
+## 4.4 Safety Layer
+
+Responsible for determining whether requested movement is allowed.
+
+The Safety Controller has authority over all motor movement.
+
+It may:
+
+- reduce speed
+- limit acceleration
+- override commands
+- stop the trolley
+- enter a fault state
+
+No behavior node may bypass this layer.
+
+---
+
+## 4.5 Motion Layer
+
+Responsible for converting an approved motion command into motor-specific commands.
+
+The preferred abstraction is:
+
+```text
+linear_velocity
+angular_velocity
+```
+
+The motion controller converts this into:
+
+```text
+left_motor_velocity
+right_motor_velocity
+```
+
+The ODrive driver then translates the commands into the ODrive API/protocol.
+
+---
+
+# 5. ROS 2 Node Architecture
+
+The initial node architecture should be approximately:
+
+```text
+Hardware Nodes
+├── odrive_node
+├── lidar_node
+├── imu_node
+├── gps_node
+├── camera_node
+├── force_sensor_node
+└── joystick_node
+
+Processing Nodes
+├── wheel_odometry_node
+├── sensor_fusion_node
+├── obstacle_detection_node
+└── person_tracking_node
+
+Behavior Nodes
+├── manual_control_node
+├── hill_assist_node
+├── hill_descent_node
+├── rollback_protection_node
+└── follow_me_node
+
+Safety / Control
+├── safety_controller
+└── motion_controller
+
+HMI / Diagnostics
+├── hmi_node
+└── diagnostics_node
+```
+
+These are logical responsibilities rather than mandatory process boundaries.
+
+If two components are tightly coupled and have simple communication, combining them into one node is acceptable.
+
+Do not create ROS nodes merely to maximize modularity.
+
+---
+
+# 6. ROS 2 Data Flow
+
+## Sensor Data
+
+Sensor nodes publish continuously changing data.
+
+Examples:
+
+```text
+/scan
+/imu/data
+/gps/fix
+/camera/image_raw
+/wheel/odometry
+/handle/force
+```
+
+Each message must contain or be associated with:
+
+- timestamp
+- validity where applicable
+- frame of reference where applicable
+
+---
+
+## Perception Data
+
+Examples:
+
+```text
+/obstacles
+/person_target
+/person_tracking/status
+```
+
+Perception results should contain confidence/quality information when applicable.
+
+---
+
+## System State
+
+Examples:
+
+```text
+/safety/state
+/system/state
+/battery/state
+/diagnostics
+```
+
+---
+
+## Motion
+
+High-level behavior publishes:
+
+```text
+/motion/request
+```
+
+The Safety Controller produces:
+
+```text
+/motion/safe_command
+```
+
+The Motion Controller converts this into motor commands.
+
+The ODrive node is the only component that should directly communicate with the motor controller.
+
+---
+
+# 7. Motion Request
+
+High-level behavior should express desired motion independently of the hardware.
+
+Conceptually:
+
+```text
+MotionRequest
+    linear_velocity_mps
+    angular_velocity_radps
+    source
+    priority
+    timestamp
+```
+
+The exact ROS message definition should be established when implementation begins.
+
+The request represents intent, not permission.
+
+For example:
+
+```text
+Follow Me
+    ↓
+linear = 0.8 m/s
+angular = 0.1 rad/s
+    ↓
+Safety Controller
+    ↓
+linear = 0.4 m/s
+angular = 0.1 rad/s
+```
+
+The Safety Controller may modify or reject the request.
+
+---
+
+# 8. Safety Controller
+
+The Safety Controller is the central authority for movement.
+
+It receives:
+
+- MotionRequest
+- obstacle state
+- IMU state
+- encoder state
+- ODrive state
+- sensor health
+- battery state
+- operating mode
+- emergency-stop state
+
+It outputs:
+
+- allowed motion
+- safety state
+- fault information
+
+## Safety priority
+
+```text
+Emergency / Fault
+        ↓
+Safety Stop
+        ↓
+Obstacle Stop
+        ↓
+Rollback / Descent Protection
+        ↓
+Motion Limits
+        ↓
+User Command
+        ↓
+Autonomous Behavior
+```
+
+A higher-priority condition always overrides lower-priority requests.
+
+---
+
+# 9. Safety States
+
+The initial safety state machine should contain at least:
+
+```text
+SAFE_STOPPED
+READY
+MOVING
+LIMITED
+STOPPING
+FAULT
+```
+
+The exact state model may evolve.
+
+Example transitions:
+
+```text
+SAFE_STOPPED
+      │
+      │ valid enable
+      ▼
+    READY
+      │
+      │ permitted motion
+      ▼
+   MOVING
+      │
+      ├── safety condition ──► STOPPING
+      │                           │
+      │                           ▼
+      │                     SAFE_STOPPED
+      │
+      └── fault ───────────────► FAULT
+```
+
+Unexpected state transitions must result in a safe state.
+
+---
+
+# 10. Fail-Safe Behavior
+
+The system follows the principle:
+
+> If the system cannot confidently establish that continued movement is safe, it must stop.
+
+Examples:
+
+- LiDAR timeout
+- IMU timeout
+- encoder failure
+- ODrive communication loss
+- invalid motor state
+- application-level safety fault
+- lost Follow Me target
+- obstacle inside stopping zone
+- invalid motion request
+- critical battery condition
+
+A missing value must never implicitly mean "safe."
+
+---
+
+# 11. Motor Control
+
+The motor-control pipeline is:
+
+```text
+Behavior
+    ↓
+MotionRequest
+    ↓
+SafetyController
+    ↓
+SafeMotionCommand
+    ↓
+MotionController
+    ↓
+Differential Drive
+    ↓
+ODrive Driver
+    ↓
+ODrive
+    ↓
+Motors
+```
+
+No other component may bypass this pipeline.
+
+## Differential Drive
+
+For a trolley with wheel separation `L`, the desired left and right wheel velocities are derived from:
+
+```text
+v_left  = v - (ω * L / 2)
+v_right = v + (ω * L / 2)
+```
+
+where:
+
+- `v` = linear velocity in m/s
+- `ω` = angular velocity in rad/s
+- `L` = distance between the drive wheels in meters
+
+The exact sign convention must be documented and tested against the physical trolley.
+
+---
+
+# 12. ODrive Integration
+
+The ODrive driver is responsible for:
+
+- connection management
+- command transmission
+- encoder feedback
+- motor state
+- fault/status monitoring
+- communication timeout detection
+
+The motors and encoders are already tuned and configured on the ODrive.
+
+Do not modify the existing motor/encoder configuration unless explicitly required.
+
+ODrive-specific APIs must not leak into high-level behavior code.
+
+The ODrive driver should expose a generic motor-controller interface.
+
+Conceptually:
+
+```text
+MotorController
+├── command_velocity()
+├── get_velocity()
+├── get_position()
+├── get_state()
+├── get_fault()
+└── stop()
+```
+
+The exact interface should be adapted to the capabilities and communication mechanism used by the ODrive 3.6.
+
+---
+
+# 13. Encoder Feedback
+
+Encoder feedback is the primary source for wheel/motor velocity.
+
+It is used for:
+
+- wheel odometry
+- direction detection
+- rollback detection
+- motion monitoring
+- detecting unexpected motor behavior
+
+The system should compare commanded and measured motion where appropriate.
+
+Unexpected behavior such as:
+
+```text
+commanded forward
+measured backward
+```
+
+must be treated as a potential fault.
+
+---
+
+# 14. IMU
+
+The IMU provides:
+
+- orientation
+- acceleration
+- angular velocity
+
+Primary uses:
+
+- slope estimation
+- Hill Assist
+- Hill Descent Brake
+- motion state estimation
+
+The software must distinguish static inclination from dynamic acceleration where possible.
+
+A raw acceleration spike must not automatically be interpreted as a change in slope.
+
+Sensor mounting orientation and coordinate transformation must be explicitly documented.
+
+---
+
+# 15. LiDAR
+
+The FHL-LD19P is used for:
+
+- obstacle detection
+- environment scanning
+- Follow Me
+- future navigation functions
+
+Raw LiDAR data should be processed into application-level information.
+
+Examples:
+
+```text
+Obstacle
+    position
+    distance
+    relative_velocity
+    confidence
+    timestamp
+```
+
+The obstacle detector must account for:
+
+- invalid readings
+- missing scans
+- noisy measurements
+- occlusion
+- sensor timeout
+
+LiDAR must not be treated as infallible.
+
+---
+
+# 16. Obstacle Detection and Stopping
+
+Obstacle detection is a safety-related function.
+
+The system should maintain a configurable stopping zone in front of the trolley.
+
+The stopping threshold should consider:
+
+- current speed
+- stopping distance
+- reaction time
+- sensor latency
+- terrain/slope
+- configured safety margin
+
+Obstacle detection should result in a safety-layer decision rather than directly commanding the motors.
+
+Conceptually:
+
+```text
+LiDAR
+  ↓
+Obstacle Detector
+  ↓
+Obstacle State
+  ↓
+Safety Controller
+  ↓
+STOP / LIMIT / ALLOW
+```
+
+---
+
+# 17. Follow Me
+
+Follow Me consists of separate stages:
+
+```text
+Sensor Data
+    ↓
+Person Detection
+    ↓
+Person Tracking
+    ↓
+Target Validation
+    ↓
+Follow Controller
+    ↓
+MotionRequest
+```
+
+The Follow Me controller should consume an abstract `PersonTarget`.
+
+Example:
+
+```text
+PersonTarget
+    distance_m
+    lateral_offset_m
+    relative_velocity_mps
+    confidence
+    timestamp
+    valid
+```
+
+The initial implementation may detect a person's legs from LiDAR.
+
+The architecture must allow later implementations using:
+
+- camera detection
+- LiDAR + camera fusion
+- improved tracking algorithms
+
+without rewriting the Follow Me controller.
+
+## Follow Me stop conditions
+
+The trolley must stop if:
+
+- the person target is lost
+- confidence falls below the required threshold
+- the person approaches the trolley unexpectedly
+- an obstacle is detected
+- required sensor data becomes stale
+- the Safety Controller rejects the motion request
+
+The trolley must not blindly continue toward the target's last known position.
+
+---
+
+# 18. Hill Assist
+
+Hill Assist determines when additional propulsion assistance is appropriate.
+
+Inputs may include:
+
+- IMU inclination
+- wheel velocity
+- handle force
+- direction of travel
+
+The first implementation should preferably use explicit user activation.
+
+Automatic activation can be introduced after the basic system is validated.
+
+Activation and deactivation must use hysteresis to prevent rapid switching around a threshold.
+
+---
+
+# 19. Hill Descent Brake
+
+Hill Descent Brake is responsible for preventing uncontrolled downhill acceleration.
+
+Inputs:
+
+- IMU inclination
+- wheel velocity
+- direction of travel
+
+The system should distinguish:
+
+```text
+stationary on slope
+moving uphill
+moving downhill
+```
+
+Braking should normally be smooth.
+
+An emergency stop may override smooth braking if required for safety.
+
+---
+
+# 20. Rollback Protection
+
+Rollback Protection prevents unintended backward movement.
+
+Primary input:
+
+- wheel encoder velocity
+
+The detection algorithm should distinguish actual backward movement from:
+
+- encoder noise
+- measurement jitter
+- transient sign changes
+
+When rollback is confirmed:
+
+```text
+Backward movement detected
+        ↓
+Safety Controller
+        ↓
+Apply braking
+        ↓
+Prevent continued backward movement
+        ↓
+Report event
+```
+
+Rollback protection must not depend solely on the IMU.
+
+---
+
+# 21. Force Sensors
+
+Force sensors in the handle provide information about user interaction.
+
+Possible uses:
+
+- pushing intent
+- pulling intent
+- braking intent
+- user presence/contact
+- manual override
+
+Raw sensor values should be filtered.
+
+Thresholds should include hysteresis where necessary.
+
+The system should distinguish between:
+
+```text
+no interaction
+intentional push
+intentional pull
+braking
+sensor fault
+```
+
+The exact interpretation should be established experimentally.
+
+---
+
+# 22. GPS and Localization
+
+GPS provides coarse global localization.
+
+It may be used for:
+
+- mapping
+- recording trolley routes
+- future navigation
+- hole/course localization
+
+GPS must not be used as the sole mechanism for:
+
+- collision avoidance
+- precise obstacle positioning
+- short-range positioning
+
+A future localization system may combine:
+
+```text
+GPS
+IMU
+wheel odometry
+LiDAR
+```
+
+using sensor fusion.
+
+---
+
+# 23. Coordinate Frames
+
+The system must use a consistent coordinate-frame convention.
+
+Recommended trolley frame:
+
+```text
+             +X
+              ↑
+              │
+           forward
+              │
+              │
+      +Y ←────┼────→ -Y
+              │
+              │
+```
+
+The exact convention may be changed if required by the ROS ecosystem or hardware.
+
+Once selected, it must be used consistently.
+
+Sensor-specific coordinate systems must be transformed at the sensor interface boundary.
+
+ROS TF2 should be used for coordinate-frame transformations.
+
+At minimum, the system is expected to eventually contain frames similar to:
+
+```text
+map
+ └── odom
+      └── base_link
+           ├── lidar_link
+           ├── camera_link
+           ├── imu_link
+           └── gps_link
+```
+
+The exact frame tree will be finalized during implementation.
+
+---
+
+# 24. Time and Sensor Freshness
+
+All sensor data must be timestamped.
+
+The system must monitor data age.
+
+Conceptually:
+
+```text
+now - sensor_timestamp <= allowed_age
+```
+
+If data exceeds its allowed age, it is stale.
+
+Different sensors may have different freshness requirements.
+
+Examples:
+
+- IMU: high-frequency and low-latency
+- LiDAR: high-frequency obstacle information
+- GPS: relatively low-frequency
+- camera: dependent on perception algorithm
+
+Stale safety-relevant data must not be treated as current.
+
+---
+
+# 25. Timing and Control Loops
+
+Control loops must have explicit update rates.
+
+Do not allow UI activity, network communication, logging, or camera processing to determine motor-control timing.
+
+Avoid blocking operations in control callbacks.
+
+Long-running or computationally expensive operations should be isolated from safety-critical loops.
+
+The exact frequencies should be established during implementation and documented here.
+
+Initial candidates:
+
+```text
+Safety monitoring:     50–100 Hz
+Motor command/control: 50–100 Hz
+IMU processing:        100+ Hz where supported
+LiDAR processing:      sensor rate
+Follow Me:             10–30 Hz
+Camera perception:     10–30 Hz
+GPS:                   sensor rate
+HMI:                   10–30 Hz
+```
+
+These are starting points, not validated safety requirements.
+
+---
+
+# 26. ROS 2 QoS
+
+QoS settings should reflect the semantics of each data stream.
+
+Examples:
+
+High-frequency sensor data:
+
+```text
+best effort
+small queue
+volatile
+```
+
+Critical state information:
+
+```text
+reliable
+appropriate queue depth
+```
+
+The exact QoS configuration must be documented alongside each interface.
+
+Do not use reliable delivery indiscriminately for high-rate sensor streams if stale data is less useful than dropped data.
+
+---
+
+# 27. Threading and Executors
+
+The ROS 2 executor model must not allow a slow callback to block safety-critical processing.
+
+Potentially blocking or computationally expensive work includes:
+
+- camera processing
+- AI inference
+- file I/O
+- network communication
+- GPS processing
+
+These should be isolated from the safety-critical execution path.
+
+The executor/threading architecture should be documented once actual implementation requirements are known.
+
+---
+
+# 28. HMI
+
+The HMI consists of:
+
+- joystick
+- TFT display
+
+The HMI should provide:
+
+- operating-mode selection
+- manual control
+- configuration
+- system status
+- battery state
+- warnings
+- fault information
+
+HMI commands are requests only.
+
+The HMI must never bypass the Safety Controller.
+
+A fault must not be cleared in a way that causes unexpected motor activation.
+
+---
+
+# 29. Configuration
+
+Configuration should be centralized.
+
+Examples:
+
+```text
+MAX_LINEAR_VELOCITY_MPS
+MAX_ANGULAR_VELOCITY_RADPS
+MAX_ACCELERATION_MPS2
+MAX_DECELERATION_MPS2
+
+HILL_ASSIST_THRESHOLD_RAD
+HILL_DESCENT_THRESHOLD_RAD
+ROLLBACK_THRESHOLD_MPS
+
+FOLLOW_ME_DISTANCE_M
+FOLLOW_ME_MAX_VELOCITY_MPS
+FOLLOW_ME_MIN_CONFIDENCE
+
+LIDAR_TIMEOUT_S
+IMU_TIMEOUT_S
+ODRIVE_TIMEOUT_S
+
+BATTERY_LOW_V
+BATTERY_CRITICAL_V
+```
+
+Every parameter must have:
+
+- name
+- unit
+- default
+- valid range
+- description
+- safety implications where applicable
+
+---
+
+# 30. Diagnostics
+
+Diagnostics should expose:
+
+- node health
+- sensor status
+- sensor age
+- ODrive status
+- motor state
+- battery state
+- current operating mode
+- safety state
+- active faults
+
+A diagnostic failure must not silently result in continued operation if the affected component is safety-critical.
+
+---
+
+# 31. Logging
+
+Log important events including:
+
+- startup/shutdown
+- mode changes
+- safety-state changes
+- faults
+- ODrive errors
+- sensor timeouts
+- obstacle detections
+- Follow Me target changes
+- rollback events
+- Hill Assist activation
+- Hill Descent Brake activation
+- battery warnings
+
+High-frequency data should not be logged individually at unlimited rates.
+
+Use aggregation or throttling where appropriate.
+
+---
+
+# 32. Simulation and Testing
+
+Software should be structured so that hardware can be replaced by mocks or simulators.
+
+Important components to test without physical hardware:
+
+- Safety Controller
+- motion limits
+- state machines
+- rollback detection
+- hill-state detection
+- obstacle handling
+- Follow Me controller
+- sensor timeout handling
+- fault recovery
+
+Hardware integration tests should be separate from pure unit tests.
+
+---
+
+# 33. ROS 2 Bag Recording
+
+During real-world tests, record relevant ROS 2 topics.
+
+At minimum, useful recordings include:
+
+```text
+/imu/data
+/scan
+/wheel/odometry
+/gps/fix
+/person_target
+/obstacles
+/motion/request
+/motion/safe_command
+/safety/state
+```
+
+Recorded data should be usable for offline analysis and algorithm development.
+
+---
+
+# 34. Visualization
+
+RViz 2 should be used where practical to visualize:
+
+- LiDAR scans
+- obstacles
+- person target
+- trolley pose
+- coordinate frames
+- odometry
+- motion commands
+- safety state
+
+Visualization must never be required for safe operation.
+
+---
+
+# 35. Navigation and Future Expansion
+
+Follow Me should initially remain independent of full autonomous navigation.
+
+If future requirements include:
+
+- autonomous travel between holes
+- course mapping
+- waypoint navigation
+- route planning
+
+evaluate ROS 2 Nav2 before implementing a custom navigation framework.
+
+A future architecture could become:
+
+```text
+GPS / IMU / Odometry / LiDAR
+              ↓
+        Localization
+              ↓
+             Map
+              ↓
+            Nav2
+              ↓
+       MotionRequest
+              ↓
+      Safety Controller
+              ↓
+         ODrive
+```
+
+---
+
+# 36. Hardware Abstraction
+
+High-level code must not depend directly on hardware APIs.
+
+Preferred pattern:
+
+```text
+Application
+     ↓
+Application Interface
+     ↓
+Hardware Interface
+     ↓
+Hardware Driver
+     ↓
+Physical Device
+```
+
+Examples:
+
+```text
+MotorController
+IMUSensor
+LidarSensor
+GPSSensor
+ForceSensor
+Camera
+```
+
+This makes unit testing and hardware replacement easier.
+
+---
+
+# 37. Failure and Recovery
+
+Every hardware integration should explicitly define:
+
+- startup behavior
+- connection loss
+- timeout behavior
+- invalid data behavior
+- recovery behavior
+- shutdown behavior
+
+Automatic recovery must be carefully considered for motor-related components.
+
+Reconnection must never automatically cause an unexpected motor start.
+
+After a safety-critical fault, returning to an operational state should generally require an explicit and deliberate user action.
+
+---
+
+# 38. Development Sequence
+
+Recommended implementation order:
+
+```text
+1.  ODrive communication
+2.  Motor commands
+3.  Encoder feedback
+4.  Central motion controller
+5.  Safety controller
+6.  Emergency / safe stop behavior
+7.  IMU
+8.  Basic state estimation
+9.  Rollback Protection
+10. Hill Descent Brake
+11. Hill Assist
+12. LiDAR
+13. Obstacle detection
+14. Follow Me
+15. Camera perception
+16. GPS / localization
+17. Mapping
+18. Autonomous navigation
+```
+
+Each stage should be validated before adding the next layer of complexity.
+
+---
+
+# 39. Design Principles
+
+When implementing new functionality:
+
+### Prefer explicit state over implicit behavior
+
+Use state machines for complex behavior.
+
+### Prefer interfaces over hardware coupling
+
+High-level algorithms should not know whether data comes from a particular sensor model.
+
+### Prefer stopping over guessing
+
+If safety-relevant information is unavailable or contradictory, stop.
+
+### Prefer one source of authority
+
+The Safety Controller is the authority for whether motion is permitted.
+
+### Prefer measured behavior over assumptions
+
+Use encoder feedback, sensor timestamps, and diagnostics to verify that the physical system behaves as commanded.
+
+### Prefer incremental integration
+
+Do not integrate multiple new hardware components and autonomous behaviors simultaneously.
+
+---
+
+# 40. External References
+
+## ODrive
+
+ODrive 0.5.6 documentation:
+
+https://docs.odriverobotics.com/v/0.5.6/getting-started.html
+
+The actual ODrive firmware/API version used by the project must be verified before implementing or modifying the driver.
+
+Do not assume that APIs from newer ODrive versions are compatible with ODrive 3.6 / firmware 0.5.6.
+
+---
+
+# 41. Open Architectural Decisions
+
+The following decisions should be finalized during implementation:
+
+- ODrive communication interface (USB/CAN/etc.)
+- exact ROS 2 package structure
+- exact ROS 2 message definitions
+- sensor mounting positions
+- coordinate-frame convention
+- control-loop frequencies
+- ROS 2 QoS settings
+- executor/threading model
+- battery monitoring implementation
+- emergency-stop implementation
+- exact obstacle stopping model
+- Follow Me target-tracking algorithm
+- IMU sensor-fusion algorithm
+- localization approach
+- simulation environment
+- deployment/update mechanism
+
+Architectural decisions should be recorded here as the implementation matures rather than being left implicit in source code.
