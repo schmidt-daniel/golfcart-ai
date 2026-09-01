@@ -37,7 +37,7 @@ Hardware being used:
 - Raspberry Pi 5
 - Raspberry Pi HQ camera
 - ODrive 3.6 motor controller
-- Hoverboard DC motors
+- Hoverboard DC motors with integrated encoders
 - FHL-LD19P Lidar for terrain/environment scanning and hazard/obstacle detection
 - Li-Ion 36V battery pack
 - Force sensors for supported pushing and braking (by grabbing the handle)
