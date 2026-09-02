@@ -14,6 +14,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/MotorCommand.msg"
   "msg/MotorState.msg"
   "msg/BatteryState.msg"
+  "msg/ImuData.msg"
   DEPENDENCIES builtin_interfaces
 )
 

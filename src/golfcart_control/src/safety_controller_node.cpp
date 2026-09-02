@@ -4,6 +4,7 @@
 
 #include "geometry_msgs/msg/twist.hpp"
 #include "golfcart_msgs/msg/battery_state.hpp"
+#include "golfcart_msgs/msg/imu_data.hpp"
 #include "golfcart_msgs/msg/motion_request.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -60,6 +61,14 @@ public:
         battery_critical_ = msg->valid && msg->charge_percent <= 0.0f;
       });
 
+    imu_sub_ = create_subscription<golfcart_msgs::msg::ImuData>(
+      "imu/data", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::ImuData::SharedPtr msg) {
+        if (msg->valid) {
+          excessive_roll_ = std::abs(msg->roll_rad) > max_roll_rad_;
+        }
+      });
+
     enable_srv_ = create_service<std_srvs::srv::Trigger>(
       "safety/enable",
       [this](const std::shared_ptr<std_srvs::srv::Trigger::Request>,
@@ -102,6 +111,7 @@ public:
 
     const double rate_hz = declare_parameter<double>("control_rate_hz", 50.0);
     request_timeout_s_ = declare_parameter<double>("request_timeout_s", 0.5);
+    max_roll_rad_ = declare_parameter<double>("max_roll_rad", 0.6);  // ~34 deg
 
     const auto period = std::chrono::duration<double>(1.0 / rate_hz);
     timer_ = create_wall_timer(
@@ -109,6 +119,13 @@ public:
       [this]() {
         // Critical battery: force a safe stop.
         if (battery_critical_) {
+          if (state_ == SafetyState::MOVING || state_ == SafetyState::LIMITED) {
+            state_ = SafetyState::READY;
+            publish_safe(0.0, 0.0);
+          }
+        }
+        // Excessive roll (tip-over risk): force a safe stop.
+        if (excessive_roll_) {
           if (state_ == SafetyState::MOVING || state_ == SafetyState::LIMITED) {
             state_ = SafetyState::READY;
             publish_safe(0.0, 0.0);
@@ -133,11 +150,14 @@ private:
   double max_linear_ = 1.0;
   double max_angular_ = 1.0;
   double request_timeout_s_ = 0.5;
+  double max_roll_rad_ = 0.6;
   bool battery_critical_ = false;
+  bool excessive_roll_ = false;
   rclcpp::Time last_request_time_;
 
   rclcpp::Subscription<golfcart_msgs::msg::MotionRequest>::SharedPtr req_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::BatteryState>::SharedPtr battery_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::ImuData>::SharedPtr imu_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr safe_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr enable_srv_;

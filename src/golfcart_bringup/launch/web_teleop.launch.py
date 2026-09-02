@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Launch the full joystick-control pipeline.
+"""Launch the web teleop pipeline.
+
+Starts the control pipeline (odrive, motion, safety, battery) plus
+rosbridge_server (WebSocket, port 9090) and the web teleop HTTP server
+(port 8080).
 
 Usage:
-  ros2 launch golfcart_bringup joystick_control.launch.py implementation:=mock
-  ros2 launch golfcart_bringup joystick_control.launch.py implementation:=odrive
-  ros2 launch golfcart_bringup joystick_control.launch.py port:=/dev/ttyACM0
+  ros2 launch golfcart_bringup web_teleop.launch.py implementation:=mock
 """
 
 from launch import LaunchDescription
@@ -18,12 +20,7 @@ def generate_launch_description():
         'implementation', default_value='mock',
         description='Motor controller implementation: mock or odrive')
 
-    port_arg = DeclareLaunchArgument(
-        'port', default_value='/dev/ttyACM0',
-        description='Arduino serial port')
-
     implementation = LaunchConfiguration('implementation')
-    port = LaunchConfiguration('port')
 
     odrive_node = Node(
         package='golfcart_odrive',
@@ -61,21 +58,28 @@ def generate_launch_description():
         output='screen',
     )
 
-    joystick_node = Node(
+    # rosbridge_server exposes ROS 2 over WebSocket (port 9090).
+    rosbridge = Node(
+        package='rosbridge_server',
+        executable='rosbridge_websocket',
+        name='rosbridge_websocket',
+        output='screen',
+    )
+
+    # HTTP server serving the web teleop page (port 8080).
+    web_server = Node(
         package='golfcart_teleop',
-        executable='arduino_joystick_node',
-        name='arduino_joystick_node',
-        parameters=[{'port': port}],
+        executable='web_teleop_server',
+        name='web_teleop_server',
         output='screen',
     )
 
     return LaunchDescription([
         impl_arg,
-        port_arg,
         odrive_node,
         motion_controller,
         safety_controller,
         battery_node,
-        imu_node,
-        joystick_node,
+        rosbridge,
+        web_server,
     ])

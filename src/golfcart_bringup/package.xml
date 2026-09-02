@@ -10,6 +10,8 @@
   <exec_depend>golfcart_odrive</exec_depend>
   <exec_depend>golfcart_control</exec_depend>
   <exec_depend>golfcart_teleop</exec_depend>
+  <exec_depend>golfcart_imu</exec_depend>
+  <exec_depend>rosbridge_server</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>

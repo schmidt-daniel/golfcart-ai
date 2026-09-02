@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golf Cart Web Teleop</title>
+  <script src="https://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin: 20px; }
+    .btn { font-size: 1.5em; padding: 20px 30px; margin: 10px; border: none; border-radius: 8px; cursor: pointer; }
+    .btn:active { transform: scale(0.95); }
+    .enable { background: #4CAF50; color: white; }
+    .stop { background: #f44336; color: white; }
+    .status { margin: 20px; font-size: 1.2em; }
+    .status span { font-weight: bold; }
+    #conn { color: #888; }
+  </style>
+</head>
+<body>
+  <h1>Golf Cart Web Teleop</h1>
+  <p id="conn">Connecting...</p>
+
+  <div class="status">
+    <p>Safety: <span id="safety">unknown</span></p>
+    <p>Speed: <span id="speed">0.0</span> m/s</p>
+    <p>Battery: <span id="battery">--</span> V</p>
+  </div>
+
+  <div>
+    <button class="btn enable" id="enableBtn">ENABLE</button>
+    <button class="btn stop" id="stopBtn">STOP</button>
+  </div>
+
+  <div>
+    <button class="btn" id="fwd">▲</button>
+  </div>
+  <div>
+    <button class="btn" id="left">◀</button>
+    <button class="btn" id="stopMove">■</button>
+    <button class="btn" id="right">▶</button>
+  </div>
+  <div>
+    <button class="btn" id="back">▼</button>
+  </div>
+
+  <script>
+    // Connect to rosbridge_server (default port 9090).
+    var ros = new ROSLIB.Ros({ url: 'ws://' + location.hostname + ':9090' });
+
+    ros.on('connection', function () {
+      document.getElementById('conn').textContent = 'Connected';
+      document.getElementById('conn').style.color = '#4CAF50';
+    });
+    ros.on('error', function (e) {
+      document.getElementById('conn').textContent = 'Error: ' + e;
+      document.getElementById('conn').style.color = '#f44336';
+    });
+    ros.on('close', function () {
+      document.getElementById('conn').textContent = 'Disconnected';
+      document.getElementById('conn').style.color = '#888';
+    });
+
+    // MotionRequest publisher.
+    var motionPub = new ROSLIB.Topic({
+      ros: ros,
+      name: '/motion/request',
+      messageType: 'golfcart_msgs/msg/MotionRequest'
+    });
+
+    // Safety services.
+    var enableSrv = new ROSLIB.Service({ ros: ros, name: '/safety/enable', serviceType: 'std_srvs/srv/Trigger' });
+    var stopSrv = new ROSLIB.Service({ ros: ros, name: '/safety/stop', serviceType: 'std_srvs/srv/Trigger' });
+
+    // Status subscriptions.
+    var safetySub = new ROSLIB.Topic({ ros: ros, name: '/safety/state', messageType: 'std_msgs/msg/String' });
+    safetySub.subscribe(function (msg) {
+      document.getElementById('safety').textContent = msg.data;
+    });
+
+    var motorSub = new ROSLIB.Topic({ ros: ros, name: '/motor/state', messageType: 'golfcart_msgs/msg/MotorState' });
+    motorSub.subscribe(function (msg) {
+      var speed = (Math.abs(msg.left_velocity) + Math.abs(msg.right_velocity)) / 2;
+      document.getElementById('speed').textContent = speed.toFixed(2);
+    });
+
+    var batterySub = new ROSLIB.Topic({ ros: ros, name: '/battery/state', messageType: 'golfcart_msgs/msg/BatteryState' });
+    batterySub.subscribe(function (msg) {
+      document.getElementById('battery').textContent = msg.voltage_v.toFixed(1);
+    });
+
+    // Publish a motion request.
+    function publishMotion(linear, angular) {
+      var msg = new ROSLIB.Message({
+        linear_velocity_mps: linear,
+        angular_velocity_radps: angular,
+        source: 'web',
+        priority: 1,
+        timestamp: { sec: Math.floor(Date.now() / 1000), nanosec: 0 }
+      });
+      motionPub.publish(msg);
+    }
+
+    // Safety service calls.
+    function callService(srv) {
+      var req = new ROSLIB.ServiceRequest({});
+      srv.callService(req, function (resp) {
+        console.log(resp.message);
+      });
+    }
+
+    document.getElementById('enableBtn').onclick = function () { callService(enableSrv); };
+    document.getElementById('stopBtn').onclick = function () { callService(stopSrv); };
+
+    // Directional buttons (press to move, release to stop).
+    var SPEED = 0.5;
+    var TURN = 0.5;
+
+    function bindHold(id, linear, angular) {
+      var el = document.getElementById(id);
+      el.addEventListener('mousedown', function () { publishMotion(linear, angular); });
+      el.addEventListener('mouseup', function () { publishMotion(0, 0); });
+      el.addEventListener('touchstart', function (e) { e.preventDefault(); publishMotion(linear, angular); });
+      el.addEventListener('touchend', function (e) { e.preventDefault(); publishMotion(0, 0); });
+    }
+
+    bindHold('fwd', SPEED, 0);
+    bindHold('back', -SPEED, 0);
+    bindHold('left', 0, TURN);
+    bindHold('right', 0, -TURN);
+    document.getElementById('stopMove').onclick = function () { publishMotion(0, 0); };
+  </script>
+</body>
+</html>

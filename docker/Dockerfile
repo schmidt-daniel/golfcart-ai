@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-ament-cmake-gtest \
     ros-${ROS_DISTRO}-launch \
     ros-${ROS_DISTRO}-launch-ros \
+    ros-${ROS_DISTRO}-rosbridge-server \
     && rm -rf /var/lib/apt/lists/*
 
 # Source ROS in every shell.

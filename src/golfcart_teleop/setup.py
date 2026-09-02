@@ -9,6 +9,7 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/web', ['web/index.html']),
     ],
     install_requires=['setuptools', 'pyserial'],
     zip_safe=True,
@@ -21,6 +22,7 @@ setup(
             'joystick_node = golfcart_teleop.joystick_node:main',
             'arduino_joystick_node = golfcart_teleop.arduino_joystick_node:main',
             'keyboard_teleop_node = golfcart_teleop.keyboard_teleop_node:main',
+            'web_teleop_server = golfcart_teleop.web_teleop_server:main',
         ],
     },
 )

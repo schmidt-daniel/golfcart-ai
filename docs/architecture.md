@@ -244,8 +244,8 @@ The initial node architecture should be approximately:
 Hardware Nodes
 ├── odrive_node
 ├── battery_node
-├── lidar_node
 ├── imu_node
+├── lidar_node
 ├── gps_node
 ├── camera_node
 ├── force_sensor_node
