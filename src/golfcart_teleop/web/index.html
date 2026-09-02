@@ -4,16 +4,30 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Golf Cart Web Teleop</title>
+  <!-- ROS 2 web client -->
   <script src="https://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+  <!-- Leaflet map (OpenStreetMap tiles, no API key) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    body { font-family: sans-serif; text-align: center; margin: 20px; }
-    .btn { font-size: 1.5em; padding: 20px 30px; margin: 10px; border: none; border-radius: 8px; cursor: pointer; }
+    body { font-family: sans-serif; text-align: center; margin: 0; }
+    h1 { margin: 10px; }
+    #conn { color: #888; }
+    .status { margin: 10px; font-size: 1.1em; }
+    .status span { font-weight: bold; }
+    .btn { font-size: 1.4em; padding: 15px 25px; margin: 6px; border: none; border-radius: 8px; cursor: pointer; }
     .btn:active { transform: scale(0.95); }
     .enable { background: #4CAF50; color: white; }
     .stop { background: #f44336; color: white; }
-    .status { margin: 20px; font-size: 1.2em; }
-    .status span { font-weight: bold; }
-    #conn { color: #888; }
+    .summon { background: #2196F3; color: white; }
+    #map { height: 50vh; width: 100%; }
+    .controls { padding: 10px; }
+    .legend { font-size: 0.9em; margin: 5px; }
+    .legend span { display: inline-block; margin: 0 10px; }
+    .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+    .phone-dot { background: #2196F3; }
+    .trolley-dot { background: #4CAF50; }
+    .target-dot { background: #f44336; }
   </style>
 </head>
 <body>
@@ -21,30 +35,38 @@
   <p id="conn">Connecting...</p>
 
   <div class="status">
-    <p>Safety: <span id="safety">unknown</span></p>
-    <p>Speed: <span id="speed">0.0</span> m/s</p>
-    <p>Battery: <span id="battery">--</span> V</p>
+    <p>Safety: <span id="safety">unknown</span> | Speed: <span id="speed">0.0</span> m/s | Battery: <span id="battery">--</span> V</p>
   </div>
 
-  <div>
+  <!-- Map -->
+  <div id="map"></div>
+  <div class="legend">
+    <span><span class="dot phone-dot"></span>Phone</span>
+    <span><span class="dot trolley-dot"></span>Trolley</span>
+    <span><span class="dot target-dot"></span>Target</span>
+  </div>
+  <p class="legend">Tap the map to set a target, then press SUMMON.</p>
+
+  <div class="controls">
     <button class="btn enable" id="enableBtn">ENABLE</button>
     <button class="btn stop" id="stopBtn">STOP</button>
+    <button class="btn summon" id="summonBtn">SUMMON</button>
   </div>
 
-  <div>
+  <div class="controls">
     <button class="btn" id="fwd">▲</button>
   </div>
-  <div>
+  <div class="controls">
     <button class="btn" id="left">◀</button>
     <button class="btn" id="stopMove">■</button>
     <button class="btn" id="right">▶</button>
   </div>
-  <div>
+  <div class="controls">
     <button class="btn" id="back">▼</button>
   </div>
 
   <script>
-    // Connect to rosbridge_server (default port 9090).
+    // ---- ROS connection ----
     var ros = new ROSLIB.Ros({ url: 'ws://' + location.hostname + ':9090' });
 
     ros.on('connection', function () {
@@ -60,22 +82,16 @@
       document.getElementById('conn').style.color = '#888';
     });
 
-    // MotionRequest publisher.
+    // ---- Publishers / services ----
     var motionPub = new ROSLIB.Topic({
-      ros: ros,
-      name: '/motion/request',
-      messageType: 'golfcart_msgs/msg/MotionRequest'
+      ros: ros, name: '/motion/request', messageType: 'golfcart_msgs/msg/MotionRequest'
     });
-
-    // Safety services.
     var enableSrv = new ROSLIB.Service({ ros: ros, name: '/safety/enable', serviceType: 'std_srvs/srv/Trigger' });
     var stopSrv = new ROSLIB.Service({ ros: ros, name: '/safety/stop', serviceType: 'std_srvs/srv/Trigger' });
 
-    // Status subscriptions.
+    // ---- Status subscriptions ----
     var safetySub = new ROSLIB.Topic({ ros: ros, name: '/safety/state', messageType: 'std_msgs/msg/String' });
-    safetySub.subscribe(function (msg) {
-      document.getElementById('safety').textContent = msg.data;
-    });
+    safetySub.subscribe(function (msg) { document.getElementById('safety').textContent = msg.data; });
 
     var motorSub = new ROSLIB.Topic({ ros: ros, name: '/motor/state', messageType: 'golfcart_msgs/msg/MotorState' });
     motorSub.subscribe(function (msg) {
@@ -88,7 +104,52 @@
       document.getElementById('battery').textContent = msg.voltage_v.toFixed(1);
     });
 
-    // Publish a motion request.
+    // ---- Map ----
+    var map = L.map('map').setView([51.5, -0.12], 16);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    var phoneMarker = L.marker([51.5, -0.12], { title: 'Phone' }).addTo(map).bindPopup('Phone');
+    var trolleyMarker = L.marker([51.5, -0.12], { title: 'Trolley' }).addTo(map).bindPopup('Trolley');
+    var targetMarker = null;
+
+    // ---- Phone location (browser geolocation) ----
+    var phoneLat = null, phoneLon = null;
+    if (navigator.geolocation) {
+      navigator.geolocation.watchPosition(function (pos) {
+        phoneLat = pos.coords.latitude;
+        phoneLon = pos.coords.longitude;
+        phoneMarker.setLatLng([phoneLat, phoneLon]);
+        // Center the map on the phone on first fix.
+        if (!map._userCentered) {
+          map.setView([phoneLat, phoneLon], 16);
+        }
+      }, function (err) {
+        console.warn('Geolocation error:', err);
+      }, { enableHighAccuracy: true, maximumAge: 1000 });
+    } else {
+      console.warn('Geolocation not supported');
+    }
+
+    // ---- Trolley location (from /gps/fix) ----
+    var gpsSub = new ROSLIB.Topic({ ros: ros, name: '/gps/fix', messageType: 'golfcart_msgs/msg/GpsFix' });
+    gpsSub.subscribe(function (msg) {
+      if (msg.valid) {
+        trolleyMarker.setLatLng([msg.latitude_deg, msg.longitude_deg]);
+      }
+    });
+
+    // ---- Target setting (tap on map) ----
+    var targetLat = null, targetLon = null;
+    map.on('click', function (e) {
+      targetLat = e.latlng.lat;
+      targetLon = e.latlng.lng;
+      if (targetMarker) { map.removeLayer(targetMarker); }
+      targetMarker = L.marker([targetLat, targetLon], { title: 'Target' }).addTo(map).bindPopup('Target').openPopup();
+    });
+
+    // ---- Motion publishing ----
     function publishMotion(linear, angular) {
       var msg = new ROSLIB.Message({
         linear_velocity_mps: linear,
@@ -100,21 +161,31 @@
       motionPub.publish(msg);
     }
 
-    // Safety service calls.
     function callService(srv) {
       var req = new ROSLIB.ServiceRequest({});
-      srv.callService(req, function (resp) {
-        console.log(resp.message);
-      });
+      srv.callService(req, function (resp) { console.log(resp.message); });
     }
 
     document.getElementById('enableBtn').onclick = function () { callService(enableSrv); };
     document.getElementById('stopBtn').onclick = function () { callService(stopSrv); };
 
-    // Directional buttons (press to move, release to stop).
+    // ---- Summon (target-based) ----
+    // NOTE: The summon service does not exist yet. This is a placeholder that
+    // logs the target. It will call a /summon service once implemented.
+    document.getElementById('summonBtn').onclick = function () {
+      if (targetLat === null || targetLon === null) {
+        alert('Set a target on the map first.');
+        return;
+      }
+      console.log('Summon to target:', targetLat, targetLon);
+      // TODO: call /summon service with targetLat/targetLon when implemented.
+      alert('Summon target set: ' + targetLat.toFixed(6) + ', ' + targetLon.toFixed(6) +
+        ' (summon service not yet implemented)');
+    };
+
+    // ---- Directional buttons ----
     var SPEED = 0.5;
     var TURN = 0.5;
-
     function bindHold(id, linear, angular) {
       var el = document.getElementById(id);
       el.addEventListener('mousedown', function () { publishMotion(linear, angular); });
@@ -122,7 +193,6 @@
       el.addEventListener('touchstart', function (e) { e.preventDefault(); publishMotion(linear, angular); });
       el.addEventListener('touchend', function (e) { e.preventDefault(); publishMotion(0, 0); });
     }
-
     bindHold('fwd', SPEED, 0);
     bindHold('back', -SPEED, 0);
     bindHold('left', 0, TURN);
