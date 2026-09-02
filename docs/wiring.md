@@ -152,9 +152,26 @@ x:<0-1023>,y:<0-1023>,btn:<0|1>
 | --- | --- | --- |
 | USB port | ODrive 3.6 (USB-C) | Motor control |
 | USB port | Arduino Uno (USB) | Joystick input |
+| I2C (GPIO 2/3) | INA219 battery monitor | Battery voltage/current |
 | USB-C power | 5 V regulator (from battery) | Power |
 
 ---
+
+## 5.1 Battery Monitor (INA219)
+
+The INA219 measures battery voltage and current over I2C.
+
+| INA219 Pin | Connects To | Notes |
+| --- | --- | --- |
+| `VIN+` / `VIN-` | In series with battery + lead | Current sense |
+| `VIN-` | ODrive power input | |
+| `SDA` | RPi 5 GPIO 2 (I2C SDA) | |
+| `SCL` | RPi 5 GPIO 3 (I2C SCL) | |
+| `VCC` | 3.3 V | |
+| `GND` | GND | |
+
+The `battery_node` publishes `BatteryState` on `/battery/state`. The Safety
+Controller stops motion if the battery is critical.
 
 ## 6. Safety Notes
 
@@ -181,5 +198,6 @@ x:<0-1023>,y:<0-1023>,btn:<0|1>
 | Arduino Uno R3 | 1 | Joystick interface |
 | Analog 2-axis joystick + button | 1 | Input |
 | 36 V Li-Ion battery | 1 | Main power |
+| INA219 battery monitor | 1 | Battery voltage/current |
 | 5 V regulator (5 A) | 1 | Powers RPi 5 |
 | Fuse / circuit breaker | 1 | Battery → ODrive |

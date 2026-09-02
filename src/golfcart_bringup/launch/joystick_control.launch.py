@@ -47,6 +47,13 @@ def generate_launch_description():
         output='screen',
     )
 
+    battery_node = Node(
+        package='golfcart_odrive',
+        executable='battery_node',
+        name='battery_node',
+        output='screen',
+    )
+
     joystick_node = Node(
         package='golfcart_teleop',
         executable='arduino_joystick_node',
@@ -61,5 +68,6 @@ def generate_launch_description():
         odrive_node,
         motion_controller,
         safety_controller,
+        battery_node,
         joystick_node,
     ])

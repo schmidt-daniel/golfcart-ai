@@ -3,6 +3,7 @@
 #include <string>
 
 #include "geometry_msgs/msg/twist.hpp"
+#include "golfcart_msgs/msg/battery_state.hpp"
 #include "golfcart_msgs/msg/motion_request.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -53,6 +54,12 @@ public:
         handle_request(msg);
       });
 
+    battery_sub_ = create_subscription<golfcart_msgs::msg::BatteryState>(
+      "battery/state", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::BatteryState::SharedPtr msg) {
+        battery_critical_ = msg->valid && msg->charge_percent <= 0.0f;
+      });
+
     enable_srv_ = create_service<std_srvs::srv::Trigger>(
       "safety/enable",
       [this](const std::shared_ptr<std_srvs::srv::Trigger::Request>,
@@ -100,6 +107,13 @@ public:
     timer_ = create_wall_timer(
       std::chrono::duration_cast<std::chrono::milliseconds>(period),
       [this]() {
+        // Critical battery: force a safe stop.
+        if (battery_critical_) {
+          if (state_ == SafetyState::MOVING || state_ == SafetyState::LIMITED) {
+            state_ = SafetyState::READY;
+            publish_safe(0.0, 0.0);
+          }
+        }
         // If no motion request has arrived recently, stop.
         if (state_ == SafetyState::MOVING || state_ == SafetyState::LIMITED) {
           const double age = (now() - last_request_time_).seconds();
@@ -119,9 +133,11 @@ private:
   double max_linear_ = 1.0;
   double max_angular_ = 1.0;
   double request_timeout_s_ = 0.5;
+  bool battery_critical_ = false;
   rclcpp::Time last_request_time_;
 
   rclcpp::Subscription<golfcart_msgs::msg::MotionRequest>::SharedPtr req_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::BatteryState>::SharedPtr battery_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr safe_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr enable_srv_;

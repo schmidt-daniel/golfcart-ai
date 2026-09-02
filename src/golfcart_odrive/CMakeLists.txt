@@ -23,7 +23,10 @@ target_link_libraries(golfcart_odrive PUBLIC rclcpp::rclcpp golfcart_msgs::golfc
 add_executable(odrive_node src/odrive_node.cpp)
 target_link_libraries(odrive_node golfcart_odrive rclcpp::rclcpp golfcart_msgs::golfcart_msgs)
 
-install(TARGETS odrive_node
+add_executable(battery_node src/battery_node.cpp)
+target_link_libraries(battery_node rclcpp::rclcpp golfcart_msgs::golfcart_msgs)
+
+install(TARGETS odrive_node battery_node
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

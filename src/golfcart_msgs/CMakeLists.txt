@@ -13,6 +13,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/MotionRequest.msg"
   "msg/MotorCommand.msg"
   "msg/MotorState.msg"
+  "msg/BatteryState.msg"
   DEPENDENCIES builtin_interfaces
 )
 

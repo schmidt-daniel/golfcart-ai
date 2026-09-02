@@ -235,6 +235,7 @@ The initial node architecture should be approximately:
 ```text
 Hardware Nodes
 ├── odrive_node
+├── battery_node
 ├── lidar_node
 ├── imu_node
 ├── gps_node
@@ -1118,7 +1119,6 @@ The following decisions should be finalized during implementation:
 
 - enable / arm sequence (how the trolley is armed before motion)
 - sensor mounting positions
-- battery monitoring implementation
 - emergency-stop implementation
 - exact obstacle stopping model
 - Follow Me target-tracking algorithm
@@ -1187,3 +1187,13 @@ MVP and are now fixed.
 - **Rationale:** `MotionRequest` carries safety-relevant metadata; `Twist` is
   the ROS standard for velocity commands and interoperates with standard tools
   and Nav2.
+
+## Battery monitoring
+
+- **Decision:** Use an INA219 over I2C, read by a `battery_node` publishing
+  `BatteryState` on `/battery/state`. The Safety Controller stops motion when
+  the battery is critical.
+- **Rationale:** Battery state is safety-relevant (a dead battery mid-round is
+  a failure mode). The INA219 is cheap (~$5) and easy to integrate.
+- **Status:** `battery_node` scaffold reads the INA219 registers; the I2C read
+  via `/dev/i2c-N` is pending implementation.
