@@ -65,6 +65,20 @@
     <button class="btn" id="back">▼</button>
   </div>
 
+  <!-- Obstacle interaction modal (shown when an unexpected obstacle blocks the route) -->
+  <div id="obstacleModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:white; padding:30px; border-radius:10px; text-align:center; max-width:90%;">
+      <h2>⚠️ Unexpected Obstacle</h2>
+      <p>The trolley has stopped. An unexpected obstacle is blocking the route.</p>
+      <p>How should the trolley proceed?</p>
+      <div>
+        <button class="btn" id="obstacleRetry" style="background:#FF9800; color:white;">RETRY</button>
+        <button class="btn" id="obstacleReplan" style="background:#2196F3; color:white;">REPLAN</button>
+        <button class="btn stop" id="obstacleStop">STOP</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ---- ROS connection ----
     var ros = new ROSLIB.Ros({ url: 'ws://' + location.hostname + ':9090' });
@@ -198,6 +212,37 @@
     bindHold('left', 0, TURN);
     bindHold('right', 0, -TURN);
     document.getElementById('stopMove').onclick = function () { publishMotion(0, 0); };
+
+    // ---- Obstacle interaction (unexpected obstacle mid-route) ----
+    // NOTE: The navigation stack is not implemented yet. This modal is a
+    // placeholder that will be triggered by a /navigation/obstacle topic or
+    // service once navigation is built. The buttons will call the appropriate
+    // navigation services.
+    var obstacleModal = document.getElementById('obstacleModal');
+    function showObstacleModal() {
+      obstacleModal.style.display = 'flex';
+    }
+    function hideObstacleModal() {
+      obstacleModal.style.display = 'none';
+    }
+    document.getElementById('obstacleRetry').onclick = function () {
+      console.log('Obstacle: retry');
+      // TODO: call navigation retry service.
+      hideObstacleModal();
+    };
+    document.getElementById('obstacleReplan').onclick = function () {
+      console.log('Obstacle: replan');
+      // TODO: call navigation replan service.
+      hideObstacleModal();
+    };
+    document.getElementById('obstacleStop').onclick = function () {
+      console.log('Obstacle: stop');
+      callService(stopSrv);
+      hideObstacleModal();
+    };
+
+    // Placeholder: expose showObstacleModal for future wiring to a topic.
+    window.showObstacleModal = showObstacleModal;
   </script>
 </body>
 </html>

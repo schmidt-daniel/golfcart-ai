@@ -16,6 +16,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/BatteryState.msg"
   "msg/ImuData.msg"
   "msg/GpsFix.msg"
+  "msg/Obstacle.msg"
+  "msg/ObstacleState.msg"
   DEPENDENCIES builtin_interfaces
 )
 

@@ -31,6 +31,7 @@ This document covers the whole-system architecture. Individual features are docu
 | Web-Based Remote Teleop | [`features/web-teleop.md`](features/web-teleop.md) |
 | Auto-Shutdown / Sleep When Idle | [`features/auto-shutdown.md`](features/auto-shutdown.md) |
 | Route Recording and Replay | [`features/route-replay.md`](features/route-replay.md) |
+| Learning | [`features/learning.md`](features/learning.md) |
 | Geofencing / Stay-on-Course | [`features/geofencing.md`](features/geofencing.md) |
 | Speed Limiting by Zone | [`features/speed-zones.md`](features/speed-zones.md) |
 | Voice Control | [`features/voice-control.md`](features/voice-control.md) |

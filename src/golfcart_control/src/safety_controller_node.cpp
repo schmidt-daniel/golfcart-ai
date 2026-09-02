@@ -6,6 +6,7 @@
 #include "golfcart_msgs/msg/battery_state.hpp"
 #include "golfcart_msgs/msg/imu_data.hpp"
 #include "golfcart_msgs/msg/motion_request.hpp"
+#include "golfcart_msgs/msg/obstacle_state.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_srvs/srv/trigger.hpp"
@@ -66,6 +67,14 @@ public:
       [this](const golfcart_msgs::msg::ImuData::SharedPtr msg) {
         if (msg->valid) {
           excessive_roll_ = std::abs(msg->roll_rad) > max_roll_rad_;
+        }
+      });
+
+    obstacle_sub_ = create_subscription<golfcart_msgs::msg::ObstacleState>(
+      "obstacles/state", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::ObstacleState::SharedPtr msg) {
+        if (msg->valid) {
+          obstacle_in_zone_ = msg->obstacle_in_zone;
         }
       });
 
@@ -131,6 +140,13 @@ public:
             publish_safe(0.0, 0.0);
           }
         }
+        // Obstacle in stopping zone: force a safe stop.
+        if (obstacle_in_zone_) {
+          if (state_ == SafetyState::MOVING || state_ == SafetyState::LIMITED) {
+            state_ = SafetyState::READY;
+            publish_safe(0.0, 0.0);
+          }
+        }
         // If no motion request has arrived recently, stop.
         if (state_ == SafetyState::MOVING || state_ == SafetyState::LIMITED) {
           const double age = (now() - last_request_time_).seconds();
@@ -153,11 +169,13 @@ private:
   double max_roll_rad_ = 0.6;
   bool battery_critical_ = false;
   bool excessive_roll_ = false;
+  bool obstacle_in_zone_ = false;
   rclcpp::Time last_request_time_;
 
   rclcpp::Subscription<golfcart_msgs::msg::MotionRequest>::SharedPtr req_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::BatteryState>::SharedPtr battery_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::ImuData>::SharedPtr imu_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::ObstacleState>::SharedPtr obstacle_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr safe_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr enable_srv_;

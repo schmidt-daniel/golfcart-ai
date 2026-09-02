@@ -65,6 +65,27 @@ def generate_launch_description():
         output='screen',
     )
 
+    auto_shutdown = Node(
+        package='golfcart_power',
+        executable='auto_shutdown_node',
+        name='auto_shutdown_node',
+        output='screen',
+    )
+
+    lidar_node = Node(
+        package='golfcart_lidar',
+        executable='lidar_node',
+        name='lidar_node',
+        output='screen',
+    )
+
+    obstacle_detection = Node(
+        package='golfcart_lidar',
+        executable='obstacle_detection_node',
+        name='obstacle_detection_node',
+        output='screen',
+    )
+
     # rosbridge_server exposes ROS 2 over WebSocket (port 9090).
     rosbridge = Node(
         package='rosbridge_server',
@@ -87,6 +108,11 @@ def generate_launch_description():
         motion_controller,
         safety_controller,
         battery_node,
+        imu_node,
+        gps_node,
+        auto_shutdown,
+        lidar_node,
+        obstacle_detection,
         rosbridge,
         web_server,
     ])

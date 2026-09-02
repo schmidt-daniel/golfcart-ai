@@ -61,6 +61,8 @@ Summon is autonomous motion toward a person, so it requires extra care:
   course unsupervised.
 - **Physical stop override** — the operator must be able to stop it at any time.
 - **Speed limit** — summon should be slow and cautious.
+- **Operator interaction** — on an unexpected obstacle mid-route, stop and ask
+  the operator how to proceed via the web app.
 
 ## Effort and Sequencing
 
@@ -71,3 +73,5 @@ Summon is a **later-stage feature**. It depends on:
 3. Autonomous navigation / Nav2 (planned)
 
 The phone side is easy; the hard part is the navigation underneath.
+
+See `plans/plan-autonomous-navigation.prompt.md` for the full navigation plan.

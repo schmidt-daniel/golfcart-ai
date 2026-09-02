@@ -12,6 +12,8 @@
   <exec_depend>golfcart_teleop</exec_depend>
   <exec_depend>golfcart_imu</exec_depend>
   <exec_depend>golfcart_gps</exec_depend>
+  <exec_depend>golfcart_lidar</exec_depend>
+  <exec_depend>golfcart_power</exec_depend>
   <exec_depend>rosbridge_server</exec_depend>
 
   <export>

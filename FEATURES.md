@@ -37,13 +37,25 @@ features are added.
 - Publishes `GpsFix` (lat/lon/alt/speed/heading) on `/gps/fix` at 1 Hz
 - **Note:** real GPS NMEA driver is a scaffold (uses mock until implemented)
 
+### LiDAR + Obstacle Detection
+- `golfcart_lidar` package — `LidarSensor` interface, `MockLidarSensor`, `LidarSensorImpl` (scaffold), `lidar_node`
+- `lidar_node` publishes standard `sensor_msgs/LaserScan` on `/scan` at 10 Hz
+- `obstacle_detection_node` publishes `ObstacleState` on `/obstacles/state` (stopping zone)
+- Safety Controller stops motion on obstacle in the stopping zone
+- **Note:** real FHL-LD19P driver is a scaffold (uses mock until implemented)
+
+### Auto-Shutdown
+- `golfcart_power` package — `auto_shutdown_node` (watchdog)
+- Shuts down after configurable idle period
+- **Suppressed on roll-away risk** (slope from IMU, or motion detected)
+- Publishes `power/status`
+
 ## Not yet implemented (documented only)
 
 See `docs/features/` for design docs.
 
 - Follow Me
 - Hill Assist, Hill Descent Brake, Rollback Protection
-- Obstacle Detection
 - Localization (GPS node done; sensor fusion / localization pending)
 - Course Mapping
 - Autonomous Navigation / Nav2
@@ -53,7 +65,6 @@ See `docs/features/` for design docs.
 - Speed Zones
 - Voice Control
 - Summon
-- Auto-shutdown
 
 ## Key decisions (permanent)
 
