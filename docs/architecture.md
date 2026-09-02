@@ -16,6 +16,18 @@ The architecture is designed around the following principles:
 
 This document is the detailed architecture reference. `AGENT.md` contains the rules an autonomous coding agent must follow.
 
+This document covers the whole-system architecture. Individual features are documented in separate files:
+
+| Feature | File |
+| --- | --- |
+| Obstacle Detection and Stopping | [`obstacle-detection.md`](obstacle-detection.md) |
+| Follow Me | [`follow-me.md`](follow-me.md) |
+| Hill Assist | [`hill-assist.md`](hill-assist.md) |
+| Hill Descent Brake | [`hill-descent-brake.md`](hill-descent-brake.md) |
+| Rollback Protection | [`rollback-protection.md`](rollback-protection.md) |
+| GPS and Localization | [`gps-localization.md`](gps-localization.md) |
+| Navigation and Future Expansion | [`navigation.md`](navigation.md) |
+
 ---
 
 # 2. Target Platform
@@ -36,8 +48,8 @@ This document is the detailed architecture reference. `AGENT.md` contains the ru
 
 ## Software
 
-- Ubuntu 24.04
-- ROS 2 Jazzy
+- Ubuntu 26.04
+- ROS 2 Lyrical
 - C++ for safety-critical and hardware-facing components
 - Python for perception, AI, experimentation, and tooling where appropriate
 - RViz 2 for visualization
@@ -50,7 +62,7 @@ This document is the detailed architecture reference. `AGENT.md` contains the ru
 ```text
                          ┌─────────────────────────┐
                          │      Raspberry Pi 5      │
-                         │       Ubuntu 24.04       │
+                         │       Ubuntu 26.04       │
                          │         ROS 2            │
                          └────────────┬────────────┘
                                       │
@@ -638,172 +650,7 @@ LiDAR must not be treated as infallible.
 
 ---
 
-# 16. Obstacle Detection and Stopping
-
-Obstacle detection is a safety-related function.
-
-The system should maintain a configurable stopping zone in front of the trolley.
-
-The stopping threshold should consider:
-
-- current speed
-- stopping distance
-- reaction time
-- sensor latency
-- terrain/slope
-- configured safety margin
-
-Obstacle detection should result in a safety-layer decision rather than directly commanding the motors.
-
-Conceptually:
-
-```text
-LiDAR
-  ↓
-Obstacle Detector
-  ↓
-Obstacle State
-  ↓
-Safety Controller
-  ↓
-STOP / LIMIT / ALLOW
-```
-
----
-
-# 17. Follow Me
-
-Follow Me consists of separate stages:
-
-```text
-Sensor Data
-    ↓
-Person Detection
-    ↓
-Person Tracking
-    ↓
-Target Validation
-    ↓
-Follow Controller
-    ↓
-MotionRequest
-```
-
-The Follow Me controller should consume an abstract `PersonTarget`.
-
-Example:
-
-```text
-PersonTarget
-    distance_m
-    lateral_offset_m
-    relative_velocity_mps
-    confidence
-    timestamp
-    valid
-```
-
-The initial implementation may detect a person's legs from LiDAR.
-
-The architecture must allow later implementations using:
-
-- camera detection
-- LiDAR + camera fusion
-- improved tracking algorithms
-
-without rewriting the Follow Me controller.
-
-## Follow Me stop conditions
-
-The trolley must stop if:
-
-- the person target is lost
-- confidence falls below the required threshold
-- the person approaches the trolley unexpectedly
-- an obstacle is detected
-- required sensor data becomes stale
-- the Safety Controller rejects the motion request
-
-The trolley must not blindly continue toward the target's last known position.
-
----
-
-# 18. Hill Assist
-
-Hill Assist determines when additional propulsion assistance is appropriate.
-
-Inputs may include:
-
-- IMU inclination
-- wheel velocity
-- handle force
-- direction of travel
-
-The first implementation should preferably use explicit user activation.
-
-Automatic activation can be introduced after the basic system is validated.
-
-Activation and deactivation must use hysteresis to prevent rapid switching around a threshold.
-
----
-
-# 19. Hill Descent Brake
-
-Hill Descent Brake is responsible for preventing uncontrolled downhill acceleration.
-
-Inputs:
-
-- IMU inclination
-- wheel velocity
-- direction of travel
-
-The system should distinguish:
-
-```text
-stationary on slope
-moving uphill
-moving downhill
-```
-
-Braking should normally be smooth.
-
-An emergency stop may override smooth braking if required for safety.
-
----
-
-# 20. Rollback Protection
-
-Rollback Protection prevents unintended backward movement.
-
-Primary input:
-
-- wheel encoder velocity
-
-The detection algorithm should distinguish actual backward movement from:
-
-- encoder noise
-- measurement jitter
-- transient sign changes
-
-When rollback is confirmed:
-
-```text
-Backward movement detected
-        ↓
-Safety Controller
-        ↓
-Apply braking
-        ↓
-Prevent continued backward movement
-        ↓
-Report event
-```
-
-Rollback protection must not depend solely on the IMU.
-
----
-
-# 21. Force Sensors
+# 16. Force Sensors
 
 Force sensors in the handle provide information about user interaction.
 
@@ -833,37 +680,7 @@ The exact interpretation should be established experimentally.
 
 ---
 
-# 22. GPS and Localization
-
-GPS provides coarse global localization.
-
-It may be used for:
-
-- mapping
-- recording trolley routes
-- future navigation
-- hole/course localization
-
-GPS must not be used as the sole mechanism for:
-
-- collision avoidance
-- precise obstacle positioning
-- short-range positioning
-
-A future localization system may combine:
-
-```text
-GPS
-IMU
-wheel odometry
-LiDAR
-```
-
-using sensor fusion.
-
----
-
-# 23. Coordinate Frames
+# 17. Coordinate Frames
 
 The system must use a consistent coordinate-frame convention.
 
@@ -905,7 +722,7 @@ The exact frame tree will be finalized during implementation.
 
 ---
 
-# 24. Time and Sensor Freshness
+# 18. Time and Sensor Freshness
 
 All sensor data must be timestamped.
 
@@ -932,7 +749,7 @@ Stale safety-relevant data must not be treated as current.
 
 ---
 
-# 25. Timing and Control Loops
+# 19. Timing and Control Loops
 
 Control loops must have explicit update rates.
 
@@ -961,7 +778,7 @@ These are starting points, not validated safety requirements.
 
 ---
 
-# 26. ROS 2 QoS
+# 20. ROS 2 QoS
 
 QoS settings should reflect the semantics of each data stream.
 
@@ -988,7 +805,7 @@ Do not use reliable delivery indiscriminately for high-rate sensor streams if st
 
 ---
 
-# 27. Threading and Executors
+# 21. Threading and Executors
 
 The ROS 2 executor model must not allow a slow callback to block safety-critical processing.
 
@@ -1006,7 +823,7 @@ The executor/threading architecture should be documented once actual implementat
 
 ---
 
-# 28. HMI
+# 22. HMI
 
 The HMI consists of:
 
@@ -1031,7 +848,7 @@ A fault must not be cleared in a way that causes unexpected motor activation.
 
 ---
 
-# 29. Configuration
+# 23. Configuration
 
 Configuration should be centralized.
 
@@ -1070,7 +887,7 @@ Every parameter must have:
 
 ---
 
-# 30. Diagnostics
+# 24. Diagnostics
 
 Diagnostics should expose:
 
@@ -1088,7 +905,7 @@ A diagnostic failure must not silently result in continued operation if the affe
 
 ---
 
-# 31. Logging
+# 25. Logging
 
 Log important events including:
 
@@ -1111,7 +928,7 @@ Use aggregation or throttling where appropriate.
 
 ---
 
-# 32. Simulation and Testing
+# 26. Simulation and Testing
 
 Software should be structured so that hardware can be replaced by mocks or simulators.
 
@@ -1131,7 +948,7 @@ Hardware integration tests should be separate from pure unit tests.
 
 ---
 
-# 33. ROS 2 Bag Recording
+# 27. ROS 2 Bag Recording
 
 During real-world tests, record relevant ROS 2 topics.
 
@@ -1153,7 +970,7 @@ Recorded data should be usable for offline analysis and algorithm development.
 
 ---
 
-# 34. Visualization
+# 28. Visualization
 
 RViz 2 should be used where practical to visualize:
 
@@ -1170,40 +987,7 @@ Visualization must never be required for safe operation.
 
 ---
 
-# 35. Navigation and Future Expansion
-
-Follow Me should initially remain independent of full autonomous navigation.
-
-If future requirements include:
-
-- autonomous travel between holes
-- course mapping
-- waypoint navigation
-- route planning
-
-evaluate ROS 2 Nav2 before implementing a custom navigation framework.
-
-A future architecture could become:
-
-```text
-GPS / IMU / Odometry / LiDAR
-              ↓
-        Localization
-              ↓
-             Map
-              ↓
-            Nav2
-              ↓
-       MotionRequest
-              ↓
-      Safety Controller
-              ↓
-         ODrive
-```
-
----
-
-# 36. Hardware Abstraction
+# 29. Hardware Abstraction
 
 High-level code must not depend directly on hardware APIs.
 
@@ -1236,7 +1020,7 @@ This makes unit testing and hardware replacement easier.
 
 ---
 
-# 37. Failure and Recovery
+# 30. Failure and Recovery
 
 Every hardware integration should explicitly define:
 
@@ -1255,7 +1039,7 @@ After a safety-critical fault, returning to an operational state should generall
 
 ---
 
-# 38. Development Sequence
+# 31. Development Sequence
 
 Recommended implementation order:
 
@@ -1284,7 +1068,7 @@ Each stage should be validated before adding the next layer of complexity.
 
 ---
 
-# 39. Design Principles
+# 32. Design Principles
 
 When implementing new functionality:
 
@@ -1314,7 +1098,7 @@ Do not integrate multiple new hardware components and autonomous behaviors simul
 
 ---
 
-# 40. External References
+# 33. External References
 
 ## ODrive
 
@@ -1328,18 +1112,12 @@ Do not assume that APIs from newer ODrive versions are compatible with ODrive 3.
 
 ---
 
-# 41. Open Architectural Decisions
+# 34. Open Architectural Decisions
 
 The following decisions should be finalized during implementation:
 
-- ODrive communication interface (USB/CAN/etc.)
-- exact ROS 2 package structure
-- exact ROS 2 message definitions
+- enable / arm sequence (how the trolley is armed before motion)
 - sensor mounting positions
-- coordinate-frame convention
-- control-loop frequencies
-- ROS 2 QoS settings
-- executor/threading model
 - battery monitoring implementation
 - emergency-stop implementation
 - exact obstacle stopping model
@@ -1350,3 +1128,62 @@ The following decisions should be finalized during implementation:
 - deployment/update mechanism
 
 Architectural decisions should be recorded here as the implementation matures rather than being left implicit in source code.
+
+---
+
+# 35. Permanent Decisions
+
+The following decisions are permanent and should not be changed without a
+strong, documented requirement. They were originally made for the joystick-control
+MVP and are now fixed.
+
+## ODrive communication interface
+
+- **Decision:** USB (serial).
+- **Rationale:** Simplest to get working; appears as `/dev/ttyUSB0`; the ODrive
+  SDK works over USB with minimal setup. CAN may be added later for lower
+  latency/robustness in production.
+- **Status:** ODrive driver is a scaffold pending implementation against the
+  verified ODrive 0.5.6 API.
+
+## ROS 2 QoS
+
+- **Decision:** Use `SensorDataQoS` (best-effort, small queue) for all
+  high-frequency streams (`/motion/request`, `/motion/safe_command`,
+  `/motor/command`, `/motor/state`). Use services for discrete operations
+  (`safety/enable`, `safety/stop`, `safety/fault`).
+- **Rationale:** Stale high-rate data is worse than dropped data; services are
+  appropriate for discrete, acknowledged operations.
+
+## Control-loop frequencies
+
+- **Decision:**
+  - Safety monitoring: 50 Hz
+  - Motion command: 50 Hz
+  - Motor state feedback: 20 Hz
+  - Joystick: event-driven (on `/joy`)
+- **Rationale:** The safety loop runs at or above the motion-command rate so it
+  can react quickly. Rates are configurable via parameters.
+
+## Coordinate-frame convention
+
+- **Decision:** Adopt REP-103 (ROS standard): `X` forward, `Y` left, `Z` up,
+  right-hand rule.
+- **Rationale:** Matches TF2, RViz, and standard drivers. Not yet exercised by
+  the MVP (no TF2), but locked down to avoid rework.
+
+## Executor / threading model
+
+- **Decision:** Single-threaded executor per node.
+- **Rationale:** Each node is simple and independent; single-threaded is the
+  most predictable model and avoids concurrency bugs. Revisit only if a node
+  must do heavy work (e.g., camera processing) alongside fast control.
+
+## Message definitions
+
+- **Decision:** Keep the custom `MotionRequest` (with `source`/`priority`) for
+  the *request*; the Safety Controller outputs the standard `geometry_msgs/Twist`
+  for the *approved* command.
+- **Rationale:** `MotionRequest` carries safety-relevant metadata; `Twist` is
+  the ROS standard for velocity commands and interoperates with standard tools
+  and Nav2.

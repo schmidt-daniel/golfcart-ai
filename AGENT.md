@@ -7,8 +7,8 @@ The project uses **ROS 2 as the robotics middleware**.
 The target platform is:
 
 * Raspberry Pi 5
-* Ubuntu 24.04
-* ROS 2 Jazzy
+* Ubuntu 26.04
+* ROS 2 Lyrical
 
 ROS 2 provides the communication and integration layer between sensors, perception, control, HMI, and autonomous functionality.
 
@@ -424,11 +424,12 @@ When choosing a new technology or dependency:
 3. Keep safety-critical dependencies small.
 4. Avoid introducing heavyweight frameworks for simple functionality.
 5. Prefer well-maintained open-source libraries with Raspberry Pi / ARM64 support.
-6. Verify compatibility with Ubuntu 24.04 and ROS 2 Jazzy.
+6. Verify compatibility with Ubuntu 26.04 and ROS 2 Lyrical.
 7. Consider CPU, memory, latency, and power consumption.
 8. Consider how the component behaves when communication fails.
 9. Avoid dependencies that can prevent the safety controller from stopping the vehicle.
 10. Document significant technology decisions in `docs/architecture.md`.
+11. Execution plans in `plans/*`.
 
 ---
 

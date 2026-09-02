@@ -1,0 +1,10 @@
+services:
+  build:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: golfcart:lyrical
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+    command: bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build && colcon test && colcon test-result --verbose"
