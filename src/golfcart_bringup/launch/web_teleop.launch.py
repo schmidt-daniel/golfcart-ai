@@ -58,6 +58,13 @@ def generate_launch_description():
         output='screen',
     )
 
+    gps_node = Node(
+        package='golfcart_gps',
+        executable='gps_node',
+        name='gps_node',
+        output='screen',
+    )
+
     # rosbridge_server exposes ROS 2 over WebSocket (port 9090).
     rosbridge = Node(
         package='rosbridge_server',

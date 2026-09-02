@@ -11,6 +11,7 @@
   <exec_depend>golfcart_control</exec_depend>
   <exec_depend>golfcart_teleop</exec_depend>
   <exec_depend>golfcart_imu</exec_depend>
+  <exec_depend>golfcart_gps</exec_depend>
   <exec_depend>rosbridge_server</exec_depend>
 
   <export>

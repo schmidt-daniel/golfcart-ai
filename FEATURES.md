@@ -20,16 +20,22 @@ features are added.
 - Safety Controller stops motion on critical battery
 - **Note:** INA219 I2C register read is a scaffold (returns `valid=false` until `/dev/i2c-N` read implemented)
 
-### ODrive Driver
+### ODrive Driver (implemented, pending hardware validation)
 - USB serial, ODrive 0.5.6 native protocol (CRC32, endpoint hash, JSON framing)
 - axis0 = left, axis1 = right (verify against physical wiring)
 - **Note:** JSON interface (slower); binary endpoint interface possible later
+- **Status:** code complete and tested; not yet validated against a physical ODrive
 
 ### IMU Integration
 - `golfcart_imu` package — `ImuSensor` interface, `MockImuSensor`, `ImuSensorImpl` (scaffold), `imu_node`
 - Publishes `ImuData` (roll/pitch) on `/imu/data` at 50 Hz
 - Safety Controller stops motion on excessive roll (tip-over risk, `max_roll_rad` param)
 - **Note:** real IMU I2C driver is a scaffold (uses mock until implemented)
+
+### GPS Integration
+- `golfcart_gps` package — `GpsSensor` interface, `MockGpsSensor`, `GpsSensorImpl` (scaffold), `gps_node`
+- Publishes `GpsFix` (lat/lon/alt/speed/heading) on `/gps/fix` at 1 Hz
+- **Note:** real GPS NMEA driver is a scaffold (uses mock until implemented)
 
 ## Not yet implemented (documented only)
 
@@ -38,7 +44,7 @@ See `docs/features/` for design docs.
 - Follow Me
 - Hill Assist, Hill Descent Brake, Rollback Protection
 - Obstacle Detection
-- GPS / Localization
+- Localization (GPS node done; sensor fusion / localization pending)
 - Course Mapping
 - Autonomous Navigation / Nav2
 - HMI Display (TFT)

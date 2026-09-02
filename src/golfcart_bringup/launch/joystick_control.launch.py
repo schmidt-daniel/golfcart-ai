@@ -61,6 +61,13 @@ def generate_launch_description():
         output='screen',
     )
 
+    gps_node = Node(
+        package='golfcart_gps',
+        executable='gps_node',
+        name='gps_node',
+        output='screen',
+    )
+
     joystick_node = Node(
         package='golfcart_teleop',
         executable='arduino_joystick_node',
@@ -77,5 +84,6 @@ def generate_launch_description():
         safety_controller,
         battery_node,
         imu_node,
+        gps_node,
         joystick_node,
     ])
