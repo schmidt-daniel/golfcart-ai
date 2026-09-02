@@ -50,12 +50,19 @@ features are added.
 - **Suppressed on roll-away risk** (slope from IMU, or motion detected)
 - Publishes `power/status`
 
+### Hill Assist, Hill Descent Brake, Rollback Protection
+- `golfcart_behavior` package — `hill_rollback_node`
+- **Rollback Protection:** detects unintended backward movement on a slope (from wheel encoders) and requests a brake
+- **Hill Descent Brake:** limits speed on downhill slopes to prevent uncontrolled acceleration
+- **Hill Assist:** provides propulsion assistance on uphill slopes
+- Publishes `MotionRequest` (higher priority than manual) and `behavior/status`
+- Uses IMU pitch + wheel velocity with hysteresis
+
 ## Not yet implemented (documented only)
 
 See `docs/features/` for design docs.
 
 - Follow Me
-- Hill Assist, Hill Descent Brake, Rollback Protection
 - Localization (GPS node done; sensor fusion / localization pending)
 - Course Mapping
 - Autonomous Navigation / Nav2

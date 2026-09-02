@@ -89,6 +89,13 @@ def generate_launch_description():
         output='screen',
     )
 
+    hill_rollback = Node(
+        package='golfcart_behavior',
+        executable='hill_rollback_node',
+        name='hill_rollback_node',
+        output='screen',
+    )
+
     joystick_node = Node(
         package='golfcart_teleop',
         executable='arduino_joystick_node',
@@ -109,5 +116,6 @@ def generate_launch_description():
         auto_shutdown,
         lidar_node,
         obstacle_detection,
+        hill_rollback,
         joystick_node,
     ])

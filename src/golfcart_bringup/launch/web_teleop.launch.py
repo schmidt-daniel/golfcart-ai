@@ -86,6 +86,13 @@ def generate_launch_description():
         output='screen',
     )
 
+    hill_rollback = Node(
+        package='golfcart_behavior',
+        executable='hill_rollback_node',
+        name='hill_rollback_node',
+        output='screen',
+    )
+
     # rosbridge_server exposes ROS 2 over WebSocket (port 9090).
     rosbridge = Node(
         package='rosbridge_server',
@@ -113,6 +120,7 @@ def generate_launch_description():
         auto_shutdown,
         lidar_node,
         obstacle_detection,
+        hill_rollback,
         rosbridge,
         web_server,
     ])
