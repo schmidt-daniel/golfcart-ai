@@ -4,6 +4,7 @@
 Usage:
   ros2 launch golfcart_bringup joystick_control.launch.py implementation:=mock
   ros2 launch golfcart_bringup joystick_control.launch.py implementation:=odrive
+  ros2 launch golfcart_bringup joystick_control.launch.py port:=/dev/ttyACM0
 """
 
 from launch import LaunchDescription
@@ -17,7 +18,12 @@ def generate_launch_description():
         'implementation', default_value='mock',
         description='Motor controller implementation: mock or odrive')
 
+    port_arg = DeclareLaunchArgument(
+        'port', default_value='/dev/ttyACM0',
+        description='Arduino serial port')
+
     implementation = LaunchConfiguration('implementation')
+    port = LaunchConfiguration('port')
 
     odrive_node = Node(
         package='golfcart_odrive',
@@ -43,13 +49,15 @@ def generate_launch_description():
 
     joystick_node = Node(
         package='golfcart_teleop',
-        executable='joystick_node',
-        name='joystick_node',
+        executable='arduino_joystick_node',
+        name='arduino_joystick_node',
+        parameters=[{'port': port}],
         output='screen',
     )
 
     return LaunchDescription([
         impl_arg,
+        port_arg,
         odrive_node,
         motion_controller,
         safety_controller,

@@ -10,7 +10,7 @@ setup(
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'pyserial'],
     zip_safe=True,
     maintainer='golfcart',
     maintainer_email='dev@example.com',
@@ -19,6 +19,7 @@ setup(
     entry_points={
         'console_scripts': [
             'joystick_node = golfcart_teleop.joystick_node:main',
+            'arduino_joystick_node = golfcart_teleop.arduino_joystick_node:main',
             'keyboard_teleop_node = golfcart_teleop.keyboard_teleop_node:main',
         ],
     },
