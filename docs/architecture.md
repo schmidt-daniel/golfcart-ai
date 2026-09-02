@@ -20,13 +20,21 @@ This document covers the whole-system architecture. Individual features are docu
 
 | Feature | File |
 | --- | --- |
-| Obstacle Detection and Stopping | [`obstacle-detection.md`](obstacle-detection.md) |
-| Follow Me | [`follow-me.md`](follow-me.md) |
-| Hill Assist | [`hill-assist.md`](hill-assist.md) |
-| Hill Descent Brake | [`hill-descent-brake.md`](hill-descent-brake.md) |
-| Rollback Protection | [`rollback-protection.md`](rollback-protection.md) |
-| GPS and Localization | [`gps-localization.md`](gps-localization.md) |
-| Navigation and Future Expansion | [`navigation.md`](navigation.md) |
+| Obstacle Detection and Stopping | [`features/obstacle-detection.md`](features/obstacle-detection.md) |
+| Follow Me | [`features/follow-me.md`](features/follow-me.md) |
+| Hill Assist | [`features/hill-assist.md`](features/hill-assist.md) |
+| Hill Descent Brake | [`features/hill-descent-brake.md`](features/hill-descent-brake.md) |
+| Rollback Protection | [`features/rollback-protection.md`](features/rollback-protection.md) |
+| GPS and Localization | [`features/gps-localization.md`](features/gps-localization.md) |
+| Navigation and Future Expansion | [`features/navigation.md`](features/navigation.md) |
+| HMI Display | [`features/hmi-display.md`](features/hmi-display.md) |
+| Web-Based Remote Teleop | [`features/web-teleop.md`](features/web-teleop.md) |
+| Auto-Shutdown / Sleep When Idle | [`features/auto-shutdown.md`](features/auto-shutdown.md) |
+| Route Recording and Replay | [`features/route-replay.md`](features/route-replay.md) |
+| Geofencing / Stay-on-Course | [`features/geofencing.md`](features/geofencing.md) |
+| Speed Limiting by Zone | [`features/speed-zones.md`](features/speed-zones.md) |
+| Voice Control | [`features/voice-control.md`](features/voice-control.md) |
+| Summon | [`features/summon.md`](features/summon.md) |
 
 ---
 
