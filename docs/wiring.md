@@ -171,10 +171,17 @@ not for safety.
 
 The INA219 measures battery voltage and current over I2C.
 
+> **Voltage divider required:** The INA219 has a **max bus voltage of 26 V**,
+> but the 36 V battery reaches ~42 V when fully charged. A **voltage divider**
+> (e.g. R1 = R2 = 100 kΩ, divide by 2)must be placed on the VBUS sense pin to
+> keep it ≤ 26 V. The measured voltage is then **scaled by the divider ratio**
+> (×2)in `battery_node`. The current measurement (via the shunt)is unaffected.
+
 | INA219 Pin | Connects To | Notes |
 | --- | --- | --- |
 | `VIN+` / `VIN-` | In series with battery + lead | Current sense |
 | `VIN-` | ODrive power input | |
+| `VBUS` | Battery + via voltage divider (R1/R2) | Bus voltage sense (≤ 26 V) |
 | `SDA` | RPi 5 GPIO 2 (I2C SDA) | |
 | `SCL` | RPi 5 GPIO 3 (I2C SCL) | |
 | `VCC` | 3.3 V | |

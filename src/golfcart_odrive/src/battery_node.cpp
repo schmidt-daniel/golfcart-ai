@@ -25,6 +25,10 @@ public:
     low_voltage_ = declare_parameter<double>("low_voltage_v", 30.0);
     critical_voltage_ = declare_parameter<double>("critical_voltage_v", 28.0);
     full_voltage_ = declare_parameter<double>("full_voltage_v", 42.0);
+    // Voltage divider scale factor. The INA219 max bus voltage is 26 V, but the
+    // 36 V battery reaches ~42 V. A divider (e.g. R1=R2=100k, divide by 2) keeps
+    // VBUS <= 26 V; the measured voltage is multiplied by this factor.
+    voltage_scale_ = declare_parameter<double>("voltage_scale", 2.0);
 
     pub_ = create_publisher<golfcart_msgs::msg::BatteryState>(
       "battery/state", rclcpp::SensorDataQoS());
@@ -60,7 +64,8 @@ private:
     if (read_register(0x02, bus_reg) && read_register(0x01, shunt_reg)) {
       // INA219: bus voltage = (bus_reg >> 3) * 0.004 V
       //          current = shunt_reg * calibration-dependent LSB
-      const double voltage = static_cast<double>(bus_reg >> 3) * 0.004;
+      // Apply the voltage divider scale factor (see voltage_scale_).
+      const double voltage = static_cast<double>(bus_reg >> 3) * 0.004 * voltage_scale_;
       msg.voltage_v = static_cast<float>(voltage);
       msg.valid = true;
 
@@ -83,6 +88,7 @@ private:
   double low_voltage_ = 30.0;
   double critical_voltage_ = 28.0;
   double full_voltage_ = 42.0;
+  double voltage_scale_ = 2.0;
 
   rclcpp::Publisher<golfcart_msgs::msg::BatteryState>::SharedPtr pub_;
   rclcpp::TimerBase::SharedPtr timer_;

@@ -18,6 +18,7 @@ features are added.
 ### Battery Monitoring
 - `battery_node` (INA219 over I2C, publishes `BatteryState` on `/battery/state`)
 - Safety Controller stops motion on critical battery
+- **Voltage divider required:** INA219 max bus voltage is 26 V, but the 36 V battery reaches ~42 V. A divider (e.g. R1=R2=100k, divide by 2)keeps VBUS ≤ 26 V; `battery_node` scales the measured voltage via the `voltage_scale` param (default 2.0).
 - **Note:** INA219 I2C register read is a scaffold (returns `valid=false` until `/dev/i2c-N` read implemented)
 
 ### ODrive Driver (implemented, pending hardware validation)

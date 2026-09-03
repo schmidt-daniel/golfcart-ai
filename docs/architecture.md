@@ -1232,6 +1232,12 @@ MVP and are now fixed.
   the battery is critical.
 - **Rationale:** Battery state is safety-relevant (a dead battery mid-round is
   a failure mode). The INA219 is cheap (~$5) and easy to integrate.
+- **Voltage divider required:** The INA219 has a **max bus voltage of 26 V**,
+  but the 36 V Li-Ion battery reaches ~42 V when fully charged. A **voltage
+  divider** (e.g. R1 = R2 = 100 kΩ, divide by 2) must be placed on the VBUS
+  sense pin to keep it ≤ 26 V. The measured voltage is then **scaled by the
+  divider ratio** (×2) in `battery_node`. The current measurement (via the
+  shunt) is unaffected by the divider.
 - **Status:** `battery_node` scaffold reads the INA219 registers; the I2C read
   via `/dev/i2c-N` is pending implementation.
 
