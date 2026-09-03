@@ -1,0 +1,6 @@
+# Set a navigation goal for the trolley.
+# Coordinates are in the map frame.
+GoalPose goal
+---
+bool success
+string message

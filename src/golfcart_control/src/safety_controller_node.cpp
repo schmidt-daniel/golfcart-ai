@@ -170,6 +170,7 @@ private:
   bool battery_critical_ = false;
   bool excessive_roll_ = false;
   bool obstacle_in_zone_ = false;
+  uint8_t current_priority_ = 0;  // highest-priority active source
   rclcpp::Time last_request_time_;
 
   rclcpp::Subscription<golfcart_msgs::msg::MotionRequest>::SharedPtr req_sub_;
@@ -199,6 +200,17 @@ private:
         break;
     }
 
+    // Priority arbitration (option B): a higher-priority source overrides
+    // lower-priority requests. If a lower-priority request arrives while a
+    // higher-priority source is active, ignore it.
+    // Priority numbers: 0 = autonomous/navigation, 1 = manual, 2 = behavior,
+    // 3 = safety override.
+    if (msg->priority < current_priority_) {
+      // Lower priority than the active source: ignore (keep current motion).
+      return;
+    }
+    current_priority_ = msg->priority;
+
     // Apply motion limits.
     double linear = msg->linear_velocity_mps;
     double angular = msg->angular_velocity_radps;
@@ -207,6 +219,8 @@ private:
 
     if (std::abs(linear) < 1e-6 && std::abs(angular) < 1e-6) {
       state_ = SafetyState::READY;
+      // Zero command: release the priority lock so lower-priority sources can act.
+      current_priority_ = 0;
     } else {
       state_ = SafetyState::MOVING;
     }

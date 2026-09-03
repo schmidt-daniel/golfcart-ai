@@ -2,7 +2,6 @@
 
 Autonomous golf push trolley built on ROS 2. Drives the motors through a full
 safety + motion pipeline, with incremental features: joystick/keyboard/web teleop,
-
 battery monitoring, IMU, GPS, LiDAR + obstacle detection, auto-shutdown, hill/
 rollback behaviors, and a URDF model of the trolley.
 

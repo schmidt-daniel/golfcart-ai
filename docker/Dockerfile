@@ -45,6 +45,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-nav2-amcl \
     ros-${ROS_DISTRO}-nav2-map-server \
     ros-${ROS_DISTRO}-nav2-behavior-tree \
+    ros-${ROS_DISTRO}-nav2-bt-navigator \
     ros-${ROS_DISTRO}-nav2-msgs \
     ros-${ROS_DISTRO}-gz-sim-vendor \
     ros-${ROS_DISTRO}-gz-ros2-control \
