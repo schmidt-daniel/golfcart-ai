@@ -51,6 +51,10 @@
     <button class="btn enable" id="enableBtn">ENABLE</button>
     <button class="btn stop" id="stopBtn">STOP</button>
     <button class="btn summon" id="summonBtn">SUMMON</button>
+    <button class="btn" id="cancelBtn">CANCEL</button>
+  </div>
+  <div class="controls">
+    <span id="navStatus" style="color:#888;">Navigation: idle</span>
   </div>
 
   <div class="controls">
@@ -184,18 +188,41 @@
     document.getElementById('stopBtn').onclick = function () { callService(stopSrv); };
 
     // ---- Summon (target-based) ----
-    // NOTE: The summon service does not exist yet. This is a placeholder that
-    // logs the target. It will call a /summon service once implemented.
+    // Calls the /set_goal_geo service (georeference_node) with the tapped lat/lon.
+    var setGoalSrv = new ROSLIB.Service({ ros: ros, name: '/set_goal_geo', serviceType: 'golfcart_msgs/srv/SetGoal' });
+    var cancelSrv = new ROSLIB.Service({ ros: ros, name: '/safety/stop', serviceType: 'std_srvs/srv/Trigger' });
+
     document.getElementById('summonBtn').onclick = function () {
       if (targetLat === null || targetLon === null) {
         alert('Set a target on the map first.');
         return;
       }
-      console.log('Summon to target:', targetLat, targetLon);
-      // TODO: call /summon service with targetLat/targetLon when implemented.
-      alert('Summon target set: ' + targetLat.toFixed(6) + ', ' + targetLon.toFixed(6) +
-        ' (summon service not yet implemented)');
+      var req = new ROSLIB.ServiceRequest({
+        goal: {
+          x: targetLat,
+          y: targetLon,
+          theta: 0,
+          frame_id: 'map',
+          source: 'web',
+          timestamp: { sec: Math.floor(Date.now() / 1000), nanosec: 0 }
+        }
+      });
+      setGoalSrv.callService(req, function (resp) {
+        console.log('set_goal_geo:', resp.message);
+        if (!resp.success) { alert('Navigation failed: ' + resp.message); }
+      });
     };
+
+    // Cancel navigation (stop).
+    document.getElementById('cancelBtn').onclick = function () {
+      callService(cancelSrv);
+    };
+
+    // ---- Navigation status ----
+    var navStatusSub = new ROSLIB.Topic({ ros: ros, name: '/navigation/status', messageType: 'golfcart_msgs/msg/NavigationStatus' });
+    navStatusSub.subscribe(function (msg) {
+      document.getElementById('navStatus').textContent = 'Navigation: ' + msg.state;
+    });
 
     // ---- Directional buttons ----
     var SPEED = 0.5;

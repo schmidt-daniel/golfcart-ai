@@ -21,7 +21,10 @@ target_include_directories(navigation_node PRIVATE
 )
 target_link_libraries(navigation_node rclcpp::rclcpp rclcpp_action::rclcpp_action nav_msgs::nav_msgs nav2_msgs::nav2_msgs geometry_msgs::geometry_msgs std_srvs::std_srvs tf2::tf2 golfcart_msgs::golfcart_msgs)
 
-install(TARGETS navigation_node
+add_executable(georeference_node src/georeference_node.cpp)
+target_link_libraries(georeference_node rclcpp::rclcpp golfcart_msgs::golfcart_msgs)
+
+install(TARGETS navigation_node georeference_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY config

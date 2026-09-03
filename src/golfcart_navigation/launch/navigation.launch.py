@@ -92,6 +92,14 @@ def generate_launch_description():
         output='screen',
     )
 
+    # Georeference node (lat/lon -> map-frame goals)
+    georeference_node = Node(
+        package='golfcart_navigation',
+        executable='georeference_node',
+        name='georeference_node',
+        output='screen',
+    )
+
     return LaunchDescription([
         use_sim_time_arg,
         planner,
@@ -101,4 +109,5 @@ def generate_launch_description():
         global_costmap,
         local_costmap,
         navigation_node,
+        georeference_node,
     ])

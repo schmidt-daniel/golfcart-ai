@@ -23,6 +23,7 @@ setup(
             'arduino_joystick_node = golfcart_teleop.arduino_joystick_node:main',
             'keyboard_teleop_node = golfcart_teleop.keyboard_teleop_node:main',
             'web_teleop_server = golfcart_teleop.web_teleop_server:main',
+            'hmi_node = golfcart_teleop.hmi_node:main',
         ],
     },
 )
