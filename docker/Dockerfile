@@ -30,6 +30,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-urdf \
     ros-${ROS_DISTRO}-robot-state-publisher \
     ros-${ROS_DISTRO}-joint-state-publisher \
+    ros-${ROS_DISTRO}-tf2 \
+    ros-${ROS_DISTRO}-tf2-ros \
+    ros-${ROS_DISTRO}-nav-msgs \
+    ros-${ROS_DISTRO}-robot-localization \
+    ros-${ROS_DISTRO}-slam-toolbox \
+    ros-${ROS_DISTRO}-nav2-core \
+    ros-${ROS_DISTRO}-nav2-costmap-2d \
+    ros-${ROS_DISTRO}-nav2-planner \
+    ros-${ROS_DISTRO}-nav2-navfn-planner \
+    ros-${ROS_DISTRO}-nav2-controller \
+    ros-${ROS_DISTRO}-nav2-regulated-pure-pursuit-controller \
+    ros-${ROS_DISTRO}-nav2-velocity-smoother \
+    ros-${ROS_DISTRO}-nav2-amcl \
+    ros-${ROS_DISTRO}-nav2-map-server \
+    ros-${ROS_DISTRO}-nav2-behavior-tree \
+    ros-${ROS_DISTRO}-nav2-msgs \
+    ros-${ROS_DISTRO}-gz-sim-vendor \
+    ros-${ROS_DISTRO}-gz-ros2-control \
+    ros-${ROS_DISTRO}-joint-state-publisher-gui \
+    ros-${ROS_DISTRO}-rviz2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Source ROS in every shell.

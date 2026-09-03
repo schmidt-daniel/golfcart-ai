@@ -80,7 +80,7 @@
 
    - **Pitch (fore/aft slope):** higher lethal threshold(e.g. >15–20°and lower cost per degree — the trolley can handle steeper fore/aft slopes safely..
    - Mild slopes(within thresholds)get a small graded cost(flat =  ́0 cost.. Tune the cost weights so the planner **prefers flat surfaces when detours are short**, but **doesn't take long detours** to avoid mild slopes(Nav2's planner minimizes total cost, so it naturally balances this tradeoff..
-8. `navigation_node`(C++, bridge): subscribes Nav2 `cmd_vel` → publishes `MotionRequest`(source=`navigation`, priority=lowest.. Also subscribes `/goal_pose`(or a `GoalPose` service) → forwards to Nav2 `navigate_to_pose` action; publishes `NavigationStatus`. Enforces: only navigate when safety state is READY; stop on fault/obstacle; manual override wins(priority. **Pause on manual override:** when a manual request arrives, navigation **pauses**(holds its state); when manual stops, navigation **resumes**(if still valid..
+8. `navigation_node`(C++, bridge): subscribes Nav2 `cmd_vel` → publishes `MotionRequest`(source=`navigation`, priority=lowest.. Also provides a **`/set_goal` service** (taking a `GoalPose`)→ forwards to Nav2 `navigate_to_pose` action; publishes `NavigationStatus`. Enforces: only navigate when safety state is READY; stop on fault/obstacle; manual override wins(priority. **Pause on manual override:** when a manual request arrives, navigation **pauses**(holds its state); when manual stops, navigation **resumes**(if still valid..
 
 
 
