@@ -407,6 +407,7 @@ It receives:
 - battery state
 - operating mode
 - emergency-stop state
+- safety arm switch state (dedicated physical switch)
 
 It outputs:
 
@@ -838,8 +839,9 @@ The executor/threading architecture should be documented once actual implementat
 
 The HMI consists of:
 
-- joystick
-- TFT display
+- joystick (navigation + selection)
+- TFT display (3.5" ILI9488, SPI, no touch)
+- dedicated physical safety arm switch
 
 The HMI should provide:
 
@@ -850,6 +852,31 @@ The HMI should provide:
 - battery state
 - warnings
 - fault information
+- sensor data display (GPS, IMU, LiDAR, battery)
+- feature enable/disable
+- recording control (ROS 2 bags)
+- manual speed setting (like a traditional electric push cart)
+- forward travel distance setting
+
+## Display
+
+- **3.5" ILI9488 SPI TFT** (480×320), driven via `luma.lcd` (Python).
+- No touch (unsuitable with golf gloves).
+
+## Input
+
+- **Joystick** for menu navigation:
+  - short press = select / confirm
+  - double press = back / cancel
+  - long press = reserved
+- **Dedicated physical safety arm switch** for arm/disarm (not the joystick
+  button, which is reserved for HMI navigation).
+
+## Node
+
+A `hmi_node` (Python, non-critical) renders the menu on the TFT and translates
+joystick input into menu navigation and feature commands. It calls per-feature
+enable/disable services and publishes speed/distance commands.
 
 HMI commands are requests only.
 
@@ -1207,3 +1234,13 @@ MVP and are now fixed.
   a failure mode). The INA219 is cheap (~$5) and easy to integrate.
 - **Status:** `battery_node` scaffold reads the INA219 registers; the I2C read
   via `/dev/i2c-N` is pending implementation.
+
+## HMI
+
+- **Decision:** 3.5" ILI9488 SPI TFT (480×320), no touch, driven via `luma.lcd`
+  (Python). Joystick for menu navigation (short = select, double = back, long =
+  reserved). A dedicated physical safety arm switch for arm/disarm.
+- **Rationale:** SPI is the standard, cheap interface for a 3.5" status display;
+  no touch suits golf gloves; a dedicated safety switch is safer and frees the
+  joystick button for HMI navigation.
+- **Status:** design only; `hmi_node` not yet implemented.

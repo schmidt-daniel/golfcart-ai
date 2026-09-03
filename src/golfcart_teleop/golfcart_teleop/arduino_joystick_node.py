@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Arduino joystick teleop node.
 
-Reads the Arduino Uno serial output (x,y,btn) and publishes MotionRequest on
-/motion/request. The button controls safety: a press calls /safety/enable,
-a release calls /safety/stop.
+Reads the Arduino Uno serial output (x,y,btn,safety) and publishes
+MotionRequest on /motion/request.
+
+The dedicated safety arm switch controls arm/disarm: when armed, it calls
+/safety/enable; when disarmed, it calls /safety/stop. The joystick button is
+reserved for HMI navigation (not used here).
 
 Serial protocol from the Arduino:
-  x:<0-1023>,y:<0-1023>,btn:<0|1>
+  x:<0-1023>,y:<0-1023>,btn:<0|1>,safety:<0|1>
 """
 
 import serial
@@ -36,7 +39,7 @@ class ArduinoJoystickNode(Node):
         self.enable_client = self.create_client(Trigger, 'safety/enable')
         self.stop_client = self.create_client(Trigger, 'safety/stop')
 
-        self._prev_btn = 0
+        self._prev_safety = 0
         self._last_linear = 0.0
         self._last_angular = 0.0
 
@@ -60,6 +63,7 @@ class ArduinoJoystickNode(Node):
 
         x = y = 512
         btn = 0
+        safety = 0
         for part in line.split(','):
             if part.startswith('x:'):
                 x = int(part[2:])
@@ -67,6 +71,8 @@ class ArduinoJoystickNode(Node):
                 y = int(part[2:])
             elif part.startswith('btn:'):
                 btn = int(part[4:])
+            elif part.startswith('safety:'):
+                safety = int(part[7:])
 
         # Map 0-1023 to -1..1 (center 512).
         linear = (y - 512) / 512.0
@@ -81,14 +87,15 @@ class ArduinoJoystickNode(Node):
         linear *= self.max_linear
         angular *= self.max_angular
 
-        # Button edge detection for safety.
-        if btn == 1 and self._prev_btn == 0:
+        # Safety arm switch edge detection.
+        # 1 = armed -> enable; 0 = disarmed -> stop.
+        if safety == 1 and self._prev_safety == 0:
             self.call_service(self.enable_client, 'enable')
-        elif btn == 0 and self._prev_btn == 1:
+        elif safety == 0 and self._prev_safety == 1:
             self.call_service(self.stop_client, 'stop')
             linear = 0.0
             angular = 0.0
-        self._prev_btn = btn
+        self._prev_safety = safety
 
         self._last_linear = linear
         self._last_angular = angular

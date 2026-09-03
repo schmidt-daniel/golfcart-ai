@@ -115,14 +115,16 @@ graph LR
 
 ## 4. Arduino Uno Joystick Interface
 
-The Arduino reads the analog joystick axes and the push button, and sends the
-values over USB serial to the RPi 5.
+The Arduino reads the analog joystick axes, the joystick button (for HMI), and
+the dedicated safety arm switch, and sends the values over USB serial to the
+RPi 5.
 
 | Arduino Pin | Connects To | Notes |
 | --- | --- | --- |
 | `A0` | Joystick X wiper | Analog X axis |
 | `A1` | Joystick Y wiper | Analog Y axis |
-| `D2` | Push button (other side to GND) | Uses internal pull-up |
+| `D2` | Joystick button (other side to GND) | HMI navigation, internal pull-up |
+| `D3` | Safety arm switch (other side to GND) | Arm/disarm, internal pull-up |
 | `USB` | RPi 5 USB port | Serial communication |
 
 **Joystick potentiometer wiring (each axis):**
@@ -135,14 +137,22 @@ values over USB serial to the RPi 5.
 - Other side → GND
 - Uses the Arduino's internal pull-up (active-low)
 
+**Safety arm switch wiring:**
+- One side → Arduino `D3`
+- Other side → GND
+- Uses the Arduino's internal pull-up (active-low)
+
 **Serial protocol** (from `arduino/joystick_interface/joystick_interface.ino`):
 ```
-x:<0-1023>,y:<0-1023>,btn:<0|1>
+x:<0-1023>,y:<0-1023>,btn:<0|1>,safety:<0|1>
 ```
 
-**Button → safety mapping** (in `arduino_joystick_node.py`):
-- Button press → `safety/enable`
-- Button release → `safety/stop`
+**Safety arm mapping** (in `arduino_joystick_node.py`):
+- Safety switch armed (1) → `safety/enable`
+- Safety switch disarmed (0) → `safety/stop`
+
+The joystick button is reserved for HMI navigation (short/double/long press),
+not for safety.
 
 ---
 
@@ -181,8 +191,9 @@ Controller stops motion if the battery is critical.
   documentation before first power-on.
 - **Sign convention:** Validate the differential-drive sign convention
   (forward/left/right) against the physical trolley before enabling motion.
-- **Button behavior:** The button is active-low (internal pull-up). Verify the
-  enable/stop behavior matches the physical button before enabling motion.
+- **Safety switch behavior:** The safety arm switch is active-low (internal
+  pull-up). Verify the arm/disarm behavior matches the physical switch before
+  enabling motion.
 - **Emergency stop:** A physical emergency-stop (E-stop) is recommended but is
   **not part of the MVP** (see `architecture.md` §34 open decisions).
 
@@ -197,6 +208,7 @@ Controller stops motion if the battery is critical.
 | Hoverboard motor + encoder | 2 | Left/right |
 | Arduino Uno R3 | 1 | Joystick interface |
 | Analog 2-axis joystick + button | 1 | Input |
+| Safety arm switch | 1 | Arm/disarm |
 | 36 V Li-Ion battery | 1 | Main power |
 | INA219 battery monitor | 1 | Battery voltage/current |
 | 5 V regulator (5 A) | 1 | Powers RPi 5 |
