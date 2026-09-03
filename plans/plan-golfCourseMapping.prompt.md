@@ -1,6 +1,17 @@
 # Plan: Golf Course Mapping Subsystem (GPS + Camera + IMU + LiDAR)
 
-**TL;DR** — Build a ROS 2 mapping subsystem that produces a **metric SLAM map** of the golf course, used for **both** HMI display and future Nav2 navigation. LiDAR (FHL-LD19P) is the primary metric-SLAM input; GPS anchors the map globally; IMU + wheel odometry provide motion; the camera adds **visual odometry** and **semantic labeling** (greens, tees, fairways, hazards). This is a **plan only** — no implementation.
+**TL;DR** — Build a ROS 2 mapping subsystem that produces a **metric SLAM map** of the golf course, used for **both** HMI displayand future Nav2 navigation. LiDAR (FHL-LD19P)is the primary metric-SLAM input; GPS anchors the map globally; IMU + wheel odometry provide motion(and IMU provides dead reckoning for GPS-loss navigation); the camera adds **visual odometry** and **semantic labeling** (greens, tees, fairways, hazards). This is a **plan only** — no implementation.
+
+
+
+> **Alignment with the navigation plan** (`plan-autonomous-navigation.prompt.md`):
+> - **SLAM-in-the-loop:** mapping can run **while driving** the direct route to a target (no-map/incomplete-map case), not only as a separate pre-mapping phase.
+
+> - **Dead reckoning:** IMU is fused into the EKF (`sensor_fusion_node`)for dead reckoning, so the trolley can navigate short distances without GPS(e.g. under trees; GPS loss degrades gracefully to odom+IMU.
+
+> - **Priority arbitration:** the Safety Controller uses `MotionRequest.priority` to arbitrate(option B); manual > navigation. This is a prerequisite for safe autonomous driving and is implemented in the navigation plan's Phase  5.
+>
+> - **Sensor mounting calibration:** measured sensor offsets(lidar/imu/gps/camera relative to base_link)are a hardware prerequisite for accurate SLAM/localization; added later, but the URDF static-transform structure is defined now.
 
 **Key finding:** LiDAR is **already specified** in the architecture (`lidar_node`, `/scan`, FHL-LD19P in §2/§5). The plan incorporates it as the core SLAM sensor and will make its mapping role explicit in the docs.
 
@@ -17,13 +28,14 @@
 4. `lidar_node`→`/scan`, `gps_node`→`/gps/fix`, `imu_node`→`/imu/data`, `camera_node`→`/camera/image_raw`, `wheel_odometry_node`→`/wheel/odometry`.
 
 **Phase 3 — Localization / sensor fusion** *(depends on 4)*
-5. `sensor_fusion_node`: fuse IMU + wheel odometry + GPS → pose; publish `odom→base_link`.
+5. `sensor_fusion_node`: fuse IMU + wheel odometry + GPS → pose; publish `odom→base_link`. **IMU provides dead reckoning** so the trolley can navigate short distances without GPS(e.g. under trees); GPS loss degrades gracefully to odom+IMU.
 
-**Phase 4 — Metric SLAM** *(depends on 5)*
-6. `mapping_node` (slam_toolbox): 2D LiDAR SLAM → occupancy grid; GPS anchoring; publish `map→odom`.
+**Phase  ́4 — Metric SLAM** *(depends on 5)*
+6. `mapping_node` (slam_toolbox):2D LiDAR SLAM → occupancy grid; GPS anchoring; publish `map→odom`. **SLAM-in-the-loop:** mapping can run **while driving** the direct route to a target(no-map/incomplete-map case,, building the course map as it goes(see navigation plan Phase  4/5.
+6b. **Per-cell slope data:** while mapping, record **per-cell slope** from the IMU(static inclination, not dynamic acceleration)onto the metric map. **Record roll and pitch separately** — roll(side slope)is the primary tip-over risk, so it gets its own layer with a lower lethal threshold and higher cost weight; pitch(fore/aft slope)gets a separate layer with a higher lethal threshold and lower cost weight. This feeds the navigation plan's **slope cost layer**(see navigation plan Phase  5, step  7b.. Store as roll/pitch slope layers alongside the occupancy grid.
 
 **Phase 5 — Semantic course mapping** *(depends on 5, camera)*
-7. `course_mapper_node` (Python): detect greens/tees/fairways/hazards; geo-reference onto metric map via fused pose; output `CourseMap`.
+7. `course_mapper_node` (Python): detect greens/tees/fairways/hazards; geo-reference onto metric map via fused pose; output `CourseMap`. **Course features:** also record the exact location of **tee boxes**, the **hole**,the **hole number**,the **assignment to a golf course**,and optional **"exit points"** (where the trolley can leave the course). These are stored in the `CourseMap` and used by the HMI and navigation(see navigation plan Phase  1, step  2b..
 
 **Phase 6 — Map serving & HMI** *(depends on 6, 7)*
 8. `map_server`; HMI display of course map.
@@ -44,12 +56,17 @@
 5. Manual: drive the course, confirm map is globally consistent (GPS-anchored) and features are correctly placed.
 
 **Decisions**
-- **SLAM library:** recommend `slam_toolbox` (2D LiDAR, ROS 2 native, handles large maps); `cartographer` as alternative for tighter GPS/IMU fusion.
-- **Camera visual odometry:** a later refinement to fill GPS/IMU gaps (e.g., under trees); semantic labeling is the primary camera role.
+- **SLAM library:** **confirmed** — `slam_toolbox` (2D LiDAR, ROS 2 native, lightweight for RPi 5, handles large maps, simple per-course map save/load, available for Lyrical.. GPS anchoring is handled by the `robot_localization` EKF, so cartographer's built-in fusion is redundant..
+- **Camera visual odometry:** **deferred** — VO is a later refinement to fill GPS/IMU gaps (e.g., under trees, wheel slip); **not in initial scope**. The core stack (wheel odom + IMU + GPS)already covers the main cases. Semantic labelingis the primary camera role in the initial scope..
 - **Map outputs:** occupancy grid (for Nav2) + semantic `CourseMap` (for HMI).
 - **Scope:** plan only; no implementation now.
+- **Dead reckoning:** IMU is fused into the EKF for dead reckoning; GPS loss degrades gracefully to odom+IMU(short-distance navigation under trees.
+- **SLAM-in-the-loop:** mapping can run while driving the direct route to a target(no-map/incomplete-map case,, building the course map as it goes(see navigation plan.
+- **Priority arbitration:** Safety Controller uses `MotionRequest.priority` to arbitrate(option B); manual > navigation(implemented in navigation plan Phase  5.
+- **Per-cell slope data:** record per-cell slope from the IMU(static inclination)onto the metric map as slope layers;; **roll and pitch recorded separately**(roll = side slope, primary tip-over risk, lower lethal threshold + higher cost weight; pitch = fore/aft slope, higher lethal threshold + lower cost weight.. Feeds the navigation plan's slope cost layer(see navigation plan Phase  5, step  7b..
+- **Course features:** record the exact location of **tee boxes**,the **hole**,the **hole number**,the **assignment to a golf course**,and optional **"exit points"** (where the trolley can leave the course)in the `CourseMap`; used by the HMI and navigation(see navigation plan Phase  1, step  2b..
+
+
 
 **Further Considerations**
 1. **LiDAR already in docs** — I'll treat it as a confirmed sensor and make its mapping role explicit. Option A: keep as-is and just document. Option B: add a dedicated LiDAR mapping section.
-2. **SLAM library choice** — `slam_toolbox` (recommended) vs `cartographer`. Option A / Option B.
-3. **Camera VO priority** — include in initial scope, or defer to a later refinement phase?

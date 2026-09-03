@@ -26,6 +26,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-launch \
     ros-${ROS_DISTRO}-launch-ros \
     ros-${ROS_DISTRO}-rosbridge-server \
+    ros-${ROS_DISTRO}-xacro \
+    ros-${ROS_DISTRO}-urdf \
+    ros-${ROS_DISTRO}-robot-state-publisher \
+    ros-${ROS_DISTRO}-joint-state-publisher \
     && rm -rf /var/lib/apt/lists/*
 
 # Source ROS in every shell.
