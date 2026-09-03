@@ -7,6 +7,8 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(builtin_interfaces REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -18,7 +20,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/GpsFix.msg"
   "msg/Obstacle.msg"
   "msg/ObstacleState.msg"
-  DEPENDENCIES builtin_interfaces
+  "msg/GoalPose.msg"
+  "msg/NavigationStatus.msg"
+  "msg/CourseFeature.msg"
+  "msg/CourseMap.msg"
+  DEPENDENCIES builtin_interfaces nav_msgs geometry_msgs
 )
 
 ament_export_dependencies(rosidl_default_runtime)
