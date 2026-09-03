@@ -23,6 +23,7 @@ This document covers the whole-system architecture. Individual features are docu
 | Obstacle Detection and Stopping | [`features/obstacle-detection.md`](features/obstacle-detection.md) |
 | Follow Me | [`features/follow-me.md`](features/follow-me.md) |
 | Hill Assist | [`features/hill-assist.md`](features/hill-assist.md) |
+| Push Assist (Pedelec-Style) | [`features/push-assist.md`](features/push-assist.md) |
 | Hill Descent Brake | [`features/hill-descent-brake.md`](features/hill-descent-brake.md) |
 | Rollback Protection | [`features/rollback-protection.md`](features/rollback-protection.md) |
 | GPS and Localization | [`features/gps-localization.md`](features/gps-localization.md) |
