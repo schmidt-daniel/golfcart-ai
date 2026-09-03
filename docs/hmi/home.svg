@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320" viewBox="0 0 480 320">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#0B1220"/>
+    </linearGradient>
+    <linearGradient id="speedGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#818CF8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="480" height="320" fill="url(#bgGrad)"/>
+
+  <!-- Header -->
+  <rect x="0" y="0" width="480" height="40" fill="#1E293B"/>
+  <text x="16" y="26" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#94A3B8" letter-spacing="1">MANUAL</text>
+  <rect x="330" y="10" width="90" height="20" rx="10" fill="#34D399"/>
+  <text x="375" y="24" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#0F172A" text-anchor="middle">READY</text>
+  <text x="452" y="26" font-family="Arial, sans-serif" font-size="13" fill="#94A3B8" text-anchor="end">14:32</text>
+
+  <!-- Speed card -->
+  <rect x="16" y="56" width="280" height="150" rx="16" fill="#1E293B"/>
+  <text x="32" y="82" font-family="Arial, sans-serif" font-size="12" fill="#94A3B8" letter-spacing="2">SPEED</text>
+  <text x="32" y="150" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="url(#speedGrad)">3.2</text>
+  <text x="150" y="150" font-family="Arial, sans-serif" font-size="20" fill="#94A3B8">m/s</text>
+  <text x="32" y="180" font-family="Arial, sans-serif" font-size="14" fill="#64748B">7.2 mph</text>
+
+  <!-- Battery card -->
+  <rect x="312" y="56" width="152" height="150" rx="16" fill="#1E293B"/>
+  <text x="328" y="82" font-family="Arial, sans-serif" font-size="12" fill="#94A3B8" letter-spacing="2">BATTERY</text>
+  <text x="328" y="140" font-family="Arial, sans-serif" font-size="40" font-weight="bold" fill="#34D399">82%</text>
+  <rect x="328" y="156" width="120" height="10" rx="5" fill="#334155"/>
+  <rect x="328" y="156" width="98" height="10" rx="5" fill="#34D399"/>
+  <text x="328" y="188" font-family="Arial, sans-serif" font-size="13" fill="#64748B">36.2 V</text>
+
+  <!-- Status strip -->
+  <rect x="16" y="222" width="448" height="40" rx="12" fill="#1E293B"/>
+  <circle cx="40" cy="242" r="6" fill="#FBBF24"/>
+  <text x="56" y="247" font-family="Arial, sans-serif" font-size="14" fill="#F8FAFC">Hill assist active</text>
+  <circle cx="300" cy="242" r="6" fill="#818CF8"/>
+  <text x="316" y="247" font-family="Arial, sans-serif" font-size="14" fill="#F8FAFC">GPS locked</text>
+
+  <!-- Footer -->
+  <rect x="0" y="278" width="480" height="42" fill="#0B1220"/>
+  <text x="16" y="304" font-family="Arial, sans-serif" font-size="13" fill="#64748B">● Select</text>
+  <text x="180" y="304" font-family="Arial, sans-serif" font-size="13" fill="#64748B">◉ Back</text>
+  <text x="360" y="304" font-family="Arial, sans-serif" font-size="13" fill="#64748B">Menu</text>
+</svg>

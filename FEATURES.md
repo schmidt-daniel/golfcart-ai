@@ -66,7 +66,7 @@ See `docs/features/` for design docs.
 - Localization (GPS node done; sensor fusion / localization pending)
 - Course Mapping
 - Autonomous Navigation / Nav2
-- HMI Display (TFT)
+- HMI Display (TFT) — spec + mockups in `docs/hmi-spec.md` & `docs/hmi/`
 - Route Recording + Replay
 - Geofencing
 - Speed Zones
