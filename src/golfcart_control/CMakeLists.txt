@@ -28,6 +28,10 @@ target_link_libraries(safety_controller_node rclcpp::rclcpp std_srvs::std_srvs s
 install(TARGETS motion_controller_node safety_controller_node
   DESTINATION lib/${PROJECT_NAME})
 
+install(DIRECTORY include/
+  DESTINATION include
+)
+
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(test_differential_drive test/test_differential_drive.cpp)
