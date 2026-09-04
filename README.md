@@ -2,9 +2,10 @@
 
 Autonomous golf push trolley built on ROS 2. Drives the motors through a full
 safety + motion pipeline, with incremental features: joystick/keyboard/web teleop,
-battery monitoring, IMU, GPS, LiDAR + obstacle detection, auto-shutdown, hill/
-rollback behaviors, a URDF model of the trolley, and a full gz-sim simulation for
-validating the navigation stack without hardware.
+battery monitoring, IMU, GPS, LiDAR + obstacle detection, auto-shutdown,
+energy-saving mode (sleep when idle, IMU wake), hill/rollback behaviors, a URDF
+model of the trolley, and a full gz-sim simulation for validating the navigation
+stack without hardware.
 
 ## Stack
 
@@ -39,7 +40,7 @@ obstacle-in-zone, request-timeout) and outputs the approved `Twist`.
 | `golfcart_imu` | `ImuSensor` interface, mock, scaffold driver, `imu_node` |
 | `golfcart_gps` | `GpsSensor` interface, mock, scaffold driver, `gps_node` |
 | `golfcart_lidar` | `LidarSensor` interface, mock, scaffold driver, `lidar_node`, `obstacle_detection_node` |
-| `golfcart_power` | `auto_shutdown_node` (watchdog, idle shutdown, roll-away suppression) |
+| `golfcart_power` | `auto_shutdown_node` (watchdog, idle shutdown, roll-away suppression), `energy_saver_node` (sleep when idle, IMU wake) |
 | `golfcart_behavior` | `hill_rollback_node` (Hill Assist, Hill Descent Brake, Rollback Protection) |
 | `golfcart_description` | URDF/xacro model of the 3-wheeled trolley + sensor mounts (lidar, camera, imu, gps) |
 | `golfcart_localization` | `wheel_odometry_node`, `sensor_fusion_node`, `localization_quality_node` + robot_localization EKF |

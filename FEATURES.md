@@ -51,6 +51,14 @@ features are added.
 - **Suppressed on roll-away risk** (slope from IMU, or motion detected)
 - Publishes `power/status`
 
+### Energy-Saving Mode
+- `golfcart_power` package — `energy_saver_node`
+- Enters SLEEP after `sleep_timeout_s` idle; publishes `PowerState` on `/power/state`
+- Publishes `sleep`/`wake` on `/power/sleep_cmd` so other nodes reduce rates
+- **IMU stays active** and wakes the cart on motion (inclination change)
+- **Suppressed on roll-away risk** (never sleeps on a slope / while moving)
+- Lighter than auto-shutdown: automatic wake, shorter timeout (see `docs/features/energy-saving.md`)
+
 ### Hill Assist, Hill Descent Brake, Rollback Protection
 - `golfcart_behavior` package — `hill_rollback_node`
 - **Rollback Protection:** detects unintended backward movement on a slope (from wheel encoders) and requests a brake

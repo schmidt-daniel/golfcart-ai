@@ -31,6 +31,7 @@ This document covers the whole-system architecture. Individual features are docu
 | HMI Display | [`features/hmi-display.md`](features/hmi-display.md) · [spec](hmi-spec.md) |
 | Web-Based Remote Teleop | [`features/web-teleop.md`](features/web-teleop.md) |
 | Auto-Shutdown / Sleep When Idle | [`features/auto-shutdown.md`](features/auto-shutdown.md) |
+| Energy-Saving Mode | [`features/energy-saving.md`](features/energy-saving.md) |
 | Route Recording and Replay | [`features/route-replay.md`](features/route-replay.md) |
 | Learning | [`features/learning.md`](features/learning.md) |
 | Geofencing / Stay-on-Course | [`features/geofencing.md`](features/geofencing.md) |

@@ -24,6 +24,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/NavigationStatus.msg"
   "msg/CourseFeature.msg"
   "msg/CourseMap.msg"
+  "msg/PowerState.msg"
   "srv/SetGoal.srv"
   DEPENDENCIES builtin_interfaces nav_msgs geometry_msgs
 )

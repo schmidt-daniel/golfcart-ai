@@ -2,6 +2,11 @@
 
 Automatically power down or enter a low-power state when the trolley is idle.
 
+> **Related:** For frequent short stops during a round, see
+> [Energy-Saving Mode](energy-saving.md) — a lighter sleep state that wakes
+> automatically on IMU motion. Auto-shutdown is the final, manual-restart
+> power-off for long idle / end of day.
+
 ## Purpose
 
 Protect the battery and avoid leaving the system running when unused.

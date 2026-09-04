@@ -13,7 +13,10 @@ find_package(std_msgs REQUIRED)
 add_executable(auto_shutdown_node src/auto_shutdown_node.cpp)
 target_link_libraries(auto_shutdown_node rclcpp::rclcpp golfcart_msgs::golfcart_msgs std_msgs::std_msgs)
 
-install(TARGETS auto_shutdown_node
+add_executable(energy_saver_node src/energy_saver_node.cpp)
+target_link_libraries(energy_saver_node rclcpp::rclcpp golfcart_msgs::golfcart_msgs std_msgs::std_msgs)
+
+install(TARGETS auto_shutdown_node energy_saver_node
   DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
