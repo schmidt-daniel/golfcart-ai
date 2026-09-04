@@ -222,5 +222,9 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Gazebo
+# Gazebo / gz-sim
+# Core dumps from crashed gz-sim processes
 core
+core.*
+# gz-sim generated world copy (created at launch time)
+course_generated.sdf
