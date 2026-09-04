@@ -228,3 +228,6 @@ core
 core.*
 # gz-sim generated world copy (created at launch time)
 course_generated.sdf
+
+# Recorded ROS 2 bags (large binary data, kept out of git)
+rosbag2/

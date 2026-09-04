@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Golf Cart — Hole Polygon Drawer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; display: flex; height: 100vh; }
+  #map { flex: 1; }
+  #panel { width: 320px; padding: 16px; background: #f5f5f5; overflow-y: auto; }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  p { font-size: 13px; color: #444; }
+  textarea { width: 100%; height: 120px; font-family: monospace; font-size: 12px; }
+  button { margin-top: 8px; padding: 8px 12px; cursor: pointer; }
+  .hint { font-size: 12px; color: #666; }
+</style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+<div id="map"></div>
+<div id="panel">
+  <h1>Hole Polygon Drawer</h1>
+  <p>Click on the map to add polygon corners around a hole. Drag to adjust.
+     The polygon is exported as lat/lon corners and GeoJSON for
+     <code>extract_bag_polygon.py</code>.</p>
+  <p class="hint">Tip: use the search box (top-left) to jump to your course.</p>
+  <label>Polygon corners (lat,lon):</label>
+  <textarea id="corners" readonly></textarea>
+  <button id="copy">Copy corners</button>
+  <button id="clear">Clear polygon</button>
+  <label>GeoJSON:</label>
+  <textarea id="geojson" readonly></textarea>
+  <button id="copyGeo">Copy GeoJSON</button>
+</div>
+<script>
+  const map = L.map('map').setView([0, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Search box (Leaflet geocoder via Nominatim).
+  const search = L.Control.geocoder ? L.control.geocoder({ defaultMarkGeocode: false })
+    .on('markgeocode', e => map.setView(e.geocode.center, 16)).addTo(map) : null;
+
+  let layer = null;
+  const corners = [];
+
+  function update() {
+    const cornerText = corners.map(c => c.lat.toFixed(6) + ',' + c.lon.toFixed(6)).join(' ');
+    document.getElementById('corners').value = cornerText;
+    const geo = {
+      type: 'Feature',
+      properties: { name: 'hole_polygon' },
+      geometry: { type: 'Polygon', coordinates: [corners.map(c => [c.lon, c.lat])] }
+    };
+    document.getElementById('geojson').value = JSON.stringify(geo, null, 2);
+  }
+
+  function redraw() {
+    if (layer) { map.removeLayer(layer); layer = null; }
+    if (corners.length >= 3) {
+      layer = L.polygon(corners.map(c => [c.lat, c.lon])).addTo(map);
+    }
+  }
+
+  map.on('click', e => {
+    corners.push({ lat: e.latlng.lat, lon: e.latlng.lng });
+    L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+    redraw();
+    update();
+  });
+
+  document.getElementById('copy').onclick = () => {
+    navigator.clipboard.writeText(document.getElementById('corners').value);
+  };
+  document.getElementById('copyGeo').onclick = () => {
+    navigator.clipboard.writeText(document.getElementById('geojson').value);
+  };
+  document.getElementById('clear').onclick = () => {
+    corners.length = 0;
+    map.eachLayer(l => { if (l instanceof L.Marker || l instanceof L.Polygon) map.removeLayer(l); });
+    update();
+  };
+</script>
+</body>
+</html>

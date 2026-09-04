@@ -167,6 +167,21 @@ rsync -avz pi@cart:~/golfcart-ai/rosbag2/hole5 ./
 rsync -avz hole5_map.* pi@cart:~/golfcart-ai/maps/hole5/
 ```
 
+### Per-hole extraction
+
+To build a map for a single hole, draw a polygon around it and extract only the
+data captured inside it:
+
+```bash
+# 1. Draw a polygon around the hole (open tools/hole_polygon_drawer.html)
+# 2. Extract only the data inside the polygon into a new bag
+python3 scripts/extract_bag_polygon.py rosbag2/hole5 \
+  --polygon "lat1,lon1 lat2,lon2 ..." -o rosbag2/hole5_holeA
+#   or: --geojson holeA.geojson
+# 3. Build a per-hole map from the extracted bag
+./scripts/build_map_offline.sh rosbag2/hole5_holeA
+```
+
 See `docs/architecture.md` §34.2 for details.
 
 

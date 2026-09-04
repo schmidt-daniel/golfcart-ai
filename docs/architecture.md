@@ -1274,6 +1274,34 @@ rsync -avz hole5_map.* pi@cart:~/golfcart-ai/maps/hole5/
 - `scripts/build_map_offline.sh` — `ros2 bag play --clock` + slam_toolbox +
   `map_saver_cli -t /map -f <prefix>` to save the occupancy grid.
 
+## 34.2.1 Per-Hole Extraction (polygon)
+
+A full-course recording can be split into **per-hole** bags by drawing a polygon
+around each hole and keeping only the data captured while the cart was inside it.
+The cart's position comes from `/gps/fix` (`golfcart_msgs/GpsFix`).
+
+**Workflow:**
+```bash
+# 1. Draw a polygon around the hole (web tool, or any GIS/geojson.io)
+#    -> tools/hole_polygon_drawer.html  (exports lat/lon corners or GeoJSON)
+
+# 2. Extract only the data inside the polygon into a new bag
+python3 scripts/extract_bag_polygon.py rosbag2/hole5 \
+  --polygon "lat1,lon1 lat2,lon2 ..." -o rosbag2/hole5_holeA
+#   or: --geojson holeA.geojson
+
+# 3. Build a per-hole map from the extracted bag
+./scripts/build_map_offline.sh rosbag2/hole5_holeA
+```
+
+**Components:**
+- `tools/hole_polygon_drawer.html` — standalone web page (Leaflet) to draw a
+  polygon and export lat/lon corners or GeoJSON.
+- `scripts/extract_bag_polygon.py` — reads the bag, tracks the cart's GPS
+  position, and writes only messages whose timestamp falls inside the polygon
+  (point-in-polygon on `/gps/fix`), with optional `--pad` seconds around each
+  entry/exit and `--keep-topics` filtering.
+
 ---
 
 # 35. Permanent Decisions
