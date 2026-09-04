@@ -78,6 +78,11 @@ features are added.
 - `golfcart_mapping` package — `slam_toolbox` online async mapping
 - `config/mapper_params_online_async.yaml` (base_frame=base_link, scan_topic=/scan)
 - `launch/mapping.launch.py` — `sync_slam_toolbox_node`
+- **Off-board map building:** `config/mapper_params_offline.yaml` +
+  `launch/offline_mapping.launch.py` (replay recorded bag through slam_toolbox)
+- `scripts/record_bag.sh` (record SLAM topics on the cart) and
+  `scripts/build_map_offline.sh` (replay bag → occupancy grid via `map_saver_cli`) —
+  see `docs/architecture.md` §34.2
 
 ### Autonomous Navigation / Nav2
 - `golfcart_navigation` package

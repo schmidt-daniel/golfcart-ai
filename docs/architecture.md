@@ -1244,6 +1244,38 @@ restart on crash:
 
 ---
 
+# 34.2 Off-Board Map Building
+
+Course maps are usually built **on-board** by `slam_toolbox` as the cart drives.
+For large courses or to refine a map on a more powerful workstation, the cart
+can instead **record** a bag that is replayed **off-board** to build the map.
+
+**Workflow:**
+```bash
+# 1. On the cart: record the SLAM topics while driving the course
+./scripts/record_bag.sh -o hole5          # -> rosbag2/hole5
+
+# 2. Copy the bag to a workstation
+rsync -avz pi@cart:~/golfcart-ai/rosbag2/hole5 ./
+
+# 3. Replay it off-board through slam_toolbox to build the map
+./scripts/build_map_offline.sh rosbag2/hole5   # -> hole5_map.{pgm,yaml}
+
+# 4. Push the map back to the cart (maps are kept out of git)
+rsync -avz hole5_map.* pi@cart:~/golfcart-ai/maps/hole5/
+```
+
+**Components:**
+- `scripts/record_bag.sh` — records `/scan`, `/tf`, `/tf_static`, `/odom`
+  (optionally IMU/GPS with `--all`) on the cart.
+- `golfcart_mapping/launch/offline_mapping.launch.py` + 
+  `config/mapper_params_offline.yaml` — slam_toolbox in offline mode
+  (`use_sim_time: true`, consumes the bag `/clock`).
+- `scripts/build_map_offline.sh` — `ros2 bag play --clock` + slam_toolbox +
+  `map_saver_cli -t /map -f <prefix>` to save the occupancy grid.
+
+---
+
 # 35. Permanent Decisions
 
 The following decisions are permanent and should not be changed without a

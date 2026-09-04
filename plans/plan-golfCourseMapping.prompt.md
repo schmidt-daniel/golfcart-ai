@@ -42,6 +42,9 @@
 
 **Phase 7 — Recording, replay & verification** *(depends on all)*
 9. ROS 2 bags; RViz; unit + integration tests; manual course drive.
+   **Implemented:** off-board map building via `scripts/record_bag.sh`,
+   `scripts/build_map_offline.sh`, and `golfcart_mapping/offline_mapping.launch.py`
+   (see `docs/architecture.md` §34.2).
 
 **Relevant files**
 - `docs/architecture.md` — add mapping subsystem spec; update §41 decisions.

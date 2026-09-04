@@ -44,7 +44,7 @@ obstacle-in-zone, request-timeout) and outputs the approved `Twist`.
 | `golfcart_behavior` | `hill_rollback_node` (Hill Assist, Hill Descent Brake, Rollback Protection) |
 | `golfcart_description` | URDF/xacro model of the 3-wheeled trolley + sensor mounts (lidar, camera, imu, gps) |
 | `golfcart_localization` | `wheel_odometry_node`, `sensor_fusion_node`, `localization_quality_node` + robot_localization EKF |
-| `golfcart_mapping` | slam_toolbox online async mapping (`mapping.launch.py`) |
+| `golfcart_mapping` | slam_toolbox online async mapping (`mapping.launch.py`) + offline map building (`offline_mapping.launch.py`) |
 | `golfcart_navigation` | `navigation_node`, `georeference_node`, Nav2 stack (planner, RPP controller, bt_navigator, costmaps) |
 | `golfcart_gazebo` | gz-sim course world + cart model, `gz_ros2_control`, sensors, `cmd_vel_converter`, `sim.launch.py` |
 | `golfcart_bringup` | Launch files (`joystick_control`, `keyboard_control`, `web_teleop`) |
@@ -144,6 +144,30 @@ Drive it by publishing a `geometry_msgs/Twist` on `/cmd_vel` (the
 `cmd_vel_converter` bridges it to the controller's `TwistStamped`).
 
 See `src/golfcart_gazebo/README.md` and `docs/architecture.md` §26.1 for details.
+
+
+
+## Off-Board Map Building
+
+Course maps are built on-board by `slam_toolbox` as the cart drives. For large
+courses or to refine a map on a more powerful workstation, record a bag on the
+cart and replay it off-board to build the map.
+
+```bash
+# 1. On the cart: record the SLAM topics while driving the course
+./scripts/record_bag.sh -o hole5          # -> rosbag2/hole5
+
+# 2. Copy the bag to a workstation
+rsync -avz pi@cart:~/golfcart-ai/rosbag2/hole5 ./
+
+# 3. Replay it off-board through slam_toolbox to build the map
+./scripts/build_map_offline.sh rosbag2/hole5   # -> hole5_map.{pgm,yaml}
+
+# 4. Push the map back to the cart (maps are kept out of git)
+rsync -avz hole5_map.* pi@cart:~/golfcart-ai/maps/hole5/
+```
+
+See `docs/architecture.md` §34.2 for details.
 
 
 
