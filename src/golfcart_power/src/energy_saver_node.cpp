@@ -35,7 +35,7 @@ public:
   : Node("energy_saver_node")
   {
     sleep_timeout_s_ = declare_parameter<double>("sleep_timeout_s", 60.0);
-    wake_motion_threshold_mps_ = declare_parameter<double>("wake_motion_threshold_mps", 0.02);
+    wake_motion_threshold_rad_ = declare_parameter<double>("wake_motion_threshold_rad", 0.01);
     max_slope_rad_ = declare_parameter<double>("max_slope_rad", 0.15);  // ~8.6 deg
     motion_threshold_mps_ = declare_parameter<double>("motion_threshold_mps", 0.05);
 
@@ -171,7 +171,6 @@ private:
   }
 
   double sleep_timeout_s_ = 60.0;
-  double wake_motion_threshold_mps_ = 0.02;
   double wake_motion_threshold_rad_ = 0.01;  // ~0.57 deg inclination change
   double max_slope_rad_ = 0.15;
   double motion_threshold_mps_ = 0.05;
