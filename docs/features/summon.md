@@ -3,6 +3,11 @@
 The trolley automatically drives to the operator's current position, triggered
 from a smartphone.
 
+> **Status:** Planned. The underlying autonomous navigation is implemented
+> (see `navigation.md`); summon adds a live-phone-position target on top of it.
+> The HMI/web "Navigate to target" flow is scaffolded in `hmi_node` and the web
+> app (SUMMON button calls `/set_goal_geo`).
+
 ## Purpose
 
 Allow the operator to call the trolley to them without walking to it. The

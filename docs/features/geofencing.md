@@ -2,6 +2,10 @@
 
 Define the course boundary and warn or stop the trolley if it leaves.
 
+> **Status:** Planned. The `CourseMap` message already carries `forbidden_zones`
+> (used by navigation to stop in front of hazards); a full geofence boundary
+> check is a future extension.
+
 ## Purpose
 
 Prevent the trolley from driving into hazards, water, or off the course.

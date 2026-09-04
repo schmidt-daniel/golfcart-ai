@@ -2,6 +2,11 @@
 
 GPS provides coarse global localization.
 
+> **Status:** Implemented. `golfcart_localization` fuses GPS + IMU + wheel
+> odometry via `robot_localization` EKF (`/odometry/filtered`), with a
+> `localization_quality_node` monitoring covariance. See `navigation.md` and
+> `docs/architecture.md` for the full stack.
+
 It may be used for:
 
 - mapping

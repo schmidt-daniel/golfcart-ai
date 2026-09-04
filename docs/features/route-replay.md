@@ -2,6 +2,9 @@
 
 Record a GPS route while driving, then replay it autonomously.
 
+> **Status:** Planned. Autonomous navigation is implemented (see `navigation.md`);
+> route replay would record waypoints and feed them to the Nav2 goal interface.
+
 ## Purpose
 
 A natural stepping stone toward autonomous navigation. The operator drives
