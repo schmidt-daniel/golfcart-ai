@@ -984,6 +984,49 @@ Important components to test without physical hardware:
 
 Hardware integration tests should be separate from pure unit tests.
 
+## 26.1 Gazebo Simulation (gz-sim)
+
+A full-robot simulation is provided by the `golfcart_gazebo` package using
+**gz-sim** (Gazebo Sim, the Lyrical successor to classic Gazebo). It is used to
+validate the navigation stack (Phase 7) without physical hardware.
+
+**Launch:**
+```bash
+ros2 launch golfcart_gazebo sim.launch.py            # with GUI
+ros2 launch golfcart_gazebo sim.launch.py headless:=true   # CI / headless
+scripts/sim_check.sh                                  # headless sanity check
+```
+
+**Architecture:**
+- The cart model is embedded directly in the course world SDF
+  (`worlds/course.sdf`), not spawned from URDF, because gz-sim does not resolve
+  `$(find <pkg>)` inside plugin `<parameters>` strings.
+- **Control:** `gz_ros2_control` (`GazeboSimROS2ControlPlugin`) drives the two
+  rear wheels. `diff_drive_controller` computes odometry + `odom→base_link` TF;
+  `joint_state_broadcaster` publishes `/joint_states`.
+- **Sensors:** gz-sim system plugins (`Sensors`, `Imu`, `NavSat`) publish LiDAR,
+  IMU, GPS, and camera on gz transport; `ros_gz_bridge` forwards them to ROS:
+  - `/scan` (LiDAR, `sensor_msgs/LaserScan`)
+  - `/imu` (`sensor_msgs/Imu`)
+  - `/gps` (`gps_msgs/GPSFix` ↔ `gz.msgs.NavSat`)
+  - `/camera/image` (`sensor_msgs/Image`)
+  - `/clock` (sim time)
+- **cmd_vel:** the Lyrical `diff_drive_controller` expects
+  `geometry_msgs/TwistStamped` on `/cmd_vel`, but the nav stack publishes
+  `geometry_msgs/Twist`. `cmd_vel_converter` bridges `/cmd_vel` (Twist) →
+  `/cmd_vel_stamped` (TwistStamped).
+- **Course elements** (for Phase 7 verification): obstacles (trees), green,
+  tee, water hazard (forbidden zone), slope ramp (roll/pitch slope costmap),
+  steep zone (high slope cost / forbidden stop).
+
+**Key gz-sim notes (Lyrical):**
+- `GZ_SIM_SYSTEM_PLUGIN_PATH` must include `/opt/ros/<distro>/lib` so gz-sim
+  finds `libgz_ros2_control-system.so`.
+- The world must register `gz-sim-physics-system`, `gz-sim-sensors-system`,
+  `gz-sim-imu-system`, and `gz-sim-navsat-system` plugins.
+- `use_sim_time: true` must be set on the controller_manager and controllers so
+  they use the sim clock (bridged from `/clock`).
+
 ---
 
 # 27. ROS 2 Bag Recording

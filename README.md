@@ -3,7 +3,8 @@
 Autonomous golf push trolley built on ROS 2. Drives the motors through a full
 safety + motion pipeline, with incremental features: joystick/keyboard/web teleop,
 battery monitoring, IMU, GPS, LiDAR + obstacle detection, auto-shutdown, hill/
-rollback behaviors, and a URDF model of the trolley.
+rollback behaviors, a URDF model of the trolley, and a full gz-sim simulation for
+validating the navigation stack without hardware.
 
 ## Stack
 
@@ -41,15 +42,20 @@ obstacle-in-zone, request-timeout) and outputs the approved `Twist`.
 | `golfcart_power` | `auto_shutdown_node` (watchdog, idle shutdown, roll-away suppression) |
 | `golfcart_behavior` | `hill_rollback_node` (Hill Assist, Hill Descent Brake, Rollback Protection) |
 | `golfcart_description` | URDF/xacro model of the 3-wheeled trolley + sensor mounts (lidar, camera, imu, gps) |
+| `golfcart_localization` | `wheel_odometry_node`, `sensor_fusion_node`, `localization_quality_node` + robot_localization EKF |
+| `golfcart_mapping` | slam_toolbox online async mapping (`mapping.launch.py`) |
+| `golfcart_navigation` | `navigation_node`, `georeference_node`, Nav2 stack (planner, RPP controller, bt_navigator, costmaps) |
+| `golfcart_gazebo` | gz-sim course world + cart model, `gz_ros2_control`, sensors, `cmd_vel_converter`, `sim.launch.py` |
 | `golfcart_bringup` | Launch files (`joystick_control`, `keyboard_control`, `web_teleop`) |
 
 ## Features
 
 See `FEATURES.md` for the full tracker. Implemented: joystick/keyboard/web teleop,
 battery monitoring, ODrive driver (pending hardware validation), IMU, GPS, LiDAR +
-obstacle detection, auto-shutdown, hill/rollback behaviors, URDF model. Planned: 
-localization, course mapping, autonomous navigation (Nav2), HMI display, route
-replay, geofencing, speed zones, voice control, summon.
+obstacle detection, auto-shutdown, hill/rollback behaviors, URDF model, localization
+(robot_localization EKF), course mapping (slam_toolbox), autonomous navigation (Nav2),
+and a full gz-sim simulation. Planned: HMI display, route replay, geofencing, speed
+zones, voice control, summon.
 
 ## Build
 
@@ -110,6 +116,33 @@ Publishes TF2 via `robot_state_publisher` so the frame tree
 (`base_link -> {lidar_link, camera_link, imu_link, gps_link}`)is available for
 localization, SLAM, and navigation. Edit the xacro parameters in
 `src/golfcart_description/urdf/golfcart.urdf.xacro` with your real measurements.
+
+
+
+## Run (Gazebo simulation)
+
+A full-robot simulation in **gz-sim** (Gazebo Sim) lets you validate the
+navigation stack without physical hardware. It launches a course world
+(obstacles, green, tee, water hazard, slope ramp, steep zone) with the cart
+model, `gz_ros2_control` (diff-drive), and LiDAR/IMU/GPS/camera sensors.
+
+```bash
+# With GUI
+ros2 launch golfcart_gazebo sim.launch.py
+
+# Headless (CI / automated testing)
+ros2 launch golfcart_gazebo sim.launch.py headless:=true
+
+# Headless sanity check (topics, sim time, cart movement)
+scripts/sim_check.sh
+```
+
+The simulation exposes the same ROS topics as the real cart: `/cmd_vel`,
+`/odom`, `/scan`, `/imu`, `/gps`, `/camera/image`, `/joint_states`, `/clock`.
+Drive it by publishing a `geometry_msgs/Twist` on `/cmd_vel` (the
+`cmd_vel_converter` bridges it to the controller's `TwistStamped`).
+
+See `src/golfcart_gazebo/README.md` and `docs/architecture.md` §26.1 for details.
 
 
 

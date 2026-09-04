@@ -1,0 +1,779 @@
+<?xml version="1.0"?>
+<!--
+  Simulated golf course world for the golf cart.
+
+  Contains:
+    - A flat fairway with a gentle slope (to test roll/pitch slope costmap).
+    - Obstacles (trees, bunkers) to test obstacle avoidance.
+    - A green, a tee, and a water hazard (forbidden zone).
+    - A steep zone (to test the slope costmap / forbidden-zone stop).
+
+  The cart is spawned at the origin. The world uses gz-sim physics.
+-->
+<sdf version="1.9">
+  <world name="golf_course">
+
+    <!-- ===================== Physics ===================== -->
+    <physics type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+
+    <!-- run to completion so the simulation actually advances -->
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <!-- Sensor system: processes LiDAR/IMU/GPS/camera sensors -->
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors"/>
+    <!-- IMU and NavSat (GPS) sensor systems -->
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-navsat-system" name="gz::sim::systems::NavSat"/>
+
+    <!-- ===================== Ground / fairway ===================== -->
+    <!-- A large flat ground plane. -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>200 200</size>
+            </plane>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>200 200</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.3 0.6 0.2 1</ambient>
+            <diffuse>0.3 0.6 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ===================== Slope (test roll/pitch costmap) ===================== -->
+    <!-- A ramp rising toward +X, so the cart pitches up when driving onto it. -->
+    <model name="slope_ramp">
+      <static>true</static>
+      <pose>8 0 0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>6 4 0.5</size>
+            </box>
+          </geometry>
+          <pose>0 0 0.25 0 0.2 0</pose>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>6 4 0.5</size>
+            </box>
+          </geometry>
+          <pose>0 0 0.25 0 0.2 0</pose>
+          <material>
+            <ambient>0.5 0.4 0.3 1</ambient>
+            <diffuse>0.5 0.4 0.3 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ===================== Obstacles (trees) ===================== -->
+    <!-- A cluster of trees to the right of the cart's path. -->
+    <model name="tree_1">
+      <static>true</static>
+      <pose>4 2 0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.3</radius>
+              <length>2.0</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 1.0 0 0 0</pose>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.3</radius>
+              <length>2.0</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 1.0 0 0 0</pose>
+          <material>
+            <ambient>0.1 0.4 0.1 1</ambient>
+            <diffuse>0.1 0.4 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="tree_2">
+      <static>true</static>
+      <pose>6 2.5 0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.3</radius>
+              <length>2.0</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 1.0 0 0 0</pose>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.3</radius>
+              <length>2.0</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 1.0 0 0 0</pose>
+          <material>
+            <ambient>0.1 0.4 0.1 1</ambient>
+            <diffuse>0.1 0.4 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="tree_3">
+      <static>true</static>
+      <pose>5 -2 0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.3</radius>
+              <length>2.0</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 1.0 0 0 0</pose>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.3</radius>
+              <length>2.0</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 1.0 0 0 0</pose>
+          <material>
+            <ambient>0.1 0.4 0.1 1</ambient>
+            <diffuse>0.1 0.4 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ===================== Green (target area) ===================== -->
+    <model name="green">
+      <static>true</static>
+      <pose>12 0 0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>2.0</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 0.025 0 0 0</pose>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>2.0</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 0.025 0 0 0</pose>
+          <material>
+            <ambient>0.1 0.7 0.2 1</ambient>
+            <diffuse>0.1 0.7 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ===================== Tee (start area) ===================== -->
+    <model name="tee">
+      <static>true</static>
+      <pose>-2 0 0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>1.0</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 0.025 0 0 0</pose>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>1.0</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 0.025 0 0 0</pose>
+          <material>
+            <ambient>0.9 0.9 0.2 1</ambient>
+            <diffuse>0.9 0.9 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ===================== Water hazard (forbidden zone) ===================== -->
+    <model name="water_hazard">
+      <static>true</static>
+      <pose>10 -4 0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>4 3 0.1</size>
+            </box>
+          </geometry>
+          <pose>0 0 0.05 0 0 0</pose>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>4 3 0.1</size>
+            </box>
+          </geometry>
+          <pose>0 0 0.05 0 0 0</pose>
+          <material>
+            <ambient>0.1 0.3 0.8 1</ambient>
+            <diffuse>0.1 0.3 0.8 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ===================== Steep zone (forbidden / high slope cost) ===================== -->
+    <model name="steep_zone">
+      <static>true</static>
+      <pose>14 3 0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>3 3 0.5</size>
+            </box>
+          </geometry>
+          <pose>0 0 0.25 0 0.5 0</pose>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>3 3 0.5</size>
+            </box>
+          </geometry>
+          <pose>0 0 0.25 0 0.5 0</pose>
+          <material>
+            <ambient>0.8 0.2 0.2 1</ambient>
+            <diffuse>0.8 0.2 0.2 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ===================== Golf cart model ===================== -->
+    <model name="golfcart">
+      <!-- Spawn the cart at the origin, facing +X. -->
+      <pose>0 0 0.18 0 0 0</pose>
+
+      <!-- ===== ros2_control interface read by gz_ros2_control ===== -->
+      <ros2_control name="GazeboSystem" type="system">
+        <hardware>
+          <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </hardware>
+        <joint name="rear_left_wheel_joint">
+          <command_interface name="velocity">
+            <param name="min">-2.0</param>
+            <param name="max">2.0</param>
+          </command_interface>
+          <state_interface name="velocity"/>
+          <state_interface name="position"/>
+        </joint>
+        <joint name="rear_right_wheel_joint">
+          <command_interface name="velocity">
+            <param name="min">-2.0</param>
+            <param name="max">2.0</param>
+          </command_interface>
+          <state_interface name="velocity"/>
+          <state_interface name="position"/>
+        </joint>
+      </ros2_control>
+
+      <!-- gz_ros2_control system plugin -->
+      <plugin filename="libgz_ros2_control-system.so" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+        <parameters>$(find golfcart_gazebo)/config/ros2_control.yaml</parameters>
+      </plugin>
+
+      <!-- ===================== base_link (chassis) ===================== -->
+      <link name="base_link">
+        <inertial>
+          <mass>15.0</mass>
+          <inertia>
+            <ixx>1.0</ixx>
+            <iyy>1.0</iyy>
+            <izz>1.0</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <collision name="base_link_collision">
+          <geometry>
+            <box>
+              <size>0.9 0.6 0.15</size>
+            </box>
+          </geometry>
+          <pose>0 0 0.35 0 0 0</pose>
+        </collision>
+        <visual name="base_link_visual">
+          <geometry>
+            <box>
+              <size>0.9 0.6 0.15</size>
+            </box>
+          </geometry>
+          <pose>0 0 0.35 0 0 0</pose>
+          <material>
+            <ambient>0.2 0.3 0.4 1</ambient>
+            <diffuse>0.2 0.3 0.4 1</diffuse>
+          </material>
+        </visual>
+      </link>
+
+      <self_collide>false</self_collide>
+
+      <!-- ===================== rear_left_wheel ===================== -->
+      <link name="rear_left_wheel">
+        <inertial>
+          <mass>1.0</mass>
+          <inertia>
+            <ixx>0.01</ixx>
+            <iyy>0.01</iyy>
+            <izz>0.01</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.15</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.15</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+
+      <joint name="rear_left_wheel_joint" type="revolute">
+        <parent>base_link</parent>
+        <child>rear_left_wheel</child>
+        <pose>-0.25 0.25 0.15 0 0 0</pose>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-1e9</lower>
+            <upper>1e9</upper>
+          </limit>
+        </axis>
+      </joint>
+
+      <!-- ===================== rear_right_wheel ===================== -->
+      <link name="rear_right_wheel">
+        <inertial>
+          <mass>1.0</mass>
+          <inertia>
+            <ixx>0.01</ixx>
+            <iyy>0.01</iyy>
+            <izz>0.01</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.15</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.15</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+
+      <joint name="rear_right_wheel_joint" type="revolute">
+        <parent>base_link</parent>
+        <child>rear_right_wheel</child>
+        <pose>-0.25 -0.25 0.15 0 0 0</pose>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>-1e9</lower>
+            <upper>1e9</upper>
+          </limit>
+        </axis>
+      </joint>
+
+      <!-- ===================== front_steer (caster column) ===================== -->
+      <link name="front_steer">
+        <inertial>
+          <mass>0.5</mass>
+          <inertia>
+            <ixx>0.001</ixx>
+            <iyy>0.001</iyy>
+            <izz>0.001</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.02</radius>
+              <length>0.15</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 0.15 0 0 0</pose>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.02</radius>
+              <length>0.15</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 0.15 0 0 0</pose>
+          <material>
+            <ambient>0.4 0.4 0.45 1</ambient>
+            <diffuse>0.4 0.4 0.45 1</diffuse>
+          </material>
+        </visual>
+      </link>
+
+      <joint name="front_steer_joint" type="revolute">
+        <parent>base_link</parent>
+        <child>front_steer</child>
+        <pose>0.35 0 0 0 0 0</pose>
+        <axis>
+          <xyz>0 0 1</xyz>
+        </axis>
+      </joint>
+
+      <!-- ===================== front_wheel ===================== -->
+      <link name="front_wheel">
+        <inertial>
+          <mass>0.8</mass>
+          <inertia>
+            <ixx>0.005</ixx>
+            <iyy>0.005</iyy>
+            <izz>0.005</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.12</radius>
+              <length>0.04</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.12</radius>
+              <length>0.04</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+          </material>
+        </visual>
+      </link>
+
+      <joint name="front_wheel_joint" type="revolute">
+        <parent>front_steer</parent>
+        <child>front_wheel</child>
+        <pose>0 0 0.12 0 0 0</pose>
+        <axis>
+          <xyz>0 1 0</xyz>
+        </axis>
+      </joint>
+
+      <!-- ===================== mast (sensor column) ===================== -->
+      <link name="mast">
+        <inertial>
+          <mass>0.5</mass>
+          <inertia>
+            <ixx>0.001</ixx>
+            <iyy>0.001</iyy>
+            <izz>0.001</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.03</radius>
+              <length>0.5</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 0.5 0 0 0</pose>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.03</radius>
+              <length>0.5</length>
+            </cylinder>
+          </geometry>
+          <pose>0 0 0.5 0 0 0</pose>
+          <material>
+            <ambient>0.4 0.4 0.45 1</ambient>
+            <diffuse>0.4 0.4 0.45 1</diffuse>
+          </material>
+        </visual>
+      </link>
+
+      <joint name="mast_joint" type="fixed">
+        <parent>base_link</parent>
+        <child>mast</child>
+        <pose>0.35 0 0 0 0 0</pose>
+      </joint>
+
+      <!-- ===================== lidar_link ===================== -->
+      <link name="lidar_link">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia>
+            <ixx>0.0001</ixx>
+            <iyy>0.0001</iyy>
+            <izz>0.0001</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.04</length>
+            </cylinder>
+          </geometry>
+        </visual>
+        <sensor name="lidar" type="gpu_lidar">
+          <always_on>true</always_on>
+          <update_rate>10</update_rate>
+          <visualize>true</visualize>
+          <topic>lidar</topic>
+          <pose>0 0 0 0 0 0</pose>
+          <frame_name>lidar_link</frame_name>
+          <lidar>
+            <scan>
+              <horizontal>
+                <samples>360</samples>
+                <resolution>1</resolution>
+                <min_angle>-3.141592653589793</min_angle>
+                <max_angle>3.141592653589793</max_angle>
+              </horizontal>
+            </scan>
+            <range>
+              <min>0.1</min>
+              <max>30.0</max>
+              <resolution>0.01</resolution>
+            </range>
+          </lidar>
+        </sensor>
+      </link>
+      <joint name="lidar_joint" type="fixed">
+        <parent>mast</parent>
+        <child>lidar_link</child>
+        <pose>0 0 0.65 0 0 0</pose>
+      </joint>
+
+      <!-- ===================== imu_link ===================== -->
+      <link name="imu_link">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia>
+            <ixx>0.0001</ixx>
+            <iyy>0.0001</iyy>
+            <izz>0.0001</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.03 0.03 0.02</size>
+            </box>
+          </geometry>
+        </visual>
+        <sensor name="imu" type="imu">
+          <always_on>true</always_on>
+          <update_rate>100</update_rate>
+          <visualize>true</visualize>
+          <topic>imu</topic>
+          <pose>0 0 0 0 0 0</pose>
+          <frame_name>imu_link</frame_name>
+        </sensor>
+      </link>
+      <joint name="imu_joint" type="fixed">
+        <parent>mast</parent>
+        <child>imu_link</child>
+        <pose>0 0 0.6 0 0 0</pose>
+      </joint>
+
+      <!-- ===================== gps_link ===================== -->
+      <link name="gps_link">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia>
+            <ixx>0.0001</ixx>
+            <iyy>0.0001</iyy>
+            <izz>0.0001</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.04 0.04 0.01</size>
+            </box>
+          </geometry>
+        </visual>
+        <sensor name="gps" type="navsat">
+          <always_on>true</always_on>
+          <update_rate>10</update_rate>
+          <visualize>true</visualize>
+          <topic>gps</topic>
+          <pose>0 0 0 0 0 0</pose>
+          <frame_name>gps_link</frame_name>
+        </sensor>
+      </link>
+      <joint name="gps_joint" type="fixed">
+        <parent>mast</parent>
+        <child>gps_link</child>
+        <pose>0 0 0.7 0 0 0</pose>
+      </joint>
+
+      <!-- ===================== camera ===================== -->
+      <link name="camera_link">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia>
+            <ixx>0.0001</ixx>
+            <iyy>0.0001</iyy>
+            <izz>0.0001</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.06 0.03 0.03</size>
+            </box>
+          </geometry>
+        </visual>
+        <sensor name="camera" type="camera">
+          <always_on>true</always_on>
+          <update_rate>10</update_rate>
+          <visualize>true</visualize>
+          <topic>camera</topic>
+          <pose>0 0 0 0 0 0</pose>
+          <frame_name>camera_link</frame_name>
+          <camera>
+            <horizontal_fov>1.3962634</horizontal_fov>
+            <image>
+              <width>640</width>
+              <height>480</height>
+            </image>
+            <clip>
+              <near>0.1</near>
+              <far>100</far>
+            </clip>
+          </camera>
+        </sensor>
+      </link>
+      <joint name="camera_joint" type="fixed">
+        <parent>mast</parent>
+        <child>camera_link</child>
+        <pose>0 0 0.62 0 0 0</pose>
+      </joint>
+    </model>
+
+    <!-- ===================== Sun / lighting ===================== -->
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>1 1 1 1</diffuse>
+      <specular>0.5 0.5 0.5 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- ===================== GUI / camera ===================== -->
+    <gui fullscreen="0">
+      <camera name="user_camera">
+        <pose>6 -6 6 0 0.5 0.3</pose>
+      </camera>
+    </gui>
+
+  </world>
+</sdf>

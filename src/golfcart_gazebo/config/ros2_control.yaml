@@ -1,0 +1,65 @@
+# ros2_control controller configuration for the simulated golf cart.
+# Loaded by controller_manager in the launch file.
+
+controller_manager:
+  ros__parameters:
+    update_rate: 50  # Hz
+    use_sim_time: true  # Use the Gazebo simulation clock
+
+    # Differential-drive controller: computes odometry + publishes TF.
+    diff_drive_controller:
+      type: diff_drive_controller/DiffDriveController
+
+    # Publishes joint states for all joints.
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+diff_drive_controller:
+  ros__parameters:
+    use_sim_time: true  # Use the Gazebo simulation clock
+
+    # Wheel separation (track) and radius from the URDF.
+    wheel_separation: 0.5
+    wheel_radius: 0.15
+
+    # Left/right wheel joint names (from the URDF).
+    left_wheel_names: ["rear_left_wheel_joint"]
+    right_wheel_names: ["rear_right_wheel_joint"]
+
+    # Command interface used by the controller.
+    command_interfaces: ["velocity"]
+    state_interfaces: ["velocity", "position"]
+
+    # Publish odometry on /odom and TF odom -> base_link.
+    publish_odom: true
+    publish_odom_tf: true
+    odom_frame_id: odom
+    base_frame_id: base_link
+
+    # Odometry topic name.
+    odom_topic: odom
+
+    # Velocity limits (m/s and rad/s).
+    linear:
+      x:
+        has_velocity_limits: true
+        max_velocity: 1.0
+        min_velocity: -1.0
+        has_acceleration_limits: true
+        max_acceleration: 1.0
+        min_acceleration: -1.0
+    angular:
+      z:
+        has_velocity_limits: true
+        max_velocity: 1.5
+        min_velocity: -1.5
+        has_acceleration_limits: true
+        max_acceleration: 1.5
+        min_acceleration: -1.5
+
+joint_state_broadcaster:
+  ros__parameters:
+    # Publish all joints.
+    extra_joints:
+      - front_steer_joint
+      - front_wheel_joint

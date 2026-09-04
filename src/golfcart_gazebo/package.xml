@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>golfcart_gazebo</name>
+  <version>0.1.0</version>
+  <description>Gazebo (gz-sim) simulation of the golf cart on a course world, with LiDAR/IMU/GPS sensors and differential-drive control.</description>
+  <maintainer email="dev@example.com">golfcart</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>golfcart_description</depend>
+  <depend>gz_ros2_control</depend>
+  <depend>ros_gz_bridge</depend>
+  <depend>ros_gz_sim</depend>
+  <depend>ros2_control</depend>
+  <depend>ros2_controllers</depend>
+  <depend>diff_drive_controller</depend>
+  <depend>joint_state_broadcaster</depend>
+  <depend>robot_state_publisher</depend>
+  <depend>xacro</depend>
+  <depend>urdf</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

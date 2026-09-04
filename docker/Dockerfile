@@ -49,6 +49,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-nav2-msgs \
     ros-${ROS_DISTRO}-gz-sim-vendor \
     ros-${ROS_DISTRO}-gz-ros2-control \
+    ros-${ROS_DISTRO}-ros-gz-bridge \
+    ros-${ROS_DISTRO}-ros-gz-sim \
+    ros-${ROS_DISTRO}-ros2-control \
+    ros-${ROS_DISTRO}-ros2-controllers \
+    ros-${ROS_DISTRO}-diff-drive-controller \
+    ros-${ROS_DISTRO}-joint-state-broadcaster \
     ros-${ROS_DISTRO}-joint-state-publisher-gui \
     ros-${ROS_DISTRO}-rviz2 \
     && rm -rf /var/lib/apt/lists/*
