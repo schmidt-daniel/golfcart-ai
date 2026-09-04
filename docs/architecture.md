@@ -1205,9 +1205,41 @@ The following decisions should be finalized during implementation:
 - IMU sensor-fusion algorithm
 - localization approach
 - simulation environment
-- deployment/update mechanism
 
 Architectural decisions should be recorded here as the implementation matures rather than being left implicit in source code.
+
+---
+
+# 34.1 Deployment (Option D, Hybrid)
+
+Deployment uses a **hybrid** strategy (see `scripts/deploy.sh`):
+
+- **Code via git** — versioned, easy rollback. Deployed to the Pi with `rsync`
+  (excluding build/install/log artifacts and the large `core` dump).
+- **Maps/config via rsync** — per-course maps are large binary data kept out of
+  git to avoid repo bloat; pushed when updated via `--map-dir`.
+
+**Services** run as systemd units (see `systemd/`), auto-start on boot and
+restart on crash:
+
+| Service | Launch file | Purpose |
+| --- | --- | --- |
+| `golfcart-core.service` | `golfcart_bringup/core.launch.py` | Always-on control pipeline (odrive, motion, safety, battery, IMU, GPS, LiDAR, obstacle, hill/rollback, auto-shutdown) |
+| `golfcart-teleop.service` | `golfcart_bringup/web_server.launch.py` | Web teleop (rosbridge + HTTP server) |
+| `golfcart-localization.service` | `golfcart_localization/fusion.launch.py` | Sensor fusion + EKF |
+| `golfcart-mapping.service` | `golfcart_mapping/mapping.launch.py` | slam_toolbox course mapping |
+| `golfcart-navigation.service` | `golfcart_navigation/navigation.launch.py` | Nav2 autonomous navigation |
+
+**Deploy:**
+```bash
+./scripts/deploy.sh --pi pi@<host> [--map-dir ./maps] [--no-build]
+```
+
+**On the Pi (manual):**
+```bash
+./scripts/install_services.sh --start   # install + enable + start
+./scripts/uninstall_services.sh         # stop + disable + remove
+```
 
 ---
 

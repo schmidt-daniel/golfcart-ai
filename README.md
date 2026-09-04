@@ -146,6 +146,31 @@ See `src/golfcart_gazebo/README.md` and `docs/architecture.md` §26.1 for detail
 
 
 
+## Deploy (Raspberry Pi)
+
+Deployment uses a hybrid strategy (Option D): **code via git/rsync**, **maps via
+rsync** (large binary data kept out of git). Services run as systemd units that
+auto-start on boot and restart on crash.
+
+```bash
+# Build in Docker, rsync code (+ optional maps) to the Pi, install systemd
+# units, and restart services.
+./scripts/deploy.sh --pi pi@<host> [--map-dir ./maps] [--no-build]
+```
+
+On the Pi, the services are managed manually with:
+
+```bash
+./scripts/install_services.sh --start   # install + enable + start
+./scripts/uninstall_services.sh         # stop + disable + remove
+```
+
+Services: `golfcart-core` (control pipeline), `golfcart-teleop` (web),
+`golfcart-localization` (EKF), `golfcart-mapping` (SLAM), `golfcart-navigation`
+(Nav2). See `systemd/` and `docs/architecture.md` §34.1 for details.
+
+
+
 ## Tests
 
 ```bash

@@ -12,6 +12,8 @@ setup(
         ('share/' + package_name + '/launch', ['launch/joystick_control.launch.py']),
         ('share/' + package_name + '/launch', ['launch/keyboard_control.launch.py']),
         ('share/' + package_name + '/launch', ['launch/web_teleop.launch.py']),
+        ('share/' + package_name + '/launch', ['launch/core.launch.py']),
+        ('share/' + package_name + '/launch', ['launch/web_server.launch.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

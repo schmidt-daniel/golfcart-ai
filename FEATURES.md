@@ -87,6 +87,17 @@ features are added.
 - `launch/sim.launch.py` — `ros2 launch golfcart_gazebo sim.launch.py [headless:=true]`
 - `scripts/sim_check.sh` — headless sanity check (topics, sim time, cart movement)
 
+### Deployment (Option D, Hybrid)
+- `systemd/` — systemd units per service, auto-start on boot + restart on crash:
+  `golfcart-core`, `golfcart-teleop`, `golfcart-localization`, `golfcart-mapping`,
+  `golfcart-navigation`
+- `golfcart_bringup/core.launch.py` — always-on control pipeline (odrive, motion,
+  safety, battery, IMU, GPS, LiDAR, obstacle, hill/rollback, auto-shutdown)
+- `golfcart_bringup/web_server.launch.py` — web teleop servers only (rosbridge + HTTP)
+- `scripts/deploy.sh` — build in Docker, rsync code+maps to the Pi, install/update
+  systemd units, restart services (code via git, maps/config via rsync)
+- `scripts/install_services.sh` / `scripts/uninstall_services.sh` — manage services on the Pi
+
 ## Not yet implemented (documented only)
 
 See `docs/features/` for design docs.
