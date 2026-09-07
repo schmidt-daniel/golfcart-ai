@@ -49,7 +49,7 @@ This document covers the whole-system architecture. Individual features are docu
 - ODrive 3.6 — motor controller
 - Two hoverboard-style DC motors with integrated encoders
 - FHL-LD19P LiDAR
-- Raspberry Pi HQ Camera
+- Intel RealSense D435i (depth camera)
 - IMU
 - GPS
 - Force sensors in the handle

@@ -32,10 +32,11 @@ STOP / LIMIT / ALLOW
 ## Negative Obstacles (ditches, lakes, streams)
 
 2D LiDAR cannot detect negative obstacles (drop-offs, water). A **depth camera**
-(GIXVISION) is used to detect these, feeding the costmap and safety layer.
+(Intel RealSense D435i) is used to detect these, feeding the costmap and safety
+layer.
 
 ```text
-Depth Camera
+Depth Camera (RealSense D435i)
     ↓
 Negative Obstacle Detector
     ↓

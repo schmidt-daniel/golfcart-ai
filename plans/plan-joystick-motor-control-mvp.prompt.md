@@ -2,7 +2,7 @@
 
 **TL;DR** — Build the first working slice of the golf trolley: drive the motors with a joystick (and keyboard teleop), routed through the documented **full safety + motion pipeline** so no high-level code commands motors directly. Includes a **mock ODrive** so the whole pipeline is testable without physical hardware.
 
-**Key decision:** Stack is **ROS 2 Lyrical / Ubuntu 26.04** (already applied to `AGENT.md` and `docs/architecture.md`). The GIXVISION stereo cam is **provisional** — if it's unsupported on Lyrical/ARM64, swap to a different camera later (not part of this MVP).
+**Key decision:** Stack is **ROS 2 Lyrical / Ubuntu 26.04** (already applied to `AGENT.md` and `docs/architecture.md`). The Intel RealSense D435i depth camera is **provisional** — if it's unsupported on Lyrical/ARM64, swap to a different camera later (not part of this MVP).
 
 **Steps**
 
@@ -42,7 +42,7 @@
 
 **Decisions**
 - **Distro:** ROS 2 Lyrical / Ubuntu 26.04 (already updated in docs).
-- **Camera:** GIXVISION provisional — swap later if unsupported on Lyrical/ARM64.
+- **Camera:** Intel RealSense D435i provisional — swap later if unsupported on Lyrical/ARM64.
 - **Full safety + motion pipeline** — joystick → `MotionRequest` → Safety Controller → Motion Controller → ODrive. No direct motor commands (per `AGENT.md`).
 - **Both joystick and keyboard teleop** for flexibility.
 - **Mock ODrive included** for hardware-free testing.
@@ -51,4 +51,4 @@
 **Further Considerations**
 1. **ODrive comms interface** — USB vs. CAN is still an open decision (§34). The MVP should pick one (USB is simplest to start).
 2. **Enable/arm sequence** — how the Safety Controller transitions from `SAFE_STOPPED` to `READY` (e.g., a joystick button or a service call) needs a concrete choice.
-3. **Camera swap** — deferred; only revisit if the GIXVISION cam proves unsupported on Lyrical/ARM64.
+3. **Camera swap** — deferred; only revisit if the RealSense D435i proves unsupported on Lyrical/ARM64.

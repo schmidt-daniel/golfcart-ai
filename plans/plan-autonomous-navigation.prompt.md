@@ -162,7 +162,7 @@
 - **Target interface:** both web map(SUMMON)and HMI menu, via a shared `/set_goal` service..
 - **Autonomous priority:** lowest(below user/manual,, per architecture §8 safety priority order.. Manual override always wins..
 - **Simulation:** Gazebo(simulated cart + course world.
-- **Scope:** full stack;; excludes negative-obstacle depth camera(GIXVISION,, learning/route-replay refinement, summon phone-side app(web SUMMON covers it,, geofencing enforcement(deferred; Nav2 costmap handles boundaries,, speed-by-zone(deferred; velocity smoother handles global max,, max-distance/battery check(not needed; routes ≤200 m,, explicit arrival report(not needed; operator sees arrival..
+- **Scope:** full stack;; excludes negative-obstacle depth camera(Intel RealSense D435i,, learning/route-replay refinement, summon phone-side app(web SUMMON covers it,, geofencing enforcement(deferred; Nav2 costmap handles boundaries,, speed-by-zone(deferred; velocity smoother handles global max,, max-distance/battery check(not needed; routes ≤200 m,, explicit arrival report(not needed; operator sees arrival..
 
 
 
