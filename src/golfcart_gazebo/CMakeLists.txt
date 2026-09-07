@@ -16,6 +16,11 @@ install(PROGRAMS ${PROJECT_NAME}/cmd_vel_converter.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# Register the gps_dropout_node as an executable (test-only).
+install(PROGRAMS ${PROJECT_NAME}/gps_dropout_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 # Install URDF/xacro, worlds, config, and launch files.
 install(DIRECTORY urdf
   DESTINATION share/${PROJECT_NAME}

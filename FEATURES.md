@@ -91,6 +91,17 @@ features are added.
 - Nav2 stack (manual bringup): planner (NavFn), controller (Regulated Pure Pursuit), bt_navigator, velocity_smoother, global/local costmaps
 - `golfcart_msgs` — `GoalPose`, `NavigationStatus`, `CourseMap`, `SetGoal.srv`
 
+### Summon (Drive to Operator's Phone)
+- `golfcart_navigation/summon_node` — tracks the operator's live phone GPS position and drives the trolley to it via the navigation stack
+- Two targeting modes: **CURRENT** (live position) and **PREDICT** (intercept — estimates operator velocity and aims at their predicted position at the trolley's ETA, with a "hold if approaching" rule)
+- Single `/summon` service (`SummonTrigger.srv`, `cancel` flag): start/restart/cancel
+- Safety: target-loss stop, accuracy gate (≤ 2.5 m), max distance, timeout, arrival radius, slow-down on approach, physical stop override, network-loss → drive to last planned location + phone notification
+- Phone page: `web/summon.html` (publishes `/phone/gps`, mode toggle, SUMMON/CANCEL, route + progress display, arrival/obstacle notifications)
+- HMI: `hmi_node` `summon_to()`/`cancel_summon()` + summon status subscription
+- `golfcart_msgs` — `PhoneFix.msg`, `SummonStatus.msg`, `SummonTrigger.srv`
+- Pure math in `summon_math.hpp` (velocity estimation, predictive target, approach-cone) — unit-tested
+- Gazebo: `gps_dropout_node.py` (simulate GPS loss); `scripts/summon_check.sh` (sim smoke test)
+
 ### Gazebo Simulation (gz-sim)
 - `golfcart_gazebo` package
 - Course world (`worlds/course.sdf`) with obstacles, green, tee, water hazard, slope ramp, steep zone
@@ -116,11 +127,10 @@ features are added.
 See `docs/features/` for design docs.
 
 - Follow Me
-- HMI Display (TFT) — spec + mockups in `docs/hmi-spec.md` & `docs/hmi/`
+- HMI Display (unstructured display) — spec + mockups in `docs/hmi-spec.md` & `docs/hmi/`
 - Geofencing
 - Speed Zones
 - Voice Control
-- Summon (HMI menu scaffolded; full flow pending)
 
 ## Key decisions (permanent)
 
