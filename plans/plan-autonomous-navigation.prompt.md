@@ -125,7 +125,7 @@
 - `scripts/deploy.sh`(new) — build in Docker, rsync code+maps to the Pi, install/update systemd units,, restart services..
 - `systemd/`(new) — systemd unit files for each launch(e.g. `golfcart-navigation.service`, `golfcart-teleop.service`..
 - `docs/architecture.md` — document TF2 frames, Nav2 integration, priority arbitration, forbidden-zone stop, no-map direct-route behavior, update §34 open decisions(localization approach,, simulation environment,, deployment).
-- `docs/features/navigation.md`, `summon.md`, `route-replay.md`, `geofencing.md` — update to reflect implemented stack..
+- `docs/features/navigation.md`, `summon.md`, `geofencing.md` — update to reflect implemented stack..
 - `FEATURES.md` — mark Autonomous Navigation / Nav2, Localization, Course Mapping as in-progress/implemented..
 
 
@@ -162,7 +162,7 @@
 - **Target interface:** both web map(SUMMON)and HMI menu, via a shared `/set_goal` service..
 - **Autonomous priority:** lowest(below user/manual,, per architecture §8 safety priority order.. Manual override always wins..
 - **Simulation:** Gazebo(simulated cart + course world.
-- **Scope:** full stack;; excludes negative-obstacle depth camera(Intel RealSense D435i,, learning/route-replay refinement, summon phone-side app(web SUMMON covers it,, geofencing enforcement(deferred; Nav2 costmap handles boundaries,, speed-by-zone(deferred; velocity smoother handles global max,, max-distance/battery check(not needed; routes ≤200 m,, explicit arrival report(not needed; operator sees arrival..
+- **Scope:** full stack;; excludes negative-obstacle depth camera(Intel RealSense D435i,, learning refinement, summon phone-side app(web SUMMON covers it,, geofencing enforcement(deferred; Nav2 costmap handles boundaries,, speed-by-zone(deferred; velocity smoother handles global max,, max-distance/battery check(not needed; routes ≤200 m,, explicit arrival report(not needed; operator sees arrival..
 
 
 

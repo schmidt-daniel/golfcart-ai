@@ -117,7 +117,6 @@ See `docs/features/` for design docs.
 
 - Follow Me
 - HMI Display (TFT) — spec + mockups in `docs/hmi-spec.md` & `docs/hmi/`
-- Route Recording + Replay
 - Geofencing
 - Speed Zones
 - Voice Control

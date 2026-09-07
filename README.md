@@ -55,7 +55,7 @@ See `FEATURES.md` for the full tracker. Implemented: joystick/keyboard/web teleo
 battery monitoring, ODrive driver (pending hardware validation), IMU, GPS, LiDAR +
 obstacle detection, auto-shutdown, hill/rollback behaviors, URDF model, localization
 (robot_localization EKF), course mapping (slam_toolbox), autonomous navigation (Nav2),
-and a full gz-sim simulation. Planned: HMI display, route replay, geofencing, speed
+and a full gz-sim simulation. Planned: HMI display, geofencing, speed
 zones, voice control, summon.
 
 ## Build
