@@ -11,9 +11,9 @@
 # Note: this is a smoke test of the summon node wiring in sim. Full
 # predictive-intercept and "hold if approaching" behavior is covered by the
 # unit tests in test_summon_math.cpp.
-set -u
 source /opt/ros/${ROS_DISTRO}/setup.bash
 source install/setup.bash
+set -u
 
 # Start sim headless in background.
 ros2 launch golfcart_gazebo sim.launch.py headless:=true \
@@ -34,6 +34,7 @@ echo "=== PUBLISH PHONE TARGET + TRIGGER SUMMON ==="
 timeout -s KILL 20 python3 - <<'PYEOF'
 import rclpy, time
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from golfcart_msgs.msg import PhoneFix
 from golfcart_msgs.srv import SummonTrigger
 from golfcart_msgs.msg import SummonStatus
@@ -44,7 +45,9 @@ class N(Node):
         self.phone_pub = self.create_publisher(PhoneFix, "/phone/gps", 10)
         self.summon_client = self.create_client(SummonTrigger, "/summon")
         self.status = None
-        self.create_subscription(SummonStatus, "/summon/status", self.on_status, 10)
+        # summon_node publishes /summon/status with SensorDataQoS (best-effort).
+        qos = QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT)
+        self.create_subscription(SummonStatus, "/summon/status", self.on_status, qos)
     def on_status(self, m):
         self.status = m.state
         print("SUMMON_STATUS:", m.state, "dist:", round(m.distance_m,1))

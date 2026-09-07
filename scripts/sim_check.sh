@@ -1,8 +1,8 @@
 #!/bin/bash
 # Quick sanity check for the gz-sim golf cart: verify sim runs and cart moves.
-set -u
 source /opt/ros/${ROS_DISTRO}/setup.bash
 source install/setup.bash
+set -u
 
 # Start sim headless in background.
 ros2 launch golfcart_gazebo sim.launch.py headless:=true \
