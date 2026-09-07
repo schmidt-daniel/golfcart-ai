@@ -1,0 +1,10 @@
+# Trigger summon (or cancel it).
+# Single service with a flag: cancel=false starts/restarts summon,
+# cancel=true cancels it.
+float64 lat
+float64 lon
+string mode          # CURRENT or PREDICT
+bool cancel
+---
+bool success
+string message

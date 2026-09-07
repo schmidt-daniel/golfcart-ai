@@ -100,6 +100,14 @@ def generate_launch_description():
         output='screen',
     )
 
+    # Summon node (drive to the operator's phone position)
+    summon_node = Node(
+        package='golfcart_navigation',
+        executable='summon_node',
+        name='summon_node',
+        output='screen',
+    )
+
     return LaunchDescription([
         use_sim_time_arg,
         planner,
@@ -110,4 +118,5 @@ def generate_launch_description():
         local_costmap,
         navigation_node,
         georeference_node,
+        summon_node,
     ])

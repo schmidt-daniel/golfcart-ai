@@ -25,7 +25,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/CourseFeature.msg"
   "msg/CourseMap.msg"
   "msg/PowerState.msg"
+  "msg/PhoneFix.msg"
+  "msg/SummonStatus.msg"
   "srv/SetGoal.srv"
+  "srv/SummonTrigger.srv"
   DEPENDENCIES builtin_interfaces nav_msgs geometry_msgs
 )
 

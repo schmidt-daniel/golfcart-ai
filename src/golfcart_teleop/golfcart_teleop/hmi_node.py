@@ -12,14 +12,24 @@ in docs/hmi-spec.md and implemented incrementally.
 
 import rclpy
 from rclpy.node import Node
-from golfcart_msgs.srv import SetGoal
+from golfcart_msgs.srv import SetGoal, SummonTrigger
+from golfcart_msgs.msg import SummonStatus
 
 
 class HmiNode(Node):
     def __init__(self):
         super().__init__('hmi_node')
         self.set_goal_client = self.create_client(SetGoal, 'set_goal')
+        self.summon_client = self.create_client(SummonTrigger, 'summon')
+        self.summon_status_sub = self.create_subscription(
+            SummonStatus, 'summon/status', self.on_summon_status, 10)
         self.get_logger().info('HMI node started (scaffold)')
+
+    def on_summon_status(self, msg):
+        """Show summon status/arrival on the HMI."""
+        self.get_logger().info(f'Summon: {msg.state} (distance {msg.distance_m:.1f} m)')
+        if msg.state == 'ARRIVED':
+            self.get_logger().info('Trolley has arrived — summon complete.')
 
     def navigate_to_target(self, x, y, theta=0.0):
         """Set a navigation goal (map-frame coordinates) via /set_goal."""
@@ -39,6 +49,37 @@ class HmiNode(Node):
             return future.result().success
         self.get_logger().warn('set_goal timed out')
         return False
+
+    def summon_to(self, lat, lon, mode='PREDICT'):
+        """Trigger summon to the operator's phone position via /summon."""
+        if not self.summon_client.wait_for_service(timeout_sec=2.0):
+            self.get_logger().warn('summon service not available')
+            return False
+        req = SummonTrigger.Request()
+        req.lat = lat
+        req.lon = lon
+        req.mode = mode
+        req.cancel = False
+        future = self.summon_client.call_async(req)
+        rclpy.spin_until_future_complete(self, future, timeout_sec=3.0)
+        if future.result() is not None:
+            self.get_logger().info(f'summon: {future.result().message}')
+            return future.result().success
+        self.get_logger().warn('summon timed out')
+        return False
+
+    def cancel_summon(self):
+        """Cancel an active summon."""
+        if not self.summon_client.wait_for_service(timeout_sec=2.0):
+            return False
+        req = SummonTrigger.Request()
+        req.lat = 0.0
+        req.lon = 0.0
+        req.mode = 'CURRENT'
+        req.cancel = True
+        future = self.summon_client.call_async(req)
+        rclpy.spin_until_future_complete(self, future, timeout_sec=3.0)
+        return future.result() is not None and future.result().success
 
 
 def main(args=None):

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Summon Golf Cart</title>
+  <!-- ROS 2 web client -->
+  <script src="https://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+  <!-- Leaflet map (OpenStreetMap tiles, no API key) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin: 0; background: #f5f5f5; }
+    h1 { margin: 12px 0 4px; font-size: 1.4em; }
+    #conn { color: #888; font-size: 0.9em; margin: 0; }
+    .status { margin: 8px; font-size: 1.1em; }
+    .status span { font-weight: bold; }
+    .btn { font-size: 1.3em; padding: 16px 28px; margin: 6px; border: none; border-radius: 10px; cursor: pointer; }
+    .btn:active { transform: scale(0.95); }
+    .summon { background: #2196F3; color: white; width: 80%; }
+    .cancel { background: #f44336; color: white; }
+    .mode-btn { font-size: 1em; padding: 10px 14px; margin: 4px; border: 2px solid #ccc; border-radius: 8px; background: white; cursor: pointer; }
+    .mode-btn.active { border-color: #2196F3; background: #e3f2fd; font-weight: bold; }
+    #map { height: 40vh; width: 100%; }
+    .legend { font-size: 0.85em; margin: 4px; }
+    .legend span { display: inline-block; margin: 0 8px; }
+    .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+    .phone-dot { background: #2196F3; }
+    .trolley-dot { background: #4CAF50; }
+    .target-dot { background: #f44336; }
+    .route-line { color: #2196F3; }
+    .controls { padding: 8px; }
+    .progress-wrap { margin: 8px auto; width: 80%; background: #ddd; border-radius: 8px; height: 12px; }
+    .progress-bar { height: 12px; width: 0%; background: #4CAF50; border-radius: 8px; }
+    .progress-label { font-size: 0.9em; margin: 4px; }
+    .acc-warn { color: #f44336; font-size: 0.9em; margin: 4px; display: none; }
+    /* Notification banner */
+    #banner { display: none; position: fixed; top: 0; left: 0; right: 0; padding: 14px; color: white; font-size: 1.1em; z-index: 2000; }
+    #banner.info { background: #4CAF50; }
+    #banner.warn { background: #FF9800; }
+    #banner.error { background: #f44336; }
+    /* Obstacle modal */
+    #obstacleModal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+    #obstacleModal > div { background: white; padding: 24px; border-radius: 10px; text-align: center; max-width: 90%; }
+  </style>
+</head>
+<body>
+  <h1>Summon Golf Cart</h1>
+  <p id="conn">Connecting...</p>
+
+  <!-- Notification banner (arrival / target lost / timeout / obstacle) -->
+  <div id="banner"></div>
+
+  <div class="status">
+    <p>Summon: <span id="summonState">IDLE</span> | Distance: <span id="distance">--</span> m</p>
+    <p>GPS accuracy: <span id="accuracy">--</span> m</p>
+  </div>
+  <p class="acc-warn" id="accWarn">⚠️ GPS accuracy too low (need ≤ 2.5 m). Summon may be refused.</p>
+
+  <!-- Map -->
+  <div id="map"></div>
+  <div class="legend">
+    <span><span class="dot phone-dot"></span>Phone</span>
+    <span><span class="dot trolley-dot"></span>Trolley</span>
+    <span><span class="dot target-dot"></span>Target</span>
+    <span><span class="dot route-line"></span>Route</span>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="progress-label" id="progressLabel">Progress: --</div>
+
+  <!-- Mode toggle -->
+  <div class="controls">
+    <button class="mode-btn active" id="modeCurrent">Current position</button>
+    <button class="mode-btn" id="modePredict">Predictive (intercept)</button>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn summon" id="summonBtn">SUMMON</button>
+  </div>
+  <div class="controls">
+    <button class="btn cancel" id="cancelBtn">CANCEL / STOP</button>
+  </div>
+
+  <!-- Obstacle modal -->
+  <div id="obstacleModal">
+    <div>
+      <h2>⚠️ Unexpected Obstacle</h2>
+      <p>The trolley has stopped. An obstacle is blocking the route.</p>
+      <div>
+        <button class="btn" id="obstacleRetry" style="background:#FF9800; color:white;">RETRY</button>
+        <button class="btn" id="obstacleReplan" style="background:#2196F3; color:white;">REPLAN</button>
+        <button class="btn cancel" id="obstacleStop">STOP</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---- ROS connection ----
+    var ros = new ROSLIB.Ros({ url: 'ws://' + location.hostname + ':9090' });
+    ros.on('connection', function () {
+      document.getElementById('conn').textContent = 'Connected';
+      document.getElementById('conn').style.color = '#4CAF50';
+    });
+    ros.on('error', function (e) {
+      document.getElementById('conn').textContent = 'Error: ' + e;
+      document.getElementById('conn').style.color = '#f44336';
+    });
+    ros.on('close', function () {
+      document.getElementById('conn').textContent = 'Disconnected';
+      document.getElementById('conn').style.color = '#888';
+    });
+
+    // ---- Mode selection ----
+    var mode = 'CURRENT';
+    document.getElementById('modeCurrent').onclick = function () { setMode('CURRENT'); };
+    document.getElementById('modePredict').onclick = function () { setMode('PREDICT'); };
+    function setMode(m) {
+      mode = m;
+      document.getElementById('modeCurrent').classList.toggle('active', m === 'CURRENT');
+      document.getElementById('modePredict').classList.toggle('active', m === 'PREDICT');
+    }
+
+    // ---- Phone GPS publisher ----
+    var phonePub = new ROSLIB.Topic({ ros: ros, name: '/phone/gps', messageType: 'golfcart_msgs/msg/PhoneFix' });
+    var phoneLat = null, phoneLon = null, phoneAcc = null;
+
+    function publishPhoneFix() {
+      if (phoneLat === null || phoneLon === null) return;
+      var msg = new ROSLIB.Message({
+        latitude_deg: phoneLat,
+        longitude_deg: phoneLon,
+        accuracy_m: phoneAcc || 0,
+        speed_mps: 0,
+        heading_deg: 0,
+        valid: true,
+        timestamp: { sec: Math.floor(Date.now() / 1000), nanosec: 0 }
+      });
+      phonePub.publish(msg);
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.watchPosition(function (pos) {
+        phoneLat = pos.coords.latitude;
+        phoneLon = pos.coords.longitude;
+        phoneAcc = pos.coords.accuracy;
+        phoneMarker.setLatLng([phoneLat, phoneLon]);
+        document.getElementById('accuracy').textContent = phoneAcc.toFixed(1);
+        // Warn if accuracy too low.
+        var warn = phoneAcc > 2.5;
+        document.getElementById('accWarn').style.display = warn ? 'block' : 'none';
+        if (!map._userCentered) { map.setView([phoneLat, phoneLon], 17); }
+        publishPhoneFix();
+      }, function (err) {
+        console.warn('Geolocation error:', err);
+      }, { enableHighAccuracy: true, maximumAge: 1000 });
+    } else {
+      console.warn('Geolocation not supported');
+    }
+
+    // ---- Map ----
+    var map = L.map('map').setView([51.5, -0.12], 17);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    var phoneMarker = L.marker([51.5, -0.12], { title: 'Phone' }).addTo(map);
+    var trolleyMarker = L.marker([51.5, -0.12], { title: 'Trolley' }).addTo(map);
+    var targetMarker = null;
+    var routeLine = null;
+
+    // ---- Trolley position (from /gps/fix) ----
+    var gpsSub = new ROSLIB.Topic({ ros: ros, name: '/gps/fix', messageType: 'golfcart_msgs/msg/GpsFix' });
+    gpsSub.subscribe(function (msg) {
+      if (msg.valid) { trolleyMarker.setLatLng([msg.latitude_deg, msg.longitude_deg]); }
+    });
+
+    // ---- Summon status ----
+    var summonSub = new ROSLIB.Topic({ ros: ros, name: '/summon/status', messageType: 'golfcart_msgs/msg/SummonStatus' });
+    summonSub.subscribe(function (msg) {
+      document.getElementById('summonState').textContent = msg.state;
+      document.getElementById('distance').textContent = msg.distance_m.toFixed(1);
+      // Progress bar.
+      var pct = Math.round(msg.progress * 100);
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressLabel').textContent = 'Progress: ' + pct + '%';
+      // Target marker.
+      if (msg.target_lat !== 0 || msg.target_lon !== 0) {
+        if (targetMarker) { map.removeLayer(targetMarker); }
+        targetMarker = L.marker([msg.target_lat, msg.target_lon], { title: 'Target' }).addTo(map);
+      }
+      // Notifications.
+      if (msg.state === 'ARRIVED') { showBanner('Trolley has arrived!', 'info'); }
+      else if (msg.state === 'TARGET_LOST') { showBanner('Phone GPS lost — driving to last known location.', 'warn'); }
+      else if (msg.state === 'TIMEOUT') { showBanner('Summon timed out.', 'error'); }
+      else if (msg.state === 'OBSTACLE') { showObstacleModal(); }
+      else if (msg.state === 'CANCELLED') { showBanner('Summon cancelled.', 'warn'); }
+    });
+
+    // ---- Route display (Nav2 /plan) ----
+    // The planned path is in the map frame; we approximate its lat/lon by
+    // treating the map origin as the georeference datum. For a real deployment
+    // the map origin (lat/lon) would be provided; here we use the phone's
+    // current position as a rough anchor for visualization.
+    var planSub = new ROSLIB.Topic({ ros: ros, name: '/plan', messageType: 'nav_msgs/msg/Path' });
+    planSub.subscribe(function (msg) {
+      if (!msg.poses || msg.poses.length < 2) return;
+      if (routeLine) { map.removeLayer(routeLine); }
+      var latlngs = msg.poses.map(function (p) {
+        // Approximate: map-frame meters -> lat/lon offset from the phone anchor.
+        var lat = phoneLat + p.pose.position.y / 111195.0;
+        var lon = phoneLon + p.pose.position.x / (111195.0 * Math.cos((phoneLat || 51.5) * Math.PI / 180.0));
+        return [lat, lon];
+      });
+      routeLine = L.polyline(latlngs, { color: '#2196F3', weight: 3 }).addTo(map);
+    });
+
+    // ---- Services ----
+    var summonSrv = new ROSLIB.Service({ ros: ros, name: '/summon', serviceType: 'golfcart_msgs/srv/SummonTrigger' });
+    var stopSrv = new ROSLIB.Service({ ros: ros, name: '/safety/stop', serviceType: 'std_srvs/srv/Trigger' });
+
+    document.getElementById('summonBtn').onclick = function () {
+      if (phoneLat === null || phoneLon === null) {
+        alert('Waiting for GPS fix...');
+        return;
+      }
+      if (phoneAcc !== null && phoneAcc > 2.5) {
+        alert('GPS accuracy too low (' + phoneAcc.toFixed(1) + ' m). Need ≤ 2.5 m.');
+        return;
+      }
+      var req = new ROSLIB.ServiceRequest({
+        lat: phoneLat,
+        lon: phoneLon,
+        mode: mode,
+        cancel: false
+      });
+      summonSrv.callService(req, function (resp) {
+        if (!resp.success) { showBanner(resp.message, 'error'); }
+        else { showBanner('Summon started (' + mode + ')', 'info'); }
+      });
+    };
+
+    document.getElementById('cancelBtn').onclick = function () {
+      var req = new ROSLIB.ServiceRequest({ lat: 0, lon: 0, mode: 'CURRENT', cancel: true });
+      summonSrv.callService(req, function (resp) { console.log(resp.message); });
+      stopSrv.callService(new ROSLIB.ServiceRequest({}), function () {});
+    };
+
+    // ---- Obstacle modal ----
+    var obstacleModal = document.getElementById('obstacleModal');
+    function showObstacleModal() { obstacleModal.style.display = 'flex'; }
+    function hideObstacleModal() { obstacleModal.style.display = 'none'; }
+    document.getElementById('obstacleRetry').onclick = function () {
+      // Re-trigger summon to the current phone position.
+      document.getElementById('summonBtn').click();
+      hideObstacleModal();
+    };
+    document.getElementById('obstacleReplan').onclick = function () {
+      // Re-trigger summon (Nav2 will replan).
+      document.getElementById('summonBtn').click();
+      hideObstacleModal();
+    };
+    document.getElementById('obstacleStop').onclick = function () {
+      document.getElementById('cancelBtn').click();
+      hideObstacleModal();
+    };
+
+    // ---- Banner helper ----
+    var bannerTimer = null;
+    function showBanner(text, type) {
+      var b = document.getElementById('banner');
+      b.textContent = text;
+      b.className = type;
+      b.style.display = 'block';
+      if (bannerTimer) { clearTimeout(bannerTimer); }
+      bannerTimer = setTimeout(function () { b.style.display = 'none'; }, 5000);
+    }
+  </script>
+</body>
+</html>

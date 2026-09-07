@@ -24,7 +24,13 @@ target_link_libraries(navigation_node rclcpp::rclcpp rclcpp_action::rclcpp_actio
 add_executable(georeference_node src/georeference_node.cpp)
 target_link_libraries(georeference_node rclcpp::rclcpp golfcart_msgs::golfcart_msgs)
 
-install(TARGETS navigation_node georeference_node
+add_executable(summon_node src/summon_node.cpp)
+target_include_directories(summon_node PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(summon_node rclcpp::rclcpp nav_msgs::nav_msgs std_srvs::std_srvs golfcart_msgs::golfcart_msgs)
+
+install(TARGETS navigation_node georeference_node summon_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY config
@@ -39,6 +45,12 @@ if(BUILD_TESTING)
   ament_add_gtest(test_navigation test/test_navigation.cpp)
   if(TARGET test_navigation)
     target_link_libraries(test_navigation golfcart_msgs::golfcart_msgs)
+  endif()
+  ament_add_gtest(test_summon_math test/test_summon_math.cpp)
+  if(TARGET test_summon_math)
+    target_include_directories(test_summon_math PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
   endif()
 endif()
 
