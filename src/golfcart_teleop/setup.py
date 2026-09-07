@@ -12,6 +12,7 @@ setup(
         ('share/' + package_name + '/web', ['web/index.html', 'web/summon.html']),
     ],
     install_requires=['setuptools', 'pyserial'],
+    extras_require={'test': ['pytest']},
     zip_safe=True,
     maintainer='golfcart',
     maintainer_email='dev@example.com',
