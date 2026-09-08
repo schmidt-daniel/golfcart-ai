@@ -1396,5 +1396,8 @@ MVP and are now fixed.
   Internet access on the smartphone is not required for the trolley features.
 - **Transport:** The phone uses the Pi's local network to load the web page on
   port 8080 and connect to `rosbridge_server` over WebSocket on port 9090.
-- **Status:** architectural decision; hotspot setup, Wi-Fi security, and
-  device-pairing details remain deployment work.
+- **Setup:** `scripts/setup_hotspot.sh` configures the hotspot via NetworkManager
+  (WPA2-PSK, local-only, no internet bridging). A `golfcart-hotspot.service`
+  systemd unit brings the hotspot up on boot.
+- **Status:** implemented (script + systemd unit); Wi-Fi security and
+  device-pairing details remain deployment hardening work.

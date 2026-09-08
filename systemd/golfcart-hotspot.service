@@ -1,0 +1,14 @@
+[Unit]
+Description=Golf Cart Wi-Fi Hotspot (local access point for phone teleop/summon)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+ExecStart=/usr/bin/nmcli connection up golfcart-hotspot
+ExecStop=/usr/bin/nmcli connection down golfcart-hotspot
+
+[Install]
+WantedBy=multi-user.target
