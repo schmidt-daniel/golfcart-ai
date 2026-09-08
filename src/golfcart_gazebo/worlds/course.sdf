@@ -759,6 +759,68 @@
       </joint>
     </model>
 
+    <!-- ===================== Person (Follow Me test target) =====================
+         A non-static person-like model with two leg cylinders, placed ~3 m in
+         front of the cart (facing +X). Non-static so it can be moved via
+         `gz model -m person -x .. -y ..` to simulate the operator walking.
+         This is the Level-1 (rigid moving body) sim target; the legs are static
+         within the model (no leg-swing animation).
+    -->
+    <model name="person">
+      <static>false</static>
+      <!-- 1.5m in front of the cart (which is at the origin), within the
+           detector's lock_distance (2m) so it can be acquired on start. -->
+      <pose>1.5 0 0.0 0 0 0</pose>
+      <!-- Leg 1 (torso/lower leg). -->
+      <link name="leg1">
+        <collision name="leg1_collision">
+          <geometry><cylinder><radius>0.08</radius><length>0.8</length></cylinder></geometry>
+          <pose>0 0 0.4 0 0 0</pose>
+        </collision>
+        <visual name="leg1_visual">
+          <geometry><cylinder><radius>0.08</radius><length>0.8</length></cylinder></geometry>
+          <pose>0 0 0.4 0 0 0</pose>
+          <material><ambient>0.2 0.2 0.8 1</ambient><diffuse>0.2 0.2 0.8 1</diffuse></material>
+        </visual>
+      </link>
+      <!-- Leg 2 (slightly offset laterally to form two leg returns). -->
+      <link name="leg2">
+        <pose>0 -0.2 0 0 0 0</pose>
+        <collision name="leg2_collision">
+          <geometry><cylinder><radius>0.08</radius><length>0.8</length></cylinder></geometry>
+          <pose>0 0 0.4 0 0 0</pose>
+        </collision>
+        <visual name="leg2_visual">
+          <geometry><cylinder><radius>0.08</radius><length>0.8</length></cylinder></geometry>
+          <pose>0 0 0.4 0 0 0</pose>
+          <material><ambient>0.2 0.2 0.8 1</ambient><diffuse>0.2 0.2 0.8 1</diffuse></material>
+        </visual>
+      </link>
+      <!-- Upper body (torso) crossing the LiDAR scan plane (~0.65 m), so the model
+         is visible to the cart's gpu_lidar. -->
+      <link name="torso">
+        <pose>0 0 0.0 0 0 0</pose>
+        <collision name="torso_collision">
+          <geometry><cylinder><radius>0.18</radius><length>1.3</length></cylinder></geometry>
+          <pose>0 0 0.65 0 0 0</pose>
+        </collision>
+        <visual name="torso_visual">
+          <geometry><cylinder><radius>0.18</radius><length>1.3</length></cylinder></geometry>
+          <pose>0 0 0.65 0 0 0</pose>
+          <material><ambient>0.2 0.2 0.8 1</ambient><diffuse>0.2 0.2 0.8 1</diffuse></material>
+        </visual>
+      </link>
+      <!-- Fixed joints connecting the links into one rigid body. -->
+      <joint name="leg1_to_base" type="fixed">
+        <parent>leg1</parent>
+        <child>leg2</child>
+      </joint>
+      <joint name="torso_to_leg1" type="fixed">
+        <parent>leg1</parent>
+        <child>torso</child>
+      </joint>
+    </model>
+
     <!-- ===================== Sun / lighting ===================== -->
     <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>

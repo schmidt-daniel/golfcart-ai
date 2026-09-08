@@ -102,6 +102,15 @@ features are added.
 - Pure math in `summon_math.hpp` (velocity estimation, predictive target, approach-cone) — unit-tested
 - Gazebo: `gps_dropout_node.py` (simulate GPS loss); `scripts/summon_check.sh` (sim smoke test)
 
+### Follow Me (Person Following)
+- LiDAR-first person following behind a `PersonTarget` abstraction (camera/fusion later)
+- `person_detection_node` (`golfcart_lidar`) — /scan → /person/target; sector gate → clustering → cluster filter, motion + leg-pair disambiguation, temporal validation, EMA smoothing
+- **Lock-on acquisition** — waits for the first person within 2 m, then continuously tracks that person (never switches to a closer stranger)
+- `follow_controller_node` (`golfcart_follow`) — follow-behind control law → `MotionRequest` (priority 0); potential-field obstacle steering, hold-on-stop/resume
+- `obstacle_awareness_node` (`golfcart_follow`) — /scan → /obstacles/awareness (soft steering obstacle view, separate from safety stop)
+- `/follow` service + `/follow/status`; `golfcart_msgs` — `PersonTarget.msg`, `FollowStatus.msg`, `FollowTrigger.srv`; `Obstacle.msg` gained a `source` field
+- Gazebo: person model in course world; `scripts/follow_check.sh` (sim smoke test)
+
 ### Gazebo Simulation (gz-sim)
 - `golfcart_gazebo` package
 - Course world (`worlds/course.sdf`) with obstacles, green, tee, water hazard, slope ramp, steep zone
@@ -114,7 +123,7 @@ features are added.
 ### Deployment (Option D, Hybrid)
 - `systemd/` — systemd units per service, auto-start on boot + restart on crash:
   `golfcart-core`, `golfcart-teleop`, `golfcart-localization`, `golfcart-mapping`,
-  `golfcart-navigation`
+  `golfcart-navigation`, `golfcart-follow`
 - `golfcart_bringup/core.launch.py` — always-on control pipeline (odrive, motion,
   safety, battery, IMU, GPS, LiDAR, obstacle, hill/rollback, auto-shutdown)
 - `golfcart_bringup/web_server.launch.py` — web teleop servers only (rosbridge + HTTP)
@@ -126,8 +135,7 @@ features are added.
 
 See `docs/features/` for design docs.
 
-- Follow Me
-- HMI Display (unstructured display) — spec + mockups in `docs/hmi-spec.md` & `docs/hmi/`
+- HMI Display (TFT display) — spec + mockups in `docs/hmi-spec.md` & `docs/hmi/`
 - Geofencing
 - Speed Zones
 - Voice Control

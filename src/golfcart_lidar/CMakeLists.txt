@@ -25,7 +25,10 @@ target_link_libraries(lidar_node golfcart_lidar rclcpp::rclcpp sensor_msgs::sens
 add_executable(obstacle_detection_node src/obstacle_detection_node.cpp)
 target_link_libraries(obstacle_detection_node rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
 
-install(TARGETS lidar_node obstacle_detection_node
+add_executable(person_detection_node src/person_detection_node.cpp)
+target_link_libraries(person_detection_node rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
+
+install(TARGETS lidar_node obstacle_detection_node person_detection_node
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

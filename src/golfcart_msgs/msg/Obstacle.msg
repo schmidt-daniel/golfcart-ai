@@ -3,5 +3,6 @@ float32 distance_m
 float32 angle_rad
 float32 width_m
 float32 confidence
+string source        # lidar / camera / fusion
 bool valid
 builtin_interfaces/Time timestamp

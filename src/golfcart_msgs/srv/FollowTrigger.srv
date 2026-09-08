@@ -1,0 +1,6 @@
+# Trigger follow (or stop it).
+# Single service with a flag: cancel=false starts follow, cancel=true stops it.
+bool cancel
+---
+bool success
+string message
