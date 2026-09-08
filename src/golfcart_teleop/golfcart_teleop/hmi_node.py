@@ -13,7 +13,7 @@ in docs/hmi-spec.md and implemented incrementally.
 import rclpy
 from rclpy.node import Node
 from golfcart_msgs.srv import SetGoal, SummonTrigger
-from golfcart_msgs.msg import SummonStatus
+from golfcart_msgs.msg import SummonStatus, GeofenceStatus
 
 
 class HmiNode(Node):
@@ -23,6 +23,8 @@ class HmiNode(Node):
         self.summon_client = self.create_client(SummonTrigger, 'summon')
         self.summon_status_sub = self.create_subscription(
             SummonStatus, 'summon/status', self.on_summon_status, 10)
+        self.geofence_status_sub = self.create_subscription(
+            GeofenceStatus, 'geofence/status', self.on_geofence_status, 10)
         self.get_logger().info('HMI node started (scaffold)')
 
     def on_summon_status(self, msg):
@@ -30,6 +32,13 @@ class HmiNode(Node):
         self.get_logger().info(f'Summon: {msg.state} (distance {msg.distance_m:.1f} m)')
         if msg.state == 'ARRIVED':
             self.get_logger().info('Trolley has arrived — summon complete.')
+
+    def on_geofence_status(self, msg):
+        """Notify the operator when the geofence is hit (NEAR/CROSSED/OUT_OF_FIX)."""
+        if msg.state in ('NEAR', 'CROSSED', 'OUT_OF_FIX'):
+            self.get_logger().warn(
+                f'Geofence: {msg.state} (distance to boundary '
+                f'{msg.distance_to_boundary_m:.1f} m)')
 
     def navigate_to_target(self, x, y, theta=0.0):
         """Set a navigation goal (map-frame coordinates) via /set_goal."""

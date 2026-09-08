@@ -111,6 +111,16 @@ features are added.
 - `/follow` service + `/follow/status`; `golfcart_msgs` — `PersonTarget.msg`, `FollowStatus.msg`, `FollowTrigger.srv`; `Obstacle.msg` gained a `source` field
 - Gazebo: person model in course world; `scripts/follow_check.sh` (sim smoke test)
 
+### Geofencing (Stay-on-Course)
+- `geofence_node` (`golfcart_geofence`) — /gps/fix → /geofence/status; keeps the trolley inside the outer course boundary polygon
+- **Per-hole boundary config** (`config/hole5.yaml`) as the single source of truth (lat/lon polygon, decoupled from CourseMap)
+- States: ARMED / NEAR / CROSSED / OUT_OF_FIX / DISARMED; always armed on startup
+- **Autonomous crossing → priority-3 zero MotionRequest** (Safety Controller stops); manual → notify only
+- `/geofence` service (arm/disarm) + `/geofence/status`; web/HMI notification badge on NEAR/CROSSED/OUT_OF_FIX
+- `golfcart_msgs` — `GeofenceStatus.msg`, `GeofenceTrigger.srv`
+- Pure math in `geofence_math.hpp` (point-in-polygon, distance-to-boundary) — unit-tested
+- `scripts/geofence_check.sh` + `scripts/gps_fix_pub.py` (headless smoke test)
+
 ### Gazebo Simulation (gz-sim)
 - `golfcart_gazebo` package
 - Course world (`worlds/course.sdf`) with obstacles, green, tee, water hazard, slope ramp, steep zone
@@ -123,7 +133,7 @@ features are added.
 ### Deployment (Option D, Hybrid)
 - `systemd/` — systemd units per service, auto-start on boot + restart on crash:
   `golfcart-core`, `golfcart-teleop`, `golfcart-localization`, `golfcart-mapping`,
-  `golfcart-navigation`, `golfcart-follow`
+  `golfcart-navigation`, `golfcart-follow`, `golfcart-geofence`
 - `golfcart_bringup/core.launch.py` — always-on control pipeline (odrive, motion,
   safety, battery, IMU, GPS, LiDAR, obstacle, hill/rollback, auto-shutdown)
 - `golfcart_bringup/web_server.launch.py` — web teleop servers only (rosbridge + HTTP)
@@ -136,7 +146,6 @@ features are added.
 See `docs/features/` for design docs.
 
 - HMI Display (TFT display) — spec + mockups in `docs/hmi-spec.md` & `docs/hmi/`
-- Geofencing
 - Speed Zones
 - Voice Control
 

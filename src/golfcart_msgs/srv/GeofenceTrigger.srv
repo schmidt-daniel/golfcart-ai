@@ -1,0 +1,6 @@
+# Arm/disarm the geofence (operator override).
+# cancel=false arms (default, always armed on startup); cancel=true disarms.
+bool cancel
+---
+bool success
+string message

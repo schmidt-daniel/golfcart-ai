@@ -268,7 +268,8 @@ Behavior Nodes
 
 Safety / Control
 ├── safety_controller
-└── motion_controller
+├── motion_controller
+└── geofence_node
 
 HMI / Diagnostics
 ├── hmi_node
@@ -330,6 +331,7 @@ Examples:
 /safety/state
 /system/state
 /battery/state
+/geofence/status
 /diagnostics
 ```
 

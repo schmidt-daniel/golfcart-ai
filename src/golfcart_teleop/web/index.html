@@ -37,6 +37,7 @@
 
   <div class="status">
     <p>Safety: <span id="safety">unknown</span> | Speed: <span id="speed">0.0</span> m/s | Battery: <span id="battery">--</span> V</p>
+    <p>Geofence: <span id="geofence" style="color:#888;">armed</span></p>
   </div>
 
   <!-- Map -->
@@ -121,6 +122,20 @@
     var batterySub = new ROSLIB.Topic({ ros: ros, name: '/battery/state', messageType: 'golfcart_msgs/msg/BatteryState' });
     batterySub.subscribe(function (msg) {
       document.getElementById('battery').textContent = msg.voltage_v.toFixed(1);
+    });
+
+    // ---- Geofence notification (status badge) ----
+    var geofenceSub = new ROSLIB.Topic({ ros: ros, name: '/geofence/status', messageType: 'golfcart_msgs/msg/GeofenceStatus' });
+    geofenceSub.subscribe(function (msg) {
+      var el = document.getElementById('geofence');
+      el.textContent = msg.state;
+      if (msg.state === 'CROSSED' || msg.state === 'OUT_OF_FIX') {
+        el.style.color = '#f44336';  // red
+      } else if (msg.state === 'NEAR') {
+        el.style.color = '#FF9800';  // orange
+      } else {
+        el.style.color = '#4CAF50';  // green
+      }
     });
 
     // ---- Map ----

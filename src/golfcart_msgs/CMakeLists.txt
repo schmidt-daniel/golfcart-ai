@@ -29,9 +29,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SummonStatus.msg"
   "msg/PersonTarget.msg"
   "msg/FollowStatus.msg"
+  "msg/GeofenceStatus.msg"
   "srv/SetGoal.srv"
   "srv/SummonTrigger.srv"
   "srv/FollowTrigger.srv"
+  "srv/GeofenceTrigger.srv"
   DEPENDENCIES builtin_interfaces nav_msgs geometry_msgs
 )
 

@@ -1,0 +1,14 @@
+# Test geofence config for the smoke test (geofence_check.sh).
+# Origin at the mock GPS default (51.5, -0.12). Boundary is a ~110m x 110m
+# square around the origin (1e-3 deg ~ 111m lat, ~69m lon at lat 51.5).
+course_name: "Test course"
+hole_number: 1
+origin_latitude_deg: 51.5
+origin_longitude_deg: -0.12
+origin_rotation_rad: 0.0
+# Square boundary centered on the origin, ~55m half-extent.
+boundary:
+  - {lat: 51.5005, lon: -0.1208}
+  - {lat: 51.5005, lon: -0.1192}
+  - {lat: 51.4995, lon: -0.1192}
+  - {lat: 51.4995, lon: -0.1208}
