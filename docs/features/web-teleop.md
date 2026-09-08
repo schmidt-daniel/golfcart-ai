@@ -15,6 +15,10 @@ small web page that:
 - calls `safety/enable` and `safety/stop`
 - displays live status (speed, battery, safety state)
 
+The Raspberry Pi provides a local Wi-Fi hotspot for the phone. This network is
+intentionally local-only and does not provide internet access; the phone and
+trolley communicate directly over the Pi's network.
+
 ## Architecture
 
 ```text

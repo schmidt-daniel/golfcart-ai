@@ -1385,3 +1385,16 @@ MVP and are now fixed.
   no touch suits golf gloves; a dedicated safety switch is safer and frees the
   joystick button for HMI navigation.
 - **Status:** design only; `hmi_node` not yet implemented.
+
+## Smartphone network
+
+- **Decision:** The Raspberry Pi operates a local Wi-Fi hotspot without
+  internet access. The user's smartphone connects directly to this hotspot for
+  web teleoperation and summon.
+- **Rationale:** Keeps trolley control independent of golf-course internet or
+  mobile coverage and limits the control path to the local trolley network.
+  Internet access on the smartphone is not required for the trolley features.
+- **Transport:** The phone uses the Pi's local network to load the web page on
+  port 8080 and connect to `rosbridge_server` over WebSocket on port 9090.
+- **Status:** architectural decision; hotspot setup, Wi-Fi security, and
+  device-pairing details remain deployment work.
