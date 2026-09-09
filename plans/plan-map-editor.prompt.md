@@ -31,6 +31,29 @@
 ### Phase 4 — Costmap association
 9. Load a slope-derived costmap (`.pgm` + `.yaml` from Nav2 map_saver_cli, or a GeoJSON/GeoTIFF)and associate it with a hole. Store as `costmapN.pgm/.yaml` in the hole folder. (Slope costmap generation itself is out of scope — editor only loads/associates.)
 
+### Phase 4b — DEM → slope costmap generation (IMPLEMENTED 2026-09-09)
+9b. `map_editor/dem.py`: `compute_slope()` (Horn's method, magnitude + aspect),
+    `slope_to_cost_values()`, `write_costmap()` (PGM+YAML, Nav2 format),
+    `fetch_dem()` (GetMap-based, fast). "Generate slope costmap from DEM…"
+    button in the main window; slope heatmap overlay in the canvas. Hole model
+    gained `slope_deg`/`aspect_deg` in-memory fields.
+    - **DEM source:** LGL WMS DGM025 (verified 2026-09-09) — serves real
+      elevation via GetFeatureInfo (`GRAY_INDEX` = meters). `fetch_dem()` uses
+      ONE GetMap request (whole grayscale field) + a few GetFeatureInfo points
+      to calibrate gray->elevation (O(1) HTTP requests). Live-tested: 0.01x0.01
+      deg @10 m -> 111x73 grid, elev 248.5-269.8 m, max slope 31.08 deg.
+    - **Slope representation:** magnitude + aspect (cart resolves roll/pitch at
+      runtime). **Resolution:** DEM upsampled/interpolated to costmap res.
+    - **New deps:** numpy (requirements.txt + Dockerfile). rasterio removed
+      (GetMap uses PIL, not rasterio).
+
+### Phase 3b — Drawing tools, boundary, save/load, hole assignment (IMPLEMENTED 2026-09-09)
+7b. Canvas gained click-to-draw (polygon/line/point, double-click to finish),
+    boundary-drawing tool, and snap-to-vertex. Main window gained Draw
+    shape / Draw boundary / Select tool buttons, "Move selected to hole"
+    dropdown, and Save… / Load… (via new `map_editor/loader.py`). Removed the
+    unused rasterio dep. 17 tests pass in container.
+
 
 
 ### Phase 5 — Export

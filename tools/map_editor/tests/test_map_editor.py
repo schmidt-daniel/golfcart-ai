@@ -121,3 +121,208 @@ def test_latlon_roundtrip():
     lat2, lon2 = map_to_latlon(x, y, 48.12345,  11.67890, 0.0)
     assert abs(lat2 - lat) < 1e-9
     assert abs(lon2 - lon) < 1e-9
+
+
+# ---------------------------------------------------------------------------
+# DEM / slope costmap
+# ---------------------------------------------------------------------------
+
+
+def test_compute_slope_flat():
+    """A flat DEM has zero slope everywhere."""
+    import numpy as np
+    from map_editor.dem import compute_slope
+    z = np.full((5, 5), 100.0)
+    slope, aspect = compute_slope(z, 30.0)
+    assert np.allclose(slope, 0.0)
+    assert np.allclose(aspect, 0.0)
+
+
+def test_compute_slope_ramp():
+    """A uniform ramp has a consistent non-zero slope."""
+    import numpy as np
+    from map_editor.dem import compute_slope
+    # z increases by 1 m per 30 m cell in x -> ~1.9 deg slope.
+    z = np.tile(np.arange(5, dtype=np.float64) * 1.0, (5, 1))
+    slope, aspect = compute_slope(z, 30.0)
+    expected = np.degrees(np.arctan(1.0 / 30.0))
+    # Interior cells (not edges) should match.
+    assert np.allclose(slope[2, 2], expected, atol=0.1)
+    assert slope[2, 2] > 0.0
+
+
+def test_slope_to_cost_values():
+    """Slope below threshold is free; above threshold scales up."""
+    import numpy as np
+    from map_editor.dem import slope_to_cost_values
+    slope = np.array([[0.0, 3.0], [5.0, 10.0]])
+    cost = slope_to_cost_values(slope, threshold_deg=5.0)
+    assert cost[0, 0] == 0
+    assert cost[0, 1] == 0
+    assert cost[1, 0] == 0  # exactly at threshold -> 0
+    assert cost[1, 1] > 0
+    assert cost.max() <= 254
+
+
+def test_write_costmap_roundtrip():
+    """Written PGM+YAML can be read back with matching dimensions."""
+    import numpy as np
+    from pathlib import Path
+    import tempfile
+    from map_editor.dem import Costmap, write_costmap
+    data = np.zeros((4, 6), dtype=np.uint8)
+    data[1, 2] = 200
+    cm = Costmap(data=data, resolution=0.05, origin_x=1.0, origin_y=2.0)
+    d = Path(tempfile.mkdtemp())
+    pgm = d / "c.pgm"
+    yml = d / "c.yaml"
+    write_costmap(cm, pgm, yml)
+    assert pgm.exists() and yml.exists()
+    # PGM header: P5, width height, maxval.
+    with open(pgm, "rb") as f:
+        header = f.readline().strip()
+        dims = f.readline().split()
+        assert header == b"P5"
+        assert [int(x) for x in dims] == [6, 4]
+    import yaml
+    meta = yaml.safe_load(yml.read_text())
+    assert meta["resolution"] == 0.05
+    assert meta["origin"] == [1.0, 2.0, 0.0]
+
+
+def test_sample_elevation():
+    """_sample_elevation parses GRAY_INDEX from a mocked GetFeatureInfo reply."""
+    from map_editor.dem import _sample_elevation
+
+    class FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"features": [{"properties": {"GRAY_INDEX": 246.5}}]}
+
+    class FakeSession:
+        def get(self, url, params=None, timeout=None):
+            assert params["request"] == "GetFeatureInfo"
+            assert params["crs"] == "EPSG:4326"
+            return FakeResp()
+
+    z = _sample_elevation(48.775, 9.18, FakeSession())
+    assert z == pytest.approx(246.5)
+
+
+def test_sample_elevation_no_data():
+    """_sample_elevation returns None when no features are returned."""
+    from map_editor.dem import _sample_elevation
+
+    class FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"features": []}
+
+    class FakeSession:
+        def get(self, url, params=None, timeout=None):
+            return FakeResp()
+
+    assert _sample_elevation(48.0, 9.0, FakeSession()) is None
+
+
+def test_fetch_getmap():
+    """_fetch_getmap decodes a grayscale PNG into a 2D array."""
+    import io
+    import numpy as np
+    from PIL import Image
+    from map_editor.dem import _fetch_getmap
+
+    # Build a small grayscale PNG.
+    arr = np.zeros((4, 6), dtype=np.uint8)
+    arr[1, 2] = 200
+    buf = io.BytesIO()
+    Image.fromarray(arr, mode="L").save(buf, format="PNG")
+
+    class FakeResp:
+        def raise_for_status(self):
+            pass
+
+        @property
+        def content(self):
+            return buf.getvalue()
+
+    class FakeSession:
+        def get(self, url, params=None, timeout=None):
+            assert params["request"] == "GetMap"
+            return FakeResp()
+
+    gray = _fetch_getmap(48.0, 9.0, 48.1, 9.1, 6, 4, FakeSession())
+    assert gray is not None
+    assert gray.shape == (4, 6)
+    assert gray[1, 2] == pytest.approx(200.0)
+
+
+def test_calibrate_elevation():
+    """_calibrate_elevation fits a linear gray->elevation mapping."""
+    import numpy as np
+    from map_editor.dem import _calibrate_elevation
+
+    # gray = 100 -> 200 m, gray = 200 -> 400 m  => scale=2, offset=0.
+    gray = np.array([[100.0, 200.0], [100.0, 200.0]])
+
+    class FakeSession:
+        def __init__(self):
+            self.calls = 0
+
+        def get(self, url, params=None, timeout=None):
+            self.calls += 1
+            # Return elevation = 2 * gray for the sampled point.
+            # The sampled gray is read from the `gray` array by position.
+            return None  # not used; _sample_elevation is patched below
+
+    # Patch _sample_elevation to return elevation = 2 * gray at the sampled cell.
+    import map_editor.dem as dem
+
+    orig = dem._sample_elevation
+
+    def fake_sample(lat, lon, session, timeout=15.0):
+        # Map lat/lon back to a gray value via the same formula fetch_dem uses.
+        rows, cols = gray.shape
+        r = int(round((48.1 - lat) / (48.1 - 48.0) * (rows - 1)))
+        c = int(round((lon - 9.0) / (9.1 - 9.0) * (cols - 1)))
+        r = max(0, min(rows - 1, r))
+        c = max(0, min(cols - 1, c))
+        return 2.0 * gray[r, c]
+
+    dem._sample_elevation = fake_sample
+    try:
+        scale, offset = _calibrate_elevation(FakeSession(), 48.0, 9.0, 48.1, 9.1, gray, n_points=2)
+    finally:
+        dem._sample_elevation = orig
+    assert scale == pytest.approx(2.0, abs=0.5)
+    assert offset == pytest.approx(0.0, abs=50.0)
+
+
+def test_save_load_roundtrip():
+    """A saved course Zip can be loaded back with shapes and boundary intact."""
+    import tempfile
+    from map_editor.exporter import export_course
+    from map_editor.loader import load_course
+
+    c = make_course()
+    d = Path(tempfile.mkdtemp())
+    out = export_course(c, d)
+    loaded = load_course(out)
+
+    assert loaded.course_name == "Red Course"
+    assert len(loaded.holes) == 1
+    hole = loaded.holes[0]
+    assert hole.number == 5
+    assert len(hole.boundary) == 5
+    # Shapes: green + water hazard (boundary is not a shape).
+    assert len(hole.shapes) == 2
+    types = {s.type for s in hole.shapes}
+    assert "GREEN" in types
+    assert "WATER_HAZARD" in types
+    # A polygon shape should have >=3 vertices.
+    green = next(s for s in hole.shapes if s.type == "GREEN")
+    assert len(green.vertices) >= 3

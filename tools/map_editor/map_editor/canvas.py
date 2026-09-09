@@ -45,6 +45,11 @@ class MapCanvas(QGraphicsView):
     selection_changed = Signal(object)
     shapes_changed = Signal()
 
+    #: Drawing modes.
+    MODE_SELECT = "select"
+    MODE_DRAW_SHAPE = "draw_shape"
+    MODE_DRAW_BOUNDARY = "draw_boundary"
+
     def __init__(self, satellite: SatelliteLayer, parent=None) -> None:
         super().__init__(parent)
         self.satellite = satellite
@@ -63,7 +68,32 @@ class MapCanvas(QGraphicsView):
         self._drag_vertex: Optional[int] = None
         self._snap_radius_px = 12.0
 
+        #: Current interaction mode.
+        self.mode = self.MODE_SELECT
+        #: Shape type to create when in draw_shape mode.
+        self.draw_type = "FORBIDDEN_ZONE"
+        #: Vertices collected while drawing (lat, lon).
+        self._draw_pts: List[Tuple[float, float]] = []
+
         self._scene.setSceneRect(QRectF(-180.0, -90.0, 360.0, 180.0))
+
+    # ------------------------------------------------------------------
+    # Mode control
+    # ------------------------------------------------------------------
+
+    def set_mode(self, mode: str, draw_type: Optional[str] = None) -> None:
+        """Switch interaction mode (select / draw_shape / draw_boundary)."""
+        self.mode = mode
+        if draw_type is not None:
+            self.draw_type = draw_type
+        self._draw_pts = []
+        self._drag_vertex = None
+        self._scene.update()
+
+    def cancel_draw(self) -> None:
+        """Cancel any in-progress drawing."""
+        self._draw_pts = []
+        self._scene.update()
 
     def _lonlat_to_scene(self, lon: float, lat: float) -> QPointF:
         return QPointF(lon, -lat)
@@ -115,6 +145,49 @@ class MapCanvas(QGraphicsView):
             rect.left(), -rect.top(), rect.width(), rect.height()
         )
         self.satellite.draw(painter, viewport_lonlat, self.zoom)
+        if self.hole is not None and self.hole.slope_deg is not None:
+            self._draw_slope_heatmap(painter)
+
+    def _draw_slope_heatmap(self, painter: QPainter) -> None:
+        """Overlay the hole's slope grid as a translucent heatmap."""
+        import numpy as np
+
+        slope = np.asarray(self.hole.slope_deg, dtype=np.float64)
+        rows, cols = slope.shape
+        if rows < 2 or cols < 2:
+            return
+        # Normalize slope to 0..1 for coloring (cap at 15 deg).
+        norm = np.clip(slope / 15.0, 0.0, 1.0)
+        painter.save()
+        painter.setOpacity(0.45)
+        # Draw each cell as a small rect in scene coords. The grid is assumed
+        # to span the hole boundary bbox; approximate cell size from the
+        # boundary extent.
+        lats = [v[0] for v in self.hole.boundary]
+        lons = [v[1] for v in self.hole.boundary]
+        if not lats or not lons:
+            painter.restore()
+            return
+        min_lat, max_lat = min(lats), max(lats)
+        min_lon, max_lon = min(lons), max(lons)
+        dlat = (max_lat - min_lat) / rows
+        dlon = (max_lon - min_lon) / cols
+        for r in range(rows):
+            for c in range(cols):
+                v = norm[r, c]
+                if v <= 0.01:
+                    continue
+                # Green (low) -> yellow -> red (high).
+                r8 = int(255 * v)
+                g8 = int(255 * (1.0 - v))
+                color = QColor(r8, g8, 0, 200)
+                painter.setBrush(color)
+                painter.setPen(QPen(color, 0))
+                lat0 = max_lat - (r + 1) * dlat
+                lon0 = min_lon + c * dlon
+                p = self._lonlat_to_scene(lon0, lat0)
+                painter.drawRect(QRectF(p.x(), p.y(), dlon, dlat))
+        painter.restore()
 
     def drawForeground(self, painter: QPainter, rect: QRectF) -> None:
         if not self.hole:
@@ -123,6 +196,8 @@ class MapCanvas(QGraphicsView):
             self._draw_shape(painter, shape)
         if self.selected_shape:
             self._draw_vertices(painter, self.selected_shape)
+        if self._draw_pts:
+            self._draw_in_progress(painter)
 
     def _draw_shape(self, painter: QPainter, shape: Shape) -> None:
         color = shape_color(shape.type)
@@ -155,6 +230,15 @@ class MapCanvas(QGraphicsView):
         if event.button() == Qt.LeftButton:
             scene_pos = self._view_to_scene(event.position().toPoint())
             lon, lat = self._scene_to_lonlat(scene_pos)
+            if self.mode == self.MODE_DRAW_SHAPE:
+                self._add_draw_point(lat, lon)
+                event.accept()
+                return
+            if self.mode == self.MODE_DRAW_BOUNDARY:
+                self._add_boundary_point(lat, lon)
+                event.accept()
+                return
+            # Select mode.
             if self.selected_shape:
                 vi = self._hit_vertex(self.selected_shape, scene_pos)
                 if vi is not None:
@@ -185,6 +269,86 @@ class MapCanvas(QGraphicsView):
     def mouseReleaseEvent(self, event) -> None:
         self._drag_vertex = None
         super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        """Finish a polygon/line on double-click; a point on single click."""
+        if self.mode in (self.MODE_DRAW_SHAPE, self.MODE_DRAW_BOUNDARY):
+            self._finish_draw()
+            event.accept()
+            return
+        super().mouseDoubleClickEvent(event)
+
+    # ------------------------------------------------------------------
+    # Drawing
+    # ------------------------------------------------------------------
+
+    def _add_draw_point(self, lat: float, lon: float) -> None:
+        """Add a vertex while drawing a shape (snapped to nearby vertices)."""
+        lat, lon = self._snap_point(lat, lon)
+        self._draw_pts.append((lat, lon))
+        self._scene.update()
+
+    def _add_boundary_point(self, lat: float, lon: float) -> None:
+        """Add a vertex while drawing the hole boundary (snapped)."""
+        lat, lon = self._snap_point(lat, lon)
+        self._draw_pts.append((lat, lon))
+        self._scene.update()
+
+    def _snap_point(self, lat: float, lon: float) -> Tuple[float, float]:
+        """Snap a point to a nearby existing vertex (within snap radius)."""
+        if not self.hole:
+            return lat, lon
+        p = self._lonlat_to_scene(lon, lat)
+        vp = self._scene_to_view(p)
+        best_d = self._snap_radius_px
+        best = None
+        for shape in self.hole.shapes:
+            for slat, slon in shape.vertices:
+                sp = self._scene_to_view(self._lonlat_to_scene(slon, slat))
+                d = (sp - vp).manhattanLength()
+                if d < best_d:
+                    best_d = d
+                    best = (slat, slon)
+        return best if best is not None else (lat, lon)
+
+    def _finish_draw(self) -> None:
+        """Finalize the in-progress drawing into a shape or boundary."""
+        if not self.hole:
+            self._draw_pts = []
+            self._scene.update()
+            return
+        pts = self._draw_pts
+        self._draw_pts = []
+        if self.mode == self.MODE_DRAW_BOUNDARY:
+            if len(pts) >= 3:
+                self.hole.boundary = list(pts)
+                self.shapes_changed.emit()
+            self._scene.update()
+            return
+        # Draw shape.
+        if not pts:
+            self._scene.update()
+            return
+        if self.draw_type in ("HOLE", "EXIT_POINT"):
+            shape = Shape(type=self.draw_type, vertices=[pts[0]])
+        elif self.draw_type == "PATH":
+            shape = Shape(type=self.draw_type, vertices=pts)
+        else:
+            shape = Shape(type=self.draw_type, vertices=pts)
+        self.add_shape(shape)
+
+    def _draw_in_progress(self, painter: QPainter) -> None:
+        """Draw the in-progress polygon/line being drawn."""
+        if not self._draw_pts:
+            return
+        pts = [self._lonlat_to_scene(lon, lat) for lat, lon in self._draw_pts]
+        color = QColor(0, 200, 255, 180)
+        painter.setPen(QPen(color, 2.0))
+        painter.setBrush(color)
+        if len(pts) == 1:
+            painter.drawEllipse(pts[0], 5.0, 5.0)
+        elif len(pts) >= 2:
+            painter.drawPolyline(QPolygonF(pts))
 
     def _hit_vertex(self, shape: Shape, scene_pos: QPointF) -> Optional[int]:
         best = None

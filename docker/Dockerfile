@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # required because the base image is PEP 668 externally-managed.
 RUN python3 -m pip install --break-system-packages \
     requests \
-    shapely
+    shapely \
+    numpy
 
 # Install ROS 2 packages used by the workspace.
 RUN apt-get update && apt-get install -y --no-install-recommends \

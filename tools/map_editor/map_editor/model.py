@@ -114,6 +114,12 @@ class Hole:
 
     costmap_pgm: Optional[str] = None
     costmap_yaml: Optional[str] = None
+    #: In-memory slope grid (degrees) for heatmap overlay, if generated.
+
+    slope_deg: Optional[Any] = None
+    #: In-memory aspect grid (degrees), if generated.
+
+    aspect_deg: Optional[Any] = None
 
     def to_yaml(self, course_origin: "CourseOrigin") -> Dict[str, Any]:
         """Serialize to the geofence-compatible per-hole YAML dict."""
