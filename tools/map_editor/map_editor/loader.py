@@ -10,11 +10,11 @@ from __future__ import annotations
 import json
 import zipfile
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 import yaml
 
-from map_editor.model import Course, CourseOrigin, Hole, Shape
+from map_editor.model import Course, CourseOrigin, Hole, Shape, Tee
 
 
 def _shape_from_feature(feature: dict) -> Shape:
@@ -29,7 +29,7 @@ def _shape_from_feature(feature: dict) -> Shape:
         props = feature.get("properties", {})
         ftype = props.get("type", "FORBIDDEN_ZONE")
         label = props.get("label", "")
-        tee_color = props.get("tee_color")
+        tee_id = props.get("tee_id") or props.get("tee_color")
         osm_id = props.get("osm_id")
         osm_type = props.get("osm_type")
         geom = feature.get("geometry", {})
@@ -37,7 +37,7 @@ def _shape_from_feature(feature: dict) -> Shape:
         # Schema-native form.
         ftype = feature.get("type", "FORBIDDEN_ZONE")
         label = feature.get("label", "")
-        tee_color = feature.get("tee_color")
+        tee_id = feature.get("tee_id") or feature.get("tee_color")
         osm_id = feature.get("osm_id")
         osm_type = feature.get("osm_type")
         geom = feature.get("geometry", {})
@@ -57,7 +57,7 @@ def _shape_from_feature(feature: dict) -> Shape:
     return Shape(
         type=ftype,
         label=label,
-        tee_color=tee_color,
+        tee_id=tee_id,
         osm_id=osm_id,
         osm_type=osm_type,
         vertices=vertices,
@@ -80,10 +80,19 @@ def load_course(path: Path) -> Course:
             course_name=course_doc.get("name", ""),
             course_id=course_doc.get("id", ""),
         )
+        # Load the tee taxonomy: {tee_id: {name, slope?, cr?}}.
+        tees: Dict[str, Tee] = {}
+        for tid, tdoc in (course_doc.get("tees", {}) or {}).items():
+            tees[tid] = Tee(
+                name=tdoc.get("name", tid),
+                slope=tdoc.get("slope"),
+                cr=tdoc.get("cr"),
+            )
         course = Course(
             origin=origin,
             osm_id=course_doc.get("osm_id"),
             bbox=tuple(course_doc["bbox"]) if course_doc.get("bbox") else None,
+            tees=tees,
         )
 
         # Load each hole.

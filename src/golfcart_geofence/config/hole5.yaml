@@ -6,9 +6,10 @@ hole_number: 5
 name: "The Pond"
 par: 4
 handicap: 7
+# Distances per tee ID (keys reference course.yaml course.tees).
 distances:
   red: 380
-  white: 350
+  blue: 350
 # Outer playable boundary (lat, lon). Order can be CW or CCW; must be closed
 # (>3 vertices). Concave allowed (ray-casting point-in-polygon handles it).
 boundary:
@@ -21,7 +22,7 @@ boundary:
 features:
   - type: TEE_BOX
     label: "Red tee"
-    tee_color: red
+    tee_id: red
     geometry:
       type: Point
       coordinates: [11.67830, 48.12355]

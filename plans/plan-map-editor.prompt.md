@@ -64,12 +64,20 @@
 12. **Course format v2** — JSON Schemas in `tools/map_editor/schema/`
     (`course.schema.json` + `hole.schema.json`), validated by
     `map_editor/validator.py`. Hole-level properties (par, handicap,
-    per-tee-color `distances`) moved onto the hole; features are pure geometry
-    + type (TEE_BOX carries `tee_color`). Origin moved to `course.origin` in
+    per-tee `distances`) moved onto the hole; features are pure geometry
+    + type (TEE_BOX carries `tee_id`). Origin moved to `course.origin` in
     course.yaml. Consumers updated: `geofence_node` (reads origin from
     `course_file` param, legacy fallback), `course_loader_node` (new
     `course.origin` + `features`, legacy `shapes` fallback). GUI hole-level
     property editors. 21 editor tests + 66 workspace tests pass.
+
+### Phase 5c — Flexible tee taxonomy (IMPLEMENTED 2026-09-09)
+13. **Tees are not fixed colors.** `course.yaml` gains `course.tees`: a
+    dictionary of tee IDs → `{name, slope?, cr?}` (any ID scheme: colors,
+    names, symbols, numbers). Hole `distances` keys and `TEE_BOX` features
+    reference these IDs via `tee_id`. `Shape.tee_color` → `Shape.tee_id`;
+    `Tee` dataclass added. GUI distance editor uses a tee selector combo
+    populated from `course.tees`. 21 editor tests + 66 workspace tests pass.
 
 
 

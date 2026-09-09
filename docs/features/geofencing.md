@@ -49,7 +49,7 @@ config/hole5.yaml (boundary polygon, lat/lon, per hole)
 ## Boundary config (one file per hole)
 
 ```yaml
-# golfcart_geofence/config/course.yaml  (map origin, shared by all holes)
+# golfcart_geofence/config/course.yaml  (map origin + tee taxonomy, shared)
 schema_version: 1
 course:
   name: "Red Course"
@@ -57,6 +57,9 @@ course:
     latitude_deg: 48.12345
     longitude_deg: 11.67890
     rotation_rad: 0.0
+  tees:
+    red:  {name: "Red",  slope: 2.0, cr: 72.0}
+    blue: {name: "Blue", slope: 1.5, cr: 70.0}
 holes:
   - holes/hole5.yaml
 
@@ -65,7 +68,7 @@ schema_version: 1
 hole_number: 5
 par: 4
 handicap: 7
-distances: {red: 380, white: 350}
+distances: {red: 380, blue: 350}
 # Outer playable boundary (lat, lon). Concave allowed; >3 vertices.
 boundary:
   - {lat: 48.12350, lon: 11.67900}
@@ -75,9 +78,11 @@ boundary:
   - {lat: 48.12340, lon: 11.67840}
 ```
 
-> **Format:** The map origin lives in `course.yaml` (`course.origin.*`); the
-> per-hole file holds only the boundary + hole-level properties (par, handicap,
-> per-tee-color distances) + typed features (geometry only). The geofence reads
+> **Format:** The map origin lives in `course.yaml` (`course.origin.*`), and the
+> **tee taxonomy** under `course.tees` (flexible IDs → `{name, slope?, cr?}`).
+> The per-hole file holds only the boundary + hole-level properties (par,
+> handicap, per-tee `distances` keyed by tee ID) + typed features (geometry
+> only). The geofence reads
 > the origin from `course_file` (param) and the boundary from `config_file`.
 > Legacy per-hole `origin_*` fields are still supported as a fallback. The
 > schemas live in `tools/map_editor/schema/` and validate both files.

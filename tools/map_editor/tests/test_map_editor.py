@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pytest
 
-from map_editor.model import Course, CourseOrigin, Hole, Shape
+from map_editor.model import Course, CourseOrigin, Hole, Shape, Tee
 from map_editor.exporter import export_course
 from map_editor.osm_client import _classify, _parse_course
 
@@ -21,18 +21,26 @@ def make_course() -> Course:
         course_name="Red Course",
         course_id="1234567",
     )
-    course = Course(origin=origin, osm_id=1234567, bbox=(48.0, 11.0, 49.0, 12.0))
+    course = Course(
+        origin=origin,
+        osm_id=1234567,
+        bbox=(48.0, 11.0, 49.0, 12.0),
+        tees={
+            "red": Tee(name="Red", slope=2.0, cr=72.0),
+            "blue": Tee(name="Blue", slope=1.5, cr=70.0),
+        },
+    )
     hole = Hole(
         number=5,
         name="The Pond",
         par=4,
         handicap=7,
-        distances={"red": 380, "white": 350},
+        distances={"red": 380, "blue": 350},
         boundary=[(48.12350, 11.67900), (48.12400, 11.67920), (48.12410, 11.67800), (48.12360, 11.67780), (48.12340, 11.67840)],
         shapes=[
             Shape(type="GREEN", label="Green 5", vertices=[(48.12360, 11.67850), (48.12370, 11.67860), (48.12365, 11.67870)]),
             Shape(type="WATER_HAZARD", label="Pond", vertices=[(48.12380, 11.67890), (48.12390, 11.67900), (48.12385, 11.67910)]),
-            Shape(type="TEE_BOX", label="Red tee", tee_color="red", vertices=[(48.12355, 11.67830)]),
+            Shape(type="TEE_BOX", label="Red tee", tee_id="red", vertices=[(48.12355, 11.67830)]),
         ],
     )
     course.holes = [hole]
@@ -69,7 +77,7 @@ def test_hole_yaml_schema():
     assert y["hole_number"] == 5
     assert y["par"] == 4
     assert y["handicap"] == 7
-    assert y["distances"] == {"red": 380, "white": 350}
+    assert y["distances"] == {"red": 380, "blue": 350}
     assert y["boundary"] and len(y["boundary"]) >= 3
     assert all({"lat", "lon"} <= set(pt) for pt in y["boundary"])
     # Features must NOT carry hole-level props (par/distance/handicap/hole_number).
@@ -78,9 +86,9 @@ def test_hole_yaml_schema():
         assert "distance_m" not in feat
         assert "handicap" not in feat
         assert "hole_number" not in feat
-    # TEE_BOX carries tee_color.
+    # TEE_BOX carries tee_id (referencing course.tees).
     tee = next(f for f in y["features"] if f["type"] == "TEE_BOX")
-    assert tee["tee_color"] == "red"
+    assert tee["tee_id"] == "red"
 
 
 def test_course_yaml_schema():
@@ -90,6 +98,9 @@ def test_course_yaml_schema():
     assert y["course"]["name"] == "Red Course"
     assert y["course"]["origin"]["latitude_deg"] == 48.12345
     assert y["holes"] == ["holes/hole5.yaml"]
+    # Tee taxonomy with name + slope + cr.
+    assert y["course"]["tees"]["red"] == {"name": "Red", "slope": 2.0, "cr": 72.0}
+    assert y["course"]["tees"]["blue"]["name"] == "Blue"
 
 
 def test_geojson_export():
@@ -342,7 +353,7 @@ def test_save_load_roundtrip():
     assert hole.number == 5
     assert hole.par == 4
     assert hole.handicap == 7
-    assert hole.distances == {"red": 380, "white": 350}
+    assert hole.distances == {"red": 380, "blue": 350}
     assert len(hole.boundary) == 5
     # Shapes: green + water hazard + tee box (boundary is not a shape).
     assert len(hole.shapes) == 3
@@ -353,9 +364,13 @@ def test_save_load_roundtrip():
     # A polygon shape should have >=3 vertices.
     green = next(s for s in hole.shapes if s.type == "GREEN")
     assert len(green.vertices) >= 3
-    # tee_color survives the roundtrip.
+    # tee_id survives the roundtrip.
     tee = next(s for s in hole.shapes if s.type == "TEE_BOX")
-    assert tee.tee_color == "red"
+    assert tee.tee_id == "red"
+    # Tee taxonomy survives the roundtrip.
+    assert loaded.tees["red"].name == "Red"
+    assert loaded.tees["red"].slope == 2.0
+    assert loaded.tees["red"].cr == 72.0
 
 
 def test_validator_accepts_valid_course():
@@ -382,13 +397,13 @@ def test_validator_rejects_bad_hole():
         "boundary": [{"lat": 1, "lon": 1}, {"lat": 2, "lon": 2}, {"lat": 3, "lon": 3}],
         "features": [{"type": "NOT_A_TYPE", "geometry": {"type": "Point", "coordinates": [1, 2]}}],
     }) != []
-    # Invalid tee color.
+    # Flexible tee IDs are allowed (any non-empty string).
     assert validate_hole({
         "schema_version": 1,
         "hole_number": 5,
         "boundary": [{"lat": 1, "lon": 1}, {"lat": 2, "lon": 2}, {"lat": 3, "lon": 3}],
-        "distances": {"purple": 300},
-    }) != []
+        "distances": {"purple": 300, "A": 320},
+    }) == []
 
 
 def test_validator_rejects_bad_course():
@@ -399,5 +414,12 @@ def test_validator_rejects_bad_course():
     assert validate_course({
         "schema_version": 1,
         "course": {"name": "X", "origin": {"latitude_deg": 999, "longitude_deg": 0, "rotation_rad": 0}},
+        "holes": [],
+    }) != []
+    # Tee without a name is invalid.
+    assert validate_course({
+        "schema_version": 1,
+        "course": {"name": "X", "origin": {"latitude_deg": 48, "longitude_deg": 9, "rotation_rad": 0},
+                   "tees": {"red": {}}},
         "holes": [],
     }) != []

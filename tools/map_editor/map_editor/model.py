@@ -42,6 +42,27 @@ SHAPE_TYPES = [
 
 
 @dataclass
+class Tee:
+    """A tee on the course (flexible taxonomy, not fixed colors).
+
+    Identified by a key in ``Course.tees``; carries a display name plus
+    optional slope and course rating (CR).
+    """
+
+    name: str = ""
+    slope: Optional[float] = None
+    cr: Optional[float] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d: Dict[str, Any] = {"name": self.name}
+        if self.slope is not None:
+            d["slope"] = self.slope
+        if self.cr is not None:
+            d["cr"] = self.cr
+        return d
+
+
+@dataclass
 class Shape:
     """A single editable feature on the course (lat/lon geometry).
 
@@ -51,8 +72,8 @@ class Shape:
 
     type: str = "FORBIDDEN_ZONE"
     label: str = ""
-    #: For TEE_BOX features: which tee color this box serves.
-    tee_color: Optional[str] = None
+    #: For TEE_BOX features: which tee (ID in Course.tees) this box serves.
+    tee_id: Optional[str] = None
     #: lat/lon vertices (list of (lat, lon) tuples). For a point, a single vertex.
     #: For a polygon, >=3 vertices. For a line, >=2 vertices.
     vertices: List[tuple[float, float]] = field(default_factory=list)
@@ -85,8 +106,8 @@ class Shape:
             "label": self.label,
             "forbidden": self.is_forbidden,
         }
-        if self.tee_color:
-            props["tee_color"] = self.tee_color
+        if self.tee_id:
+            props["tee_id"] = self.tee_id
         if self.osm_id is not None:
             props["osm_id"] = self.osm_id
         if self.osm_type is not None:
@@ -111,8 +132,8 @@ class Shape:
         }
         if self.label:
             feat["label"] = self.label
-        if self.tee_color:
-            feat["tee_color"] = self.tee_color
+        if self.tee_id:
+            feat["tee_id"] = self.tee_id
         if self.osm_id is not None:
             feat["osm_id"] = self.osm_id
         if self.osm_type is not None:
@@ -132,7 +153,7 @@ class Hole:
     name: str = ""
     par: int = 0
     handicap: int = 0
-    #: Distance (m) per tee color, e.g. {"red": 380, "white": 350}.
+    #: Distance (m) per tee ID (keys reference Course.tees), e.g. {"red": 380, "blue": 350}.
     distances: Dict[str, float] = field(default_factory=dict)
     #: Outer playable boundary (lat, lon) polygon, >=3 vertices.
     boundary: List[tuple[float, float]] = field(default_factory=list)
@@ -193,6 +214,8 @@ class Course:
     origin: CourseOrigin = field(default_factory=CourseOrigin)
     osm_id: Optional[int] = None
     bbox: Optional[tuple[float, float, float, float]] = None  # (min_lat, min_lon, max_lat, max_lon)
+    #: Tee taxonomy: {tee_id: Tee}. Referenced by hole distances and TEE_BOX features.
+    tees: Dict[str, Tee] = field(default_factory=dict)
     holes: List[Hole] = field(default_factory=list)
 
     @property
@@ -225,6 +248,8 @@ class Course:
             course["osm_id"] = self.osm_id
         if self.bbox:
             course["bbox"] = list(self.bbox)
+        if self.tees:
+            course["tees"] = {tid: tee.to_dict() for tid, tee in self.tees.items()}
         return {
             "schema_version": 1,
             "course": course,

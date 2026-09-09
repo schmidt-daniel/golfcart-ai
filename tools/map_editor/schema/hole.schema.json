@@ -33,13 +33,10 @@
     },
     "distances": {
       "type": "object",
-      "description": "Distance (m) per tee color. Keys are tee colors; values are meters.",
+      "description": "Distance (m) per tee. Keys are tee IDs (defined in course.yaml under course.tees); values are meters.",
       "additionalProperties": {
         "type": "number",
         "minimum": 0
-      },
-      "propertyNames": {
-        "enum": ["red", "blue", "white", "yellow", "green", "black", "gold", "silver", "bronze"]
       }
     },
     "boundary": {
@@ -95,10 +92,9 @@
           "description": "Feature type. Forbidden types: GREEN, TEE_BOX, WATER_HAZARD, ROUGH, BUNKER, FORBIDDEN_ZONE."
         },
         "label": { "type": "string", "description": "Optional human label." },
-        "tee_color": {
+        "tee_id": {
           "type": "string",
-          "enum": ["red", "blue", "white", "yellow", "green", "black", "gold", "silver", "bronze"],
-          "description": "For TEE_BOX features: which tee color this box serves."
+          "description": "For TEE_BOX features: which tee (ID defined in course.yaml under course.tees) this box serves."
         },
         "osm_id": { "type": ["integer", "null"], "description": "Source OSM element id." },
         "osm_type": { "type": ["string", "null"], "description": "Source OSM element type (node/way/relation)." },

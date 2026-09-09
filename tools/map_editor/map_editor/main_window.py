@@ -138,11 +138,16 @@ class MainWindow(QMainWindow):
         rl.addWidget(QLabel("Handicap:"))
         rl.addWidget(self.handicap_spin)
 
+        self.tee_combo = QComboBox()
+        self.tee_combo.currentIndexChanged.connect(self._on_tee_changed)
+        rl.addWidget(QLabel("Tee:"))
+        rl.addWidget(self.tee_combo)
+
         self.dist_spin = QSpinBox()
         self.dist_spin.setRange(0, 1000)
         self.dist_spin.setSuffix(" m")
         self.dist_spin.valueChanged.connect(self._on_hole_distance_changed)
-        rl.addWidget(QLabel("Distance (red tee):"))
+        rl.addWidget(QLabel("Distance:"))
         rl.addWidget(self.dist_spin)
 
         # --- Drawing tools ---
@@ -282,15 +287,39 @@ class MainWindow(QMainWindow):
         """Populate the hole-level property editors from the current hole."""
         if self.current_hole is None:
             return
+        # Populate the tee selector from the course tee taxonomy.
+        self.tee_combo.blockSignals(True)
+        self.tee_combo.clear()
+        tees = self.course.tees if self.course else {}
+        for tid, tee in tees.items():
+            self.tee_combo.addItem(tee.name or tid, tid)
+        self.tee_combo.blockSignals(False)
+
         self.par_spin.blockSignals(True)
         self.handicap_spin.blockSignals(True)
         self.dist_spin.blockSignals(True)
         self.par_spin.setValue(self.current_hole.par)
         self.handicap_spin.setValue(self.current_hole.handicap)
-        self.dist_spin.setValue(int(self.current_hole.distances.get("red", 0)))
+        self._refresh_distance_spin()
         self.par_spin.blockSignals(False)
         self.handicap_spin.blockSignals(False)
         self.dist_spin.blockSignals(False)
+
+    def _current_tee_id(self) -> Optional[str]:
+        """The tee ID currently selected in the tee combo (or None)."""
+        if self.tee_combo.count() == 0:
+            return None
+        return self.tee_combo.currentData()
+
+    def _refresh_distance_spin(self) -> None:
+        """Set the distance spin from the current hole + selected tee."""
+        if self.current_hole is None:
+            return
+        tid = self._current_tee_id()
+        self.dist_spin.setValue(int(self.current_hole.distances.get(tid, 0)) if tid else 0)
+
+    def _on_tee_changed(self, _index: int) -> None:
+        self._refresh_distance_spin()
 
     def _on_hole_par_changed(self, value: int) -> None:
         if self.current_hole is not None:
@@ -301,8 +330,11 @@ class MainWindow(QMainWindow):
             self.current_hole.handicap = value
 
     def _on_hole_distance_changed(self, value: int) -> None:
-        if self.current_hole is not None:
-            self.current_hole.distances["red"] = float(value)
+        if self.current_hole is None:
+            return
+        tid = self._current_tee_id()
+        if tid:
+            self.current_hole.distances[tid] = float(value)
 
     # ------------------------------------------------------------------
     # Editing

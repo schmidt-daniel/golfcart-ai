@@ -61,21 +61,38 @@ holes/costmapN.yaml       (optional)
 holes/geojson/holeN.geojson
 ```
 
-- **`course.yaml`** holds course metadata and the map origin datum under
-  `course.origin` (`latitude_deg` / `longitude_deg` / `rotation_rad`), matching
-  the convention used by `georeference_node` and the geofence.
+- **`course.yaml`** holds course metadata, the map origin datum under
+  `course.origin` (`latitude_deg` / `longitude_deg` / `rotation_rad`), and the
+  **tee taxonomy** under `course.tees` — a flexible dictionary of tee IDs to
+  `{name, slope?, cr?}`. This matches the convention used by
+  `georeference_node` and the geofence.
 - **`holes/holeN.yaml`** holds the hole boundary + hole-level properties
-  (`par`, `handicap`, per-tee-color `distances`) + typed `features` (geometry
-  only). It drops straight into `golfcart_geofence/config/` and is picked up by
-  `geofence.launch.py config_file:=holeN.yaml course_file:=course.yaml`.
+  (`par`, `handicap`, per-tee `distances` keyed by tee ID) + typed `features`
+  (geometry only). It drops straight into `golfcart_geofence/config/` and is
+  picked up by `geofence.launch.py config_file:=holeN.yaml course_file:=course.yaml`.
 - **`holes/geojson/holeN.geojson`** is a GeoJSON FeatureCollection for the
   Leaflet web app (`src/golfcart_teleop/web/`).
+
+## Tee taxonomy
+
+Tees are **not** fixed colors. `course.yaml` defines the taxonomy:
+
+```yaml
+course:
+  tees:
+    red:  {name: "Red",  slope: 2.0, cr: 72.0}
+    blue: {name: "Blue", slope: 1.5, cr: 70.0}
+    A:    {name: "A",    slope: 1.0, cr: 70.0}
+```
+
+Hole files reference these IDs for `distances` and `TEE_BOX` features
+(`tee_id`). Any ID scheme works (colors, names, symbols, numbers).
 
 ## Schema & validation
 
 The format is specified by JSON Schemas in `schema/`:
 
-- `schema/course.schema.json` — top-level course (origin, identity, hole refs).
+- `schema/course.schema.json` — top-level course (origin, identity, tees, hole refs).
 - `schema/hole.schema.json` — per-hole (boundary, hole props, features).
 
 `map_editor/validator.py` validates parsed YAML against these schemas

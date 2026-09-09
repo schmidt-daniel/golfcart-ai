@@ -37,6 +37,11 @@
           "items": { "type": "number" },
           "minItems": 4,
           "maxItems": 4
+        },
+        "tees": {
+          "type": "object",
+          "description": "Tee taxonomy for the course. Keys are tee IDs (e.g. 'red', 'blue', 'A', '1'); values carry a display name, slope, and course rating (CR). Hole files reference these IDs for distances and tee-box features.",
+          "additionalProperties": { "$ref": "#/definitions/tee" }
         }
       }
     },
@@ -71,6 +76,26 @@
         "rotation_rad": {
           "type": "number",
           "description": "Map origin rotation (rad), map frame vs ENU."
+        }
+      }
+    },
+    "tee": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name of the tee (e.g. 'Red', 'Blue', 'A', '1')."
+        },
+        "slope": {
+          "type": "number",
+          "description": "Slope of the tee (degrees), if applicable."
+        },
+        "cr": {
+          "type": "number",
+          "description": "Course rating (CR) for this tee, if applicable."
         }
       }
     }

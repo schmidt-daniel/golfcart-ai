@@ -98,15 +98,13 @@ def _fallback_validate(data: Dict[str, Any], schema_name: str) -> List[str]:
                 errors.append("features: each feature needs type and geometry")
             elif feat.get("type") not in _FEATURE_TYPES:
                 errors.append(f"features: unknown type '{feat.get('type')}'")
-        for color in (data.get("distances", {}) or {}):
-            if color not in _TEE_COLORS:
-                errors.append(f"distances: unknown tee color '{color}'")
+        # distances keys are tee IDs (validated against course.yaml tees, which
+        # the hole validator does not see); only check they are non-empty strings.
+        for tid in (data.get("distances", {}) or {}):
+            if not isinstance(tid, str) or not tid:
+                errors.append("distances: tee IDs must be non-empty strings")
     return errors
 
-
-_TEE_COLORS = {
-    "red", "blue", "white", "yellow", "green", "black", "gold", "silver", "bronze",
-}
 
 _FEATURE_TYPES = {
     "GREEN", "TEE_BOX", "HOLE", "FAIRWAY", "HAZARD",
