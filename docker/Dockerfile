@@ -11,6 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# Map editor dependencies (tools/map_editor). PySide6/Pillow/pytest come with
+# the base image; add the missing pure-Python deps. --break-system-packages is
+# required because the base image is PEP 668 externally-managed.
+RUN python3 -m pip install --break-system-packages \
+    requests \
+    shapely
+
 # Install ROS 2 packages used by the workspace.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-rclcpp \

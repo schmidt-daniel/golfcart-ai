@@ -1,0 +1,96 @@
+# Plan: Desktop Golf Course Map Editor
+
+**TL;DR** — Build a Python desktop map editor (PySide6/Qt) that lets a user search & select a golf course on OpenStreetMap, download its OSM data, render it over a transparent satellite view, edit shapes (greens, tees, water hazards, paths, rough, forbidden zones), associate a slope-derived costmap per hole, and export the whole course as a Zip bundle the trolley (Nav2/geofence) and the HMI/WebApp can consume.
+
+## Steps
+
+### Phase 0 — Architecture & scaffolding
+1. Add `tools/map_editor/` (Python package, PySide6). Add `requirements.txt` (PySide6, requests, pyproj, shapely, pyyaml, Pillow). Add `README.md`.
+2. Define the on-disk course format (source of truth for export): `course.yaml` (name, CR, location, origin lat/lon/rotation) + per-hole `holeN.yaml` (number, par, distances, handicap, boundary, typed zones) + optional `costmapN.pgm/.yaml`. Mirror the existing `hole5.yaml` geofence structure.
+
+### Phase 1 — Course search & selection (OSM)
+3. `osm_client.py`: Overpass API query for `leisure=golf_course` (and `golf=course`) within a search bbox; return course list (name, id, bbox, center).
+4. Search UI: text query → geocode (Nominatim) → list results → select → store course bbox/center.
+
+
+
+### Phase 2 — OSM data download & render
+5. `osm_client.py`: Overpass query for all golf elements within the course bbox (greens `leisure=golf_course`/`landuse=grass`+`golf=green`, tee boxes `golf=tee`, water hazards `natural=water`/`golf=water_hazard`, bunkers `golf=bunker`, fairways `golf=fairway`, paths `highway=path`/`golf=path`, rough `golf=rough`, etc.). Parse into typed shapes (shapely.
+
+6. Render view: PySide6 QGraphicsView canvas. Base layer = satellite imagery (Esri World Imagery tiles, cached locally)with adjustable transparency slider. Overlay = OSM shapes as editable polygons/polylines/points.
+
+
+
+### Phase 3 — Shape editing
+7. Editing tools: select/move vertices, add/delete vertices, add new shape (polygon/line/point), delete shape, edit properties (type, label, hole_number, par, distances). Snap-to-vertex.
+
+8. Forbidden zones: greens, tees, water hazards, rough, bunkers all treated as forbidden zones(exported to `forbidden_zones` + geofence zones). Dedicated"forbidden zone" tool.
+
+
+
+### Phase 4 — Costmap association
+9. Load a slope-derived costmap (`.pgm` + `.yaml` from Nav2 map_saver_cli, or a GeoJSON/GeoTIFF)and associate it with a hole. Store as `costmapN.pgm/.yaml` in the hole folder. (Slope costmap generation itself is out of scope — editor only loads/associates.)
+
+
+
+### Phase 5 — Export
+10. Export whole course → Zip: `course.yaml` + `holes/holeN.yaml` + `holes/costmapN.pgm/.yaml` + `holes/geojson/` (per-hole GeoJSON for web). Emit the same origin convention (`origin_latitude_deg`/`origin_longitude_deg`/`origin_rotation_rad`) used by `georeference_node`/geofence.
+11. (Optional, later) Publish `CourseMap` ROS message from the exported data; wire `static_layer` costmap via a map_server. Deferred — see Decisions.
+
+
+
+### Phase 6 — Verification
+12. Unit tests: OSM parsing, shape editing ops, export Zip structure, lat/lon↔map-frame round-trip. Manual: search a real course, edit, export, load into geofence/web.
+
+
+
+## Relevant files
+- `tools/hole_polygon_drawer.html` — existing Leaflet polygon tool; reference for GeoJSON/lat-lon export.
+
+- `src/golfcart_msgs/msg/CourseMap.msg`, `CourseFeature.msg` — target semantic model (types TEE_BOX/HOLE/EXIT_POINT/GREEN/FAIRWAY/HAZARD).
+- `src/golfcart_geofence/config/hole5.yaml` — existing on-disk course format to mirror.
+
+- `src/golfcart_navigation/src/georeference_node.cpp` — origin convention + latlon_to_map().
+
+- `src/golfcart_navigation/config/global_costmap.yaml` — static_layer costmap integration point.
+
+- `src/golfcart_teleop/web/index.html`, `summon.html` — Leaflet web app; export GeoJSON renders here.
+
+
+
+## Verification
+1. `python -m pytest tools/map_editor/tests` — unit tests pass.
+
+2. Launch editor, search "Augusta National", select, confirm OSM shapes render over satellite.
+3. Edit a green's vertices, add a water hazard, delete a path; save.
+4. Load a slope costmap `.pgm/.yaml` and associate with hole 5.
+5. Export Zip; unzip; validate `course.yaml` + `holes/hole5.yaml` structure; copy `holes/hole5.yaml` into `golfcart_geofence/config/` and run `geofence.launch.py config_file:=hole5.yaml` — confirm the node loads it (boundary ≥3 pts, origin, hole_number)and reports "Loaded geofence"; render `holes/geojson/hole5.geojson` in the web app.
+
+
+
+## Decisions
+- **Stack:** Python + PySide6 (Qt) desktop app. Confirmed by user ("Python is fine", "frontend with a Python UI if rendering libs available" — Qt provides QGraphicsView rendering).
+
+- **Export:** Zip bundlewith course metadata + per-hole folders (number, par, distances, handicap) + costmaps + GeoJSON. Confirmed by user.
+
+- **OSM scope:** everything within the course bbox. Confirmed by user.
+
+- **Costmap:** load & associate slope-derived costmap per hole (generation out of scope). Confirmed by user.
+
+
+
+- **Included:** search/select, OSM download, satellite render w/ transparency, shape edit(add/delete/edit, forbidden zones, costmap association, Zip export.
+
+
+
+- **Excluded (deferred):** ROS `CourseMap` publishing, Nav2 `static_layer` map_server wiring, HMI map rendering, slope costmap generation, camera semantic labeling.
+
+
+
+## Confirmed decisions (2026-09-08)
+- **Satellite tiles:** Esri World Imagery(free, no key) + local cache. CONFIRMED.
+- **Web consumption:** export per-hole GeoJSON for the Leaflet web app. CONFIRMED.
+- **HMI course display:** future feature, out of scope. CONFIRMED.
+- **CourseMap publishing:** deferred follow-up(per recommendation). CONFIRMED.
+- **Export integration depth:** deferred(editor stays self-contained; no ROS publishing / Nav2 static_layer wiring now). CONFIRMED.
+- **Export filename:** `golfcart-{course-slug}-{osm-id}-{YYYYMMDD}.zip`(date-only; OS handles same-day collisions). Unique key = OSM id. CONFIRMED.
