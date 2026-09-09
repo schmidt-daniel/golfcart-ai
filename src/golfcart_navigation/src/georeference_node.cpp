@@ -59,6 +59,20 @@ private:
     y = east * s + north * c;
   }
 
+  // Convert map-frame x/y back to lat/lon (inverse of latlon_to_map).
+  void map_to_latlon(double x, double y, double & lat, double & lon)
+  {
+    constexpr double R = 6371000.0;
+    // Inverse rotation.
+    const double c = std::cos(origin_rotation_);
+    const double s = std::sin(origin_rotation_);
+    const double east = x * c + y * s;
+    const double north = -x * s + y * c;
+    const double cos_lat = std::cos(origin_lat_ * M_PI / 180.0);
+    lat = origin_lat_ + (north / R) * 180.0 / M_PI;
+    lon = origin_lon_ + (east / (R * cos_lat)) * 180.0 / M_PI;
+  }
+
   void handle_geo_goal(const std::shared_ptr<golfcart_msgs::srv::SetGoal::Request> req,
                        std::shared_ptr<golfcart_msgs::srv::SetGoal::Response> resp)
   {

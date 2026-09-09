@@ -1,0 +1,5 @@
+# Select a course to load (course_registry_node).
+string course_id
+---
+bool success
+string message

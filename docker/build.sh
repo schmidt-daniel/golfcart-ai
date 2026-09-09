@@ -28,13 +28,19 @@ build_image() {
   docker_cmd build -t "${IMAGE}" -f "${SCRIPT_DIR}/Dockerfile" "${ROOT_DIR}"
 }
 
+# Limit build parallelism to avoid OOM on small hosts (7.8 GiB, no swap).
+# colcon spawns one gcc per package; capping workers + make jobs keeps peak
+# memory low. Override with BUILD_JOBS (e.g. BUILD_JOBS=4 ./docker/build.sh test).
+BUILD_JOBS="${BUILD_JOBS:-2}"
+
 run_build_test() {
   build_image
-  echo "==> Building and testing workspace"
+  echo "==> Building and testing workspace (jobs=${BUILD_JOBS})"
   docker_cmd run --rm -v "${ROOT_DIR}:/workspace" -w /workspace \
     "${IMAGE}" bash -c "source /opt/ros/\${ROS_DISTRO}/setup.bash && \
-      colcon build && \
-      colcon test && \
+      export MAKEFLAGS=-j${BUILD_JOBS} && \
+      colcon build --parallel-workers ${BUILD_JOBS} && \
+      colcon test --parallel-workers ${BUILD_JOBS} && \
       colcon test-result --verbose"
 }
 

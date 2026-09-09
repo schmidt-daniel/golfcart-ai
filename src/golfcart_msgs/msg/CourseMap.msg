@@ -11,6 +11,11 @@ float64 origin_rotation_rad
 string course_name
 string course_id
 
+# Tee taxonomy (parallel arrays; index i pairs tee_ids[i] with tee_names[i]).
+# Tee IDs are flexible (colors, names, symbols, numbers).
+string[] tee_ids
+string[] tee_names
+
 # Course features (tee boxes, holes, exit points)
 CourseFeature[] features
 

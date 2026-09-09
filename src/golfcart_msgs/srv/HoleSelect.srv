@@ -1,0 +1,8 @@
+# Select a hole (and optionally a tee) for the active course (course_session_node).
+# hole_number 0 = auto-detect by GPS proximity to tee boxes.
+# tee_id empty = keep current tee.
+uint32 hole_number
+string tee_id
+---
+bool success
+string message

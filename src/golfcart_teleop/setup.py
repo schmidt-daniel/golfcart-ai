@@ -11,7 +11,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/web', ['web/index.html', 'web/summon.html']),
     ],
-    install_requires=['setuptools', 'pyserial'],
+    install_requires=['setuptools', 'pyserial', 'Pillow'],
     extras_require={'test': ['pytest']},
     zip_safe=True,
     maintainer='golfcart',

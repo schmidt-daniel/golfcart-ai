@@ -6,4 +6,5 @@ float64 x             # map-frame x
 float64 y             # map-frame y
 float64 theta         # orientation (rad)
 uint32 hole_number     # hole number (0 if not applicable)
+string tee_id          # for TEE_BOX features: which tee (ID in CourseMap.tee_ids)
 builtin_interfaces/Time timestamp

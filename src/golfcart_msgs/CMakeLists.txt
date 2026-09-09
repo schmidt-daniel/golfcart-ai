@@ -24,6 +24,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/NavigationStatus.msg"
   "msg/CourseFeature.msg"
   "msg/CourseMap.msg"
+  "msg/CourseInfo.msg"
+  "msg/CourseList.msg"
+  "msg/CourseSelected.msg"
+  "msg/HoleSession.msg"
   "msg/PowerState.msg"
   "msg/PhoneFix.msg"
   "msg/SummonStatus.msg"
@@ -34,6 +38,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SummonTrigger.srv"
   "srv/FollowTrigger.srv"
   "srv/GeofenceTrigger.srv"
+  "srv/CourseSelect.srv"
+  "srv/HoleSelect.srv"
   DEPENDENCIES builtin_interfaces nav_msgs geometry_msgs
 )
 

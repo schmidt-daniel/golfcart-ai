@@ -234,4 +234,5 @@ rosbag2/
 
 # Course maps (large binary data, deployed via rsync, kept out of git)
 maps/
+courses/
 tools/map_editor/tests/data/
