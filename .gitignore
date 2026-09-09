@@ -231,3 +231,7 @@ course_generated.sdf
 
 # Recorded ROS 2 bags (large binary data, kept out of git)
 rosbag2/
+
+# Course maps (large binary data, deployed via rsync, kept out of git)
+maps/
+tools/map_editor/tests/data/

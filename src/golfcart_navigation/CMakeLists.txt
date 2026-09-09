@@ -13,6 +13,7 @@ find_package(nav2_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(yaml-cpp REQUIRED)
 find_package(golfcart_msgs REQUIRED)
 
 add_executable(navigation_node src/navigation_node.cpp)
@@ -30,7 +31,10 @@ target_include_directories(summon_node PRIVATE
 )
 target_link_libraries(summon_node rclcpp::rclcpp nav_msgs::nav_msgs std_srvs::std_srvs golfcart_msgs::golfcart_msgs)
 
-install(TARGETS navigation_node georeference_node summon_node
+add_executable(course_loader_node src/course_loader_node.cpp)
+target_link_libraries(course_loader_node rclcpp::rclcpp nav_msgs::nav_msgs geometry_msgs::geometry_msgs yaml-cpp::yaml-cpp golfcart_msgs::golfcart_msgs z)
+
+install(TARGETS navigation_node georeference_node summon_node course_loader_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY config

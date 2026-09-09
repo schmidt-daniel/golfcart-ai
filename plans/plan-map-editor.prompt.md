@@ -58,7 +58,7 @@
 
 ### Phase 5 — Export
 10. Export whole course → Zip: `course.yaml` + `holes/holeN.yaml` + `holes/costmapN.pgm/.yaml` + `holes/geojson/` (per-hole GeoJSON for web). Emit the same origin convention (`origin_latitude_deg`/`origin_longitude_deg`/`origin_rotation_rad`) used by `georeference_node`/geofence.
-11. (Optional, later) Publish `CourseMap` ROS message from the exported data; wire `static_layer` costmap via a map_server. Deferred — see Decisions.
+11. **IMPLEMENTED 2026-09-09** — `course_loader_node` (golfcart_navigation) reads an exported course Zip and publishes `CourseMap` on `/course/map` (transient-local). `map_server` added to `navigation.launch.py` to serve the static costmap to `global_costmap`'s `static_layer`. `scripts/deploy_course.sh` copies the Zip to the cart, unpacks `holes/holeN.yaml` into `golfcart_geofence/config/`, and installs a `golfcart-course-loader.service` systemd unit. Verified: node loads a sample course (2 holes, 2 forbidden zones); full workspace build + 66 tests pass.
 
 
 

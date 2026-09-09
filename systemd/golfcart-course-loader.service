@@ -1,0 +1,22 @@
+[Unit]
+Description=Golf Cart Course Loader (publishes CourseMap)
+Wants=network.target
+After=network.target golfcart-core.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/golfcart-ai
+Environment="ROS_DISTRO=lyrical"
+Environment="RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
+# COURSE_ZIP is set via a drop-in (scripts/deploy_course.sh writes
+# /etc/systemd/system/golfcart-course-loader.service.d/10-course.conf).
+ExecStartPre=/bin/bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && source /home/pi/golfcart-ai/install/setup.bash'
+ExecStart=/bin/bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && source /home/pi/golfcart-ai/install/setup.bash && exec ros2 run golfcart_navigation course_loader_node --ros-args -p course_zip:="${COURSE_ZIP:-}"'
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=0
+
+[Install]
+WantedBy=multi-user.target

@@ -84,6 +84,21 @@ def generate_launch_description():
         parameters=[local_costmap_cfg],
     )
 
+    # Map server: serves the static costmap (from the course map) to the
+    # global_costmap's static_layer. The course_loader_node publishes the
+    # CourseMap; map_server converts it to a costmap on /map.
+    map_server = Node(
+        package='nav2_map_server',
+        executable='map_server',
+        name='map_server',
+        output='screen',
+        parameters=[{
+            'yaml_filename': '',
+            'topic_name': '/map',
+            'frame_id': 'map',
+        }],
+    )
+
     # Golf cart navigation bridge node
     navigation_node = Node(
         package='golfcart_navigation',
@@ -116,6 +131,7 @@ def generate_launch_description():
         velocity_smoother,
         global_costmap,
         local_costmap,
+        map_server,
         navigation_node,
         georeference_node,
         summon_node,
