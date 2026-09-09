@@ -21,8 +21,8 @@ import yaml
 from map_editor.model import Course, Hole, Shape
 
 
-def _hole_yaml(hole: Hole, course: Course) -> dict:
-    return hole.to_yaml(course.origin)
+def _hole_yaml(hole: Hole) -> dict:
+    return hole.to_yaml()
 
 
 def _hole_geojson(hole: Hole) -> dict:
@@ -56,7 +56,7 @@ def export_course(course: Course, out_dir: Path, filename: Optional[str] = None)
             if not hole.boundary:
                 continue
             # holes/holeN.yaml
-            hole_yaml = _hole_yaml(hole, course)
+            hole_yaml = _hole_yaml(hole)
             zf.writestr(f"holes/hole{hole.number}.yaml", yaml.safe_dump(hole_yaml, sort_keys=False))
 
             # holes/geojson/holeN.geojson

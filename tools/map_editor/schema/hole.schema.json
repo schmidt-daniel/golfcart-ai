@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://golfcart.local/schema/hole.schema.json",
+  "title": "Golf Hole",
+  "description": "A single hole: its playable boundary, hole-level properties, and typed features (geometry only).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "hole_number", "boundary"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Format version. Bump on breaking changes."
+    },
+    "hole_number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "1-based hole number."
+    },
+    "name": {
+      "type": "string",
+      "description": "Optional human label, e.g. 'The Pond'."
+    },
+    "par": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Par for the hole (nominal)."
+    },
+    "handicap": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Course handicap stroke index for this hole (1..18, 0 = none)."
+    },
+    "distances": {
+      "type": "object",
+      "description": "Distance (m) per tee color. Keys are tee colors; values are meters.",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0
+      },
+      "propertyNames": {
+        "enum": ["red", "blue", "white", "yellow", "green", "black", "gold", "silver", "bronze"]
+      }
+    },
+    "boundary": {
+      "type": "array",
+      "description": "Outer playable boundary polygon (lat/lon), >=3 vertices, closed.",
+      "items": { "$ref": "#/definitions/latlon" },
+      "minItems": 3
+    },
+    "features": {
+      "type": "array",
+      "description": "Typed geometry features on this hole (greens, tees, hazards, paths, ...).",
+      "items": { "$ref": "#/definitions/feature" }
+    },
+    "costmap": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional slope/occupancy costmap associated with this hole.",
+      "properties": {
+        "pgm": { "type": "string", "description": "Relative path to the .pgm grid." },
+        "yaml": { "type": "string", "description": "Relative path to the Nav2 costmap .yaml." },
+        "resolution": { "type": "number", "minimum": 0, "description": "Meters per cell." },
+        "origin": {
+          "type": "array",
+          "description": "[x, y, theta] map-frame origin of the grid.",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        }
+      }
+    }
+  },
+  "definitions": {
+    "latlon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lat", "lon"],
+      "properties": {
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lon": { "type": "number", "minimum": -180, "maximum": 180 }
+      }
+    },
+    "feature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "geometry"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "GREEN", "TEE_BOX", "HOLE", "FAIRWAY", "HAZARD",
+            "WATER_HAZARD", "BUNKER", "ROUGH", "PATH", "FORBIDDEN_ZONE", "EXIT_POINT"
+          ],
+          "description": "Feature type. Forbidden types: GREEN, TEE_BOX, WATER_HAZARD, ROUGH, BUNKER, FORBIDDEN_ZONE."
+        },
+        "label": { "type": "string", "description": "Optional human label." },
+        "tee_color": {
+          "type": "string",
+          "enum": ["red", "blue", "white", "yellow", "green", "black", "gold", "silver", "bronze"],
+          "description": "For TEE_BOX features: which tee color this box serves."
+        },
+        "osm_id": { "type": ["integer", "null"], "description": "Source OSM element id." },
+        "osm_type": { "type": ["string", "null"], "description": "Source OSM element type (node/way/relation)." },
+        "geometry": { "$ref": "#/definitions/geometry" }
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["Point", "LineString", "Polygon"]
+        },
+        "coordinates": {
+          "description": "GeoJSON-style [lon, lat] coordinates. Point: [lon,lat]; LineString: [[lon,lat],...]; Polygon: [[[lon,lat],...]] (outer ring).",
+          "type": "array"
+        }
+      }
+    }
+  }
+}

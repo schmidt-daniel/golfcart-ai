@@ -23,6 +23,12 @@ def generate_launch_description():
         description='Geofence boundary config file (in golfcart_geofence/config)')
     config_file = LaunchConfiguration('config_file')
 
+    course_file_arg = DeclareLaunchArgument(
+        'course_file', default_value='',
+        description='Course file (course.yaml) providing the map origin. '
+                    'If empty, origin is read from the hole config (legacy).')
+    course_file = LaunchConfiguration('course_file')
+
     pkg_share = get_package_share_directory('golfcart_geofence')
     config_path = os.path.join(pkg_share, 'config', config_file.perform(None))
 
@@ -31,10 +37,14 @@ def generate_launch_description():
         executable='geofence_node',
         name='geofence_node',
         output='screen',
-        parameters=[{'config_file': config_path}],
+        parameters=[{
+            'config_file': config_path,
+            'course_file': course_file,
+        }],
     )
 
     return LaunchDescription([
         config_file_arg,
+        course_file_arg,
         geofence_node,
     ])

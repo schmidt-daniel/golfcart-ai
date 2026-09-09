@@ -17,7 +17,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python3 -m pip install --break-system-packages \
     requests \
     shapely \
-    numpy
+    numpy \
+    jsonschema
 
 # Install ROS 2 packages used by the workspace.
 RUN apt-get update && apt-get install -y --no-install-recommends \

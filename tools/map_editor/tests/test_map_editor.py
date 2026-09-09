@@ -24,13 +24,15 @@ def make_course() -> Course:
     course = Course(origin=origin, osm_id=1234567, bbox=(48.0, 11.0, 49.0, 12.0))
     hole = Hole(
         number=5,
+        name="The Pond",
         par=4,
-        distance_m=380,
         handicap=7,
+        distances={"red": 380, "white": 350},
         boundary=[(48.12350, 11.67900), (48.12400, 11.67920), (48.12410, 11.67800), (48.12360, 11.67780), (48.12340, 11.67840)],
         shapes=[
-            Shape(type="GREEN", label="Green 5", hole_number=5, vertices=[(48.12360, 11.67850), (48.12370, 11.67860), (48.12365, 11.67870)]),
-            Shape(type="WATER_HAZARD", label="Pond", hole_number=5, vertices=[(48.12380, 11.67890), (48.12390, 11.67900), (48.12385, 11.67910)]),
+            Shape(type="GREEN", label="Green 5", vertices=[(48.12360, 11.67850), (48.12370, 11.67860), (48.12365, 11.67870)]),
+            Shape(type="WATER_HAZARD", label="Pond", vertices=[(48.12380, 11.67890), (48.12390, 11.67900), (48.12385, 11.67910)]),
+            Shape(type="TEE_BOX", label="Red tee", tee_color="red", vertices=[(48.12355, 11.67830)]),
         ],
     )
     course.holes = [hole]
@@ -58,15 +60,36 @@ def test_shape_forbidden():
     assert Shape(type="FORBIDDEN_ZONE").is_forbidden
 
 
-def test_hole_yaml_geofence_compatible():
-    """The exported hole YAML must contain the fields geofence_node reads."""
+def test_hole_yaml_schema():
+    """The exported hole YAML follows the new schema: hole props on the hole,
+    features are pure geometry + type."""
     c = make_course()
-    y = c.holes[0].to_yaml(c.origin)
-    assert y["boundary"] and len(y["boundary"]) >= 3
-    assert "origin_latitude_deg" in y
-    assert "origin_longitude_deg" in y
+    y = c.holes[0].to_yaml()
+    assert y["schema_version"] == 1
     assert y["hole_number"] == 5
+    assert y["par"] == 4
+    assert y["handicap"] == 7
+    assert y["distances"] == {"red": 380, "white": 350}
+    assert y["boundary"] and len(y["boundary"]) >= 3
     assert all({"lat", "lon"} <= set(pt) for pt in y["boundary"])
+    # Features must NOT carry hole-level props (par/distance/handicap/hole_number).
+    for feat in y["features"]:
+        assert "par" not in feat
+        assert "distance_m" not in feat
+        assert "handicap" not in feat
+        assert "hole_number" not in feat
+    # TEE_BOX carries tee_color.
+    tee = next(f for f in y["features"] if f["type"] == "TEE_BOX")
+    assert tee["tee_color"] == "red"
+
+
+def test_course_yaml_schema():
+    c = make_course()
+    y = c.to_course_yaml()
+    assert y["schema_version"] == 1
+    assert y["course"]["name"] == "Red Course"
+    assert y["course"]["origin"]["latitude_deg"] == 48.12345
+    assert y["holes"] == ["holes/hole5.yaml"]
 
 
 def test_geojson_export():
@@ -317,12 +340,64 @@ def test_save_load_roundtrip():
     assert len(loaded.holes) == 1
     hole = loaded.holes[0]
     assert hole.number == 5
+    assert hole.par == 4
+    assert hole.handicap == 7
+    assert hole.distances == {"red": 380, "white": 350}
     assert len(hole.boundary) == 5
-    # Shapes: green + water hazard (boundary is not a shape).
-    assert len(hole.shapes) == 2
+    # Shapes: green + water hazard + tee box (boundary is not a shape).
+    assert len(hole.shapes) == 3
     types = {s.type for s in hole.shapes}
     assert "GREEN" in types
     assert "WATER_HAZARD" in types
+    assert "TEE_BOX" in types
     # A polygon shape should have >=3 vertices.
     green = next(s for s in hole.shapes if s.type == "GREEN")
     assert len(green.vertices) >= 3
+    # tee_color survives the roundtrip.
+    tee = next(s for s in hole.shapes if s.type == "TEE_BOX")
+    assert tee.tee_color == "red"
+
+
+def test_validator_accepts_valid_course():
+    from map_editor.validator import validate_course, validate_hole
+    c = make_course()
+    assert validate_course(c.to_course_yaml()) == []
+    assert validate_hole(c.holes[0].to_yaml()) == []
+
+
+def test_validator_rejects_bad_hole():
+    from map_editor.validator import validate_hole
+    # Missing boundary.
+    assert validate_hole({"schema_version": 1, "hole_number": 5}) != []
+    # Boundary too small.
+    assert validate_hole({
+        "schema_version": 1,
+        "hole_number": 5,
+        "boundary": [{"lat": 1, "lon": 1}, {"lat": 2, "lon": 2}],
+    }) != []
+    # Unknown feature type.
+    assert validate_hole({
+        "schema_version": 1,
+        "hole_number": 5,
+        "boundary": [{"lat": 1, "lon": 1}, {"lat": 2, "lon": 2}, {"lat": 3, "lon": 3}],
+        "features": [{"type": "NOT_A_TYPE", "geometry": {"type": "Point", "coordinates": [1, 2]}}],
+    }) != []
+    # Invalid tee color.
+    assert validate_hole({
+        "schema_version": 1,
+        "hole_number": 5,
+        "boundary": [{"lat": 1, "lon": 1}, {"lat": 2, "lon": 2}, {"lat": 3, "lon": 3}],
+        "distances": {"purple": 300},
+    }) != []
+
+
+def test_validator_rejects_bad_course():
+    from map_editor.validator import validate_course
+    # Missing course object.
+    assert validate_course({"schema_version": 1, "holes": []}) != []
+    # Origin out of range.
+    assert validate_course({
+        "schema_version": 1,
+        "course": {"name": "X", "origin": {"latitude_deg": 999, "longitude_deg": 0, "rotation_rad": 0}},
+        "holes": [],
+    }) != []

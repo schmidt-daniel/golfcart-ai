@@ -1,0 +1,15 @@
+# Sample course definition (new schema).
+# The map origin (datum for lat/lon -> map-frame conversion) lives here,
+# shared by all holes. Referenced by the geofence via course_file:=course.yaml.
+schema_version: 1
+course:
+  name: "Red Course"
+  id: "1234567"
+  osm_id: 1234567
+  origin:
+    latitude_deg: 48.12345
+    longitude_deg: 11.67890
+    rotation_rad: 0.0
+  bbox: [48.0, 11.0, 49.0, 12.0]
+holes:
+  - holes/hole5.yaml

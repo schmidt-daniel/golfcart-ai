@@ -62,14 +62,16 @@ echo "==> Copying Zip to maps/ ..."
 ssh "$PI_USER_HOST" "mkdir -p $REMOTE_WORKSPACE/maps"
 rsync -avz "$ZIP_FILE" "$PI_USER_HOST:$REMOTE_WORKSPACE/maps/"
 
-# ---- 2. Unpack hole configs into the geofence config dir ----
+# ---- 2. Unpack hole configs + course.yaml into the geofence config dir ----
 echo "==> Unpacking hole configs into golfcart_geofence/config/ ..."
 ssh "$PI_USER_HOST" "cd $REMOTE_WORKSPACE && \
   mkdir -p /tmp/course_unpack && \
   rm -rf /tmp/course_unpack/* && \
   unzip -o maps/$ZIP_NAME -d /tmp/course_unpack && \
   cp /tmp/course_unpack/holes/hole*.yaml src/golfcart_geofence/config/ && \
-  echo '  Installed hole configs:' && ls src/golfcart_geofence/config/hole*.yaml"
+  cp /tmp/course_unpack/course.yaml src/golfcart_geofence/config/course.yaml && \
+  echo '  Installed hole configs:' && ls src/golfcart_geofence/config/hole*.yaml && \
+  echo '  Installed course.yaml:' && ls src/golfcart_geofence/config/course.yaml"
 
 # ---- 3. Wire course_loader_node to publish the CourseMap ----
 # Install the course-loader systemd unit (if not already present) and write a

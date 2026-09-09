@@ -178,11 +178,25 @@ private:
       RCLCPP_ERROR(get_logger(), "course.yaml parse error: %s", e.what());
       return false;
     }
-    course_.course_name = root["course_name"] ? root["course_name"].as<std::string>() : "";
-    course_.course_id = root["course_id"] ? root["course_id"].as<std::string>() : "";
-    course_.origin_latitude_deg = root["origin_latitude_deg"] ? root["origin_latitude_deg"].as<double>() : 0.0;
-    course_.origin_longitude_deg = root["origin_longitude_deg"] ? root["origin_longitude_deg"].as<double>() : 0.0;
-    course_.origin_rotation_rad = root["origin_rotation_rad"] ? root["origin_rotation_rad"].as<double>() : 0.0;
+    // New format: {schema_version, course: {name, id, origin: {...}}, holes: [...]}
+    const YAML::Node & course = root["course"];
+    if (course) {
+      course_.course_name = course["name"] ? course["name"].as<std::string>() : "";
+      course_.course_id = course["id"] ? course["id"].as<std::string>() : "";
+      const YAML::Node & origin = course["origin"];
+      if (origin) {
+        course_.origin_latitude_deg = origin["latitude_deg"] ? origin["latitude_deg"].as<double>() : 0.0;
+        course_.origin_longitude_deg = origin["longitude_deg"] ? origin["longitude_deg"].as<double>() : 0.0;
+        course_.origin_rotation_rad = origin["rotation_rad"] ? origin["rotation_rad"].as<double>() : 0.0;
+      }
+    } else {
+      // Legacy flat format.
+      course_.course_name = root["course_name"] ? root["course_name"].as<std::string>() : "";
+      course_.course_id = root["course_id"] ? root["course_id"].as<std::string>() : "";
+      course_.origin_latitude_deg = root["origin_latitude_deg"] ? root["origin_latitude_deg"].as<double>() : 0.0;
+      course_.origin_longitude_deg = root["origin_longitude_deg"] ? root["origin_longitude_deg"].as<double>() : 0.0;
+      course_.origin_rotation_rad = root["origin_rotation_rad"] ? root["origin_rotation_rad"].as<double>() : 0.0;
+    }
     course_.timestamp = now();
     return true;
   }
@@ -197,22 +211,39 @@ private:
     }
 
     // Forbidden zones: greens, tees, water, rough, bunkers, forbidden zones.
-    if (root["shapes"] && root["shapes"].IsSequence()) {
-      for (const YAML::Node & s : root["shapes"]) {
-        if (!s["properties"] || !s["geometry"]) {
+    // New format uses `features` (schema-native: type on the object); legacy
+    // used `shapes` (GeoJSON Feature wrappers with type in properties).
+    const YAML::Node & feats = root["features"] ? root["features"] : root["shapes"];
+    if (feats && feats.IsSequence()) {
+      for (const YAML::Node & s : feats) {
+        // Resolve type/label: schema-native (s["type"]) or legacy (s["properties"]["type"]).
+        std::string type;
+        std::string label;
+        bool forbidden = false;
+        YAML::Node geom;
+        if (s["type"] && s["geometry"]) {
+          // Schema-native.
+          type = s["type"].as<std::string>();
+          label = s["label"] ? s["label"].as<std::string>() : "";
+          geom = s["geometry"];
+          forbidden = is_forbidden_type(type);
+        } else if (s["properties"] && s["geometry"]) {
+          // Legacy GeoJSON Feature.
+          type = s["properties"]["type"] ? s["properties"]["type"].as<std::string>() : "";
+          label = s["properties"]["label"] ? s["properties"]["label"].as<std::string>() : "";
+          forbidden = s["properties"]["forbidden"] ? s["properties"]["forbidden"].as<bool>() : false;
+          geom = s["geometry"];
+        } else {
           continue;
         }
-        const std::string type = s["properties"]["type"] ? s["properties"]["type"].as<std::string>() : "";
-        const std::string label = s["properties"]["label"] ? s["properties"]["label"].as<std::string>() : "";
-        const bool forbidden = s["properties"]["forbidden"] ? s["properties"]["forbidden"].as<bool>() : false;
         if (!forbidden) {
           continue;
         }
         // geometry.coordinates: Polygon -> [[[lon,lat],...]], Point -> [lon,lat].
-        const std::string gtype = s["geometry"]["type"] ? s["geometry"]["type"].as<std::string>() : "";
+        const std::string gtype = geom["type"] ? geom["type"].as<std::string>() : "";
         geometry_msgs::msg::Polygon poly;
         if (gtype == "Polygon") {
-          const YAML::Node & ring = s["geometry"]["coordinates"][0];
+          const YAML::Node & ring = geom["coordinates"][0];
           if (ring.IsSequence()) {
             for (const YAML::Node & pt : ring) {
               if (pt.IsSequence() && pt.size() >= 2) {
@@ -226,7 +257,7 @@ private:
             }
           }
         } else if (gtype == "Point") {
-          const YAML::Node & pt = s["geometry"]["coordinates"];
+          const YAML::Node & pt = geom["coordinates"];
           if (pt.IsSequence() && pt.size() >= 2) {
             geometry_msgs::msg::Point32 p;
             p.x = pt[1].as<double>();
@@ -250,6 +281,12 @@ private:
         course_.features.push_back(feat);
       }
     }
+  }
+
+  static bool is_forbidden_type(const std::string & type)
+  {
+    return type == "GREEN" || type == "TEE_BOX" || type == "WATER_HAZARD" ||
+           type == "ROUGH" || type == "BUNKER" || type == "FORBIDDEN_ZONE";
   }
 
   void publish_course()

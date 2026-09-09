@@ -17,10 +17,31 @@ import yaml
 from map_editor.model import Course, CourseOrigin, Hole, Shape
 
 
-def _shape_from_geojson(feature: dict) -> Shape:
-    """Rebuild a Shape from a GeoJSON feature written by the exporter."""
-    props = feature.get("properties", {})
-    geom = feature.get("geometry", {})
+def _shape_from_feature(feature: dict) -> Shape:
+    """Rebuild a Shape from a schema-native feature (type on the object).
+
+    Handles both the schema-native form (type directly on the object, as in the
+    hole YAML `features` list) and the legacy GeoJSON Feature wrapper (type in
+    `properties`).
+    """
+    if "properties" in feature and "geometry" in feature and feature.get("type") == "Feature":
+        # Legacy GeoJSON Feature wrapper.
+        props = feature.get("properties", {})
+        ftype = props.get("type", "FORBIDDEN_ZONE")
+        label = props.get("label", "")
+        tee_color = props.get("tee_color")
+        osm_id = props.get("osm_id")
+        osm_type = props.get("osm_type")
+        geom = feature.get("geometry", {})
+    else:
+        # Schema-native form.
+        ftype = feature.get("type", "FORBIDDEN_ZONE")
+        label = feature.get("label", "")
+        tee_color = feature.get("tee_color")
+        osm_id = feature.get("osm_id")
+        osm_type = feature.get("osm_type")
+        geom = feature.get("geometry", {})
+
     gtype = geom.get("type")
     coords = geom.get("coordinates")
 
@@ -34,12 +55,11 @@ def _shape_from_geojson(feature: dict) -> Shape:
         vertices = [(lat, lon) for lon, lat in ring]
 
     return Shape(
-        type=props.get("type", "FORBIDDEN_ZONE"),
-        label=props.get("label", ""),
-        hole_number=props.get("hole_number", 0),
-        par=props.get("par", 0),
-        distance_m=props.get("distance_m", 0),
-        handicap=props.get("handicap", 0),
+        type=ftype,
+        label=label,
+        tee_color=tee_color,
+        osm_id=osm_id,
+        osm_type=osm_type,
         vertices=vertices,
     )
 
@@ -50,17 +70,20 @@ def load_course(path: Path) -> Course:
     with zipfile.ZipFile(path) as zf:
         course_yaml = yaml.safe_load(zf.read("course.yaml"))
 
+        # New format: {schema_version, course: {name, origin, ...}, holes: [...]}
+        course_doc = course_yaml.get("course", course_yaml)
+        origin_doc = course_doc.get("origin", {})
         origin = CourseOrigin(
-            latitude_deg=course_yaml.get("origin_latitude_deg", 0.0),
-            longitude_deg=course_yaml.get("origin_longitude_deg", 0.0),
-            rotation_rad=course_yaml.get("origin_rotation_rad", 0.0),
-            course_name=course_yaml.get("course_name", ""),
-            course_id=course_yaml.get("course_id", ""),
+            latitude_deg=origin_doc.get("latitude_deg", 0.0),
+            longitude_deg=origin_doc.get("longitude_deg", 0.0),
+            rotation_rad=origin_doc.get("rotation_rad", 0.0),
+            course_name=course_doc.get("name", ""),
+            course_id=course_doc.get("id", ""),
         )
         course = Course(
             origin=origin,
-            osm_id=course_yaml.get("osm_id"),
-            bbox=tuple(course_yaml["bbox"]) if course_yaml.get("bbox") else None,
+            osm_id=course_doc.get("osm_id"),
+            bbox=tuple(course_doc["bbox"]) if course_doc.get("bbox") else None,
         )
 
         # Load each hole.
@@ -70,27 +93,32 @@ def load_course(path: Path) -> Course:
                 continue
             hole_yaml = yaml.safe_load(zf.read(name))
             number = int(hole_yaml.get("hole_number", 0))
+            costmap = hole_yaml.get("costmap", {}) or {}
             hole = Hole(
                 number=number,
+                name=hole_yaml.get("name", ""),
                 par=hole_yaml.get("par", 0),
-                distance_m=hole_yaml.get("distance_m", 0),
                 handicap=hole_yaml.get("handicap", 0),
+                distances=hole_yaml.get("distances", {}),
                 boundary=[
                     (pt["lat"], pt["lon"]) for pt in hole_yaml.get("boundary", [])
                 ],
                 zones=hole_yaml.get("zones", []),
-                costmap_pgm=hole_yaml.get("costmap_pgm"),
-                costmap_yaml=hole_yaml.get("costmap_yaml"),
+                costmap_pgm=costmap.get("pgm"),
+                costmap_yaml=costmap.get("yaml"),
             )
-            # Load shapes from the matching geojson.
-            gj_name = f"holes/geojson/hole{number}.geojson"
-            if gj_name in zf.namelist():
-                gj = json.loads(zf.read(gj_name))
-                for feature in gj.get("features", []):
-                    props = feature.get("properties", {})
-                    if props.get("type") == "BOUNDARY":
-                        continue  # boundary already loaded from yaml
-                    hole.shapes.append(_shape_from_geojson(feature))
+            # Load features from the hole yaml (new format) or the matching geojson.
+            features = hole_yaml.get("features")
+            if features is None:
+                gj_name = f"holes/geojson/hole{number}.geojson"
+                if gj_name in zf.namelist():
+                    gj = json.loads(zf.read(gj_name))
+                    features = [
+                        f for f in gj.get("features", [])
+                        if f.get("properties", {}).get("type") != "BOUNDARY"
+                    ]
+            for feature in features or []:
+                hole.shapes.append(_shape_from_feature(feature))
             holes.append(hole)
 
         course.holes = holes

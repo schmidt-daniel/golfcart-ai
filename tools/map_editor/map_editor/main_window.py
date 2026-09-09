@@ -124,21 +124,26 @@ class MainWindow(QMainWindow):
         rl.addWidget(QLabel("Label:"))
         rl.addWidget(self.label_edit)
 
+        # --- Hole-level properties (par, handicap, distance) ---
+        rl.addWidget(QLabel("Hole properties:"))
         self.par_spin = QSpinBox()
         self.par_spin.setRange(0, 10)
+        self.par_spin.valueChanged.connect(self._on_hole_par_changed)
         rl.addWidget(QLabel("Par:"))
         rl.addWidget(self.par_spin)
+
+        self.handicap_spin = QSpinBox()
+        self.handicap_spin.setRange(0, 36)
+        self.handicap_spin.valueChanged.connect(self._on_hole_handicap_changed)
+        rl.addWidget(QLabel("Handicap:"))
+        rl.addWidget(self.handicap_spin)
 
         self.dist_spin = QSpinBox()
         self.dist_spin.setRange(0, 1000)
         self.dist_spin.setSuffix(" m")
-        rl.addWidget(QLabel("Distance:"))
+        self.dist_spin.valueChanged.connect(self._on_hole_distance_changed)
+        rl.addWidget(QLabel("Distance (red tee):"))
         rl.addWidget(self.dist_spin)
-
-        self.handicap_spin = QSpinBox()
-        self.handicap_spin.setRange(0, 36)
-        rl.addWidget(QLabel("Handicap:"))
-        rl.addWidget(self.handicap_spin)
 
         # --- Drawing tools ---
         rl.addWidget(QLabel("Tools:"))
@@ -271,6 +276,33 @@ class MainWindow(QMainWindow):
         self.canvas.set_hole(self.current_hole)
         self.export_btn.setEnabled(True)
         self.save_btn.setEnabled(True)
+        self._refresh_hole_props()
+
+    def _refresh_hole_props(self) -> None:
+        """Populate the hole-level property editors from the current hole."""
+        if self.current_hole is None:
+            return
+        self.par_spin.blockSignals(True)
+        self.handicap_spin.blockSignals(True)
+        self.dist_spin.blockSignals(True)
+        self.par_spin.setValue(self.current_hole.par)
+        self.handicap_spin.setValue(self.current_hole.handicap)
+        self.dist_spin.setValue(int(self.current_hole.distances.get("red", 0)))
+        self.par_spin.blockSignals(False)
+        self.handicap_spin.blockSignals(False)
+        self.dist_spin.blockSignals(False)
+
+    def _on_hole_par_changed(self, value: int) -> None:
+        if self.current_hole is not None:
+            self.current_hole.par = value
+
+    def _on_hole_handicap_changed(self, value: int) -> None:
+        if self.current_hole is not None:
+            self.current_hole.handicap = value
+
+    def _on_hole_distance_changed(self, value: int) -> None:
+        if self.current_hole is not None:
+            self.current_hole.distances["red"] = float(value)
 
     # ------------------------------------------------------------------
     # Editing
@@ -279,17 +311,11 @@ class MainWindow(QMainWindow):
     def _on_selection_changed(self, shape: Optional[Shape]) -> None:
         if shape is None:
             self.label_edit.clear()
-            self.par_spin.setValue(0)
-            self.dist_spin.setValue(0)
-            self.handicap_spin.setValue(0)
             return
         idx = self.type_combo.findText(shape.type)
         if idx >= 0:
             self.type_combo.setCurrentIndex(idx)
         self.label_edit.setText(shape.label)
-        self.par_spin.setValue(shape.par)
-        self.dist_spin.setValue(shape.distance_m)
-        self.handicap_spin.setValue(shape.handicap)
 
     def _on_opacity(self, value: int) -> None:
         self.satellite.set_opacity(value / 100.0)

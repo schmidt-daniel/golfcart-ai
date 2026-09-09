@@ -33,6 +33,7 @@ public:
   {
     // ---- Parameters ----
     config_file_ = declare_parameter<std::string>("config_file", "");
+    course_file_ = declare_parameter<std::string>("course_file", "");
     warn_distance_m_ = declare_parameter<double>("warn_distance_m", 5.0);
     stop_margin_m_ = declare_parameter<double>("stop_margin_m", 2.0);
     gps_timeout_s_ = declare_parameter<double>("gps_timeout_s", 3.0);
@@ -96,8 +97,13 @@ private:
       RCLCPP_ERROR(get_logger(), "Config must have a 'boundary' sequence of >=3 points");
       return false;
     }
-    origin_lat_ = root["origin_latitude_deg"] ? root["origin_latitude_deg"].as<double>() : 0.0;
-    origin_lon_ = root["origin_longitude_deg"] ? root["origin_longitude_deg"].as<double>() : 0.0;
+
+    // Origin: prefer the course file (new format: course.origin.latitude_deg),
+    // fall back to the legacy per-hole origin_* fields.
+    if (!load_origin()) {
+      return false;
+    }
+
     source_ = root["hole_number"] ? ("hole" + root["hole_number"].as<std::string>())
                                   : "course";
 
@@ -109,6 +115,40 @@ private:
     }
     RCLCPP_INFO(get_logger(), "Loaded geofence '%s' with %zu boundary vertices",
                 source_.c_str(), boundary_.size());
+    return true;
+  }
+
+  // Load the map origin (lat/lon) from the course file if given, else from the
+  // legacy per-hole origin_* fields in the hole config.
+  bool load_origin()
+  {
+    if (!course_file_.empty()) {
+      YAML::Node course;
+      try {
+        course = YAML::LoadFile(course_file_);
+      } catch (const std::exception & e) {
+        RCLCPP_ERROR(get_logger(), "course.yaml load error: %s", e.what());
+        return false;
+      }
+      const YAML::Node & origin = course["course"]["origin"];
+      if (origin && origin["latitude_deg"] && origin["longitude_deg"]) {
+        origin_lat_ = origin["latitude_deg"].as<double>();
+        origin_lon_ = origin["longitude_deg"].as<double>();
+        return true;
+      }
+      RCLCPP_ERROR(get_logger(), "course.yaml has no course.origin.latitude_deg/longitude_deg");
+      return false;
+    }
+    // Legacy: origin in the hole config.
+    YAML::Node root;
+    try {
+      root = YAML::LoadFile(config_file_);
+    } catch (const std::exception & e) {
+      RCLCPP_ERROR(get_logger(), "YAML load error: %s", e.what());
+      return false;
+    }
+    origin_lat_ = root["origin_latitude_deg"] ? root["origin_latitude_deg"].as<double>() : 0.0;
+    origin_lon_ = root["origin_longitude_deg"] ? root["origin_longitude_deg"].as<double>() : 0.0;
     return true;
   }
 
@@ -223,6 +263,7 @@ private:
 
   // ---- Params ----
   std::string config_file_;
+  std::string course_file_;
   double warn_distance_m_;
   double stop_margin_m_;
   double gps_timeout_s_;

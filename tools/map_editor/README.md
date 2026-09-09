@@ -61,17 +61,27 @@ holes/costmapN.yaml       (optional)
 holes/geojson/holeN.geojson
 ```
 
-- **`holes/holeN.yaml`** is a **superset** of what
-  `golfcart_geofence/src/geofence_node.cpp::load_config()` reads
-  (`boundary`, `origin_latitude_deg`, `origin_longitude_deg`, `hole_number`),
-  so it drops straight into `golfcart_geofence/config/` and is picked up by
-  `geofence.launch.py config_file:=holeN.yaml`. Editor-only fields (par,
-  distances, handicap, zones, costmap ref) are ignored by the node.
+- **`course.yaml`** holds course metadata and the map origin datum under
+  `course.origin` (`latitude_deg` / `longitude_deg` / `rotation_rad`), matching
+  the convention used by `georeference_node` and the geofence.
+- **`holes/holeN.yaml`** holds the hole boundary + hole-level properties
+  (`par`, `handicap`, per-tee-color `distances`) + typed `features` (geometry
+  only). It drops straight into `golfcart_geofence/config/` and is picked up by
+  `geofence.launch.py config_file:=holeN.yaml course_file:=course.yaml`.
 - **`holes/geojson/holeN.geojson`** is a GeoJSON FeatureCollection for the
   Leaflet web app (`src/golfcart_teleop/web/`).
-- **`course.yaml`** holds course metadata and the origin datum
-  (`origin_latitude_deg` / `origin_longitude_deg` / `origin_rotation_rad`),
-  matching the convention used by `georeference_node` and the geofence.
+
+## Schema & validation
+
+The format is specified by JSON Schemas in `schema/`:
+
+- `schema/course.schema.json` — top-level course (origin, identity, hole refs).
+- `schema/hole.schema.json` — per-hole (boundary, hole props, features).
+
+`map_editor/validator.py` validates parsed YAML against these schemas
+(`validate_course` / `validate_hole`). It uses `jsonschema` when available and
+falls back to a lightweight structural check otherwise. Hole-level properties
+(par, handicap, distances) live on the hole — **not** on individual features.
 
 ## Tests
 

@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://golfcart.local/schema/course.schema.json",
+  "title": "Golf Course",
+  "description": "Top-level course definition. References one YAML file per hole.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "course", "holes"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Format version. Bump on breaking changes."
+    },
+    "course": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "origin"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name of the course."
+        },
+        "id": {
+          "type": "string",
+          "description": "Stable course identifier (e.g. OSM id as string)."
+        },
+        "osm_id": {
+          "type": ["integer", "null"],
+          "description": "OpenStreetMap relation/way id, if imported from OSM."
+        },
+        "origin": { "$ref": "#/definitions/origin" },
+        "bbox": {
+          "type": "array",
+          "description": "[min_lat, min_lon, max_lat, max_lon]",
+          "items": { "type": "number" },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      }
+    },
+    "holes": {
+      "type": "array",
+      "description": "Relative paths to per-hole YAML files.",
+      "items": {
+        "type": "string",
+        "pattern": "^holes/hole[0-9]+\\.yaml$"
+      },
+      "uniqueItems": true
+    }
+  },
+  "definitions": {
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["latitude_deg", "longitude_deg", "rotation_rad"],
+      "properties": {
+        "latitude_deg": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90,
+          "description": "Map origin latitude (datum for lat/lon -> map frame)."
+        },
+        "longitude_deg": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180,
+          "description": "Map origin longitude (datum for lat/lon -> map frame)."
+        },
+        "rotation_rad": {
+          "type": "number",
+          "description": "Map origin rotation (rad), map frame vs ENU."
+        }
+      }
+    }
+  }
+}

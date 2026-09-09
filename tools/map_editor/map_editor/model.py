@@ -43,14 +43,16 @@ SHAPE_TYPES = [
 
 @dataclass
 class Shape:
-    """A single editable shape on the course (lat/lon coordinates)."""
+    """A single editable feature on the course (lat/lon geometry).
+
+    A feature is pure geometry + type. Hole-level properties (par, distances,
+    handicap) live on the :class:`Hole`, not on individual features.
+    """
 
     type: str = "FORBIDDEN_ZONE"
     label: str = ""
-    hole_number: int = 0
-    par: int = 0
-    distance_m: int = 0
-    handicap: int = 0
+    #: For TEE_BOX features: which tee color this box serves.
+    tee_color: Optional[str] = None
     #: lat/lon vertices (list of (lat, lon) tuples). For a point, a single vertex.
     #: For a polygon, >=3 vertices. For a line, >=2 vertices.
     vertices: List[tuple[float, float]] = field(default_factory=list)
@@ -78,66 +80,99 @@ class Shape:
         else:
             geom_type = "Polygon"
             geometry_coords = [coords]  # outer ring
+        props: Dict[str, Any] = {
+            "type": self.type,
+            "label": self.label,
+            "forbidden": self.is_forbidden,
+        }
+        if self.tee_color:
+            props["tee_color"] = self.tee_color
+        if self.osm_id is not None:
+            props["osm_id"] = self.osm_id
+        if self.osm_type is not None:
+            props["osm_type"] = self.osm_type
         return {
             "type": "Feature",
-            "properties": {
-                "type": self.type,
-                "label": self.label,
-                "hole_number": self.hole_number,
-                "par": self.par,
-                "distance_m": self.distance_m,
-                "handicap": self.handicap,
-                "forbidden": self.is_forbidden,
-            },
+            "properties": props,
             "geometry": {"type": geom_type, "coordinates": geometry_coords},
         }
+
+    def to_feature(self) -> Dict[str, Any]:
+        """Serialize to the schema-native feature form (type on the object).
+
+        This is what goes into the hole YAML `features` list. Unlike
+        :meth:`to_geojson` (which wraps in a GeoJSON Feature), the type is the
+        feature type directly, matching `hole.schema.json`.
+        """
+        geom = self.to_geojson()["geometry"]
+        feat: Dict[str, Any] = {
+            "type": self.type,
+            "geometry": geom,
+        }
+        if self.label:
+            feat["label"] = self.label
+        if self.tee_color:
+            feat["tee_color"] = self.tee_color
+        if self.osm_id is not None:
+            feat["osm_id"] = self.osm_id
+        if self.osm_type is not None:
+            feat["osm_type"] = self.osm_type
+        return feat
 
 
 @dataclass
 class Hole:
-    """A single hole on the course."""
+    """A single hole on the course.
+
+    Hole-level properties (par, handicap, per-tee-color distances) live here,
+    NOT on individual features.
+    """
 
     number: int = 0
+    name: str = ""
     par: int = 0
-    distance_m: int = 0
     handicap: int = 0
+    #: Distance (m) per tee color, e.g. {"red": 380, "white": 350}.
+    distances: Dict[str, float] = field(default_factory=dict)
     #: Outer playable boundary (lat, lon) polygon, >=3 vertices.
-
     boundary: List[tuple[float, float]] = field(default_factory=list)
     #: Inner typed zones (tee boxes, hole markers, etc.) as lat/lon points with radius.
-
     zones: List[Dict[str, Any]] = field(default_factory=list)
-    #: All editable shapes for this hole.
-
+    #: All editable features for this hole.
     shapes: List[Shape] = field(default_factory=list)
     #: Associated slope costmap (optional). Path to .pgm + .yaml pair.
-
     costmap_pgm: Optional[str] = None
     costmap_yaml: Optional[str] = None
     #: In-memory slope grid (degrees) for heatmap overlay, if generated.
-
     slope_deg: Optional[Any] = None
     #: In-memory aspect grid (degrees), if generated.
-
     aspect_deg: Optional[Any] = None
 
-    def to_yaml(self, course_origin: "CourseOrigin") -> Dict[str, Any]:
-        """Serialize to the geofence-compatible per-hole YAML dict."""
-        return {
-            "course_name": course_origin.course_name,
+    def to_yaml(self) -> Dict[str, Any]:
+        """Serialize to the per-hole YAML dict (new schema)."""
+        doc: Dict[str, Any] = {
+            "schema_version": 1,
             "hole_number": self.number,
-            "origin_latitude_deg": course_origin.latitude_deg,
-            "origin_longitude_deg": course_origin.longitude_deg,
-            "origin_rotation_rad": course_origin.rotation_rad,
             "boundary": [{"lat": lat, "lon": lon} for lat, lon in self.boundary],
-            "zones": self.zones,
-            "par": self.par,
-            "distance_m": self.distance_m,
-            "handicap": self.handicap,
-            "costmap_pgm": self.costmap_pgm,
-            "costmap_yaml": self.costmap_yaml,
-            "shapes": [shape.to_geojson() for shape in self.shapes],
         }
+        if self.name:
+            doc["name"] = self.name
+        if self.par:
+            doc["par"] = self.par
+        if self.handicap:
+            doc["handicap"] = self.handicap
+        if self.distances:
+            doc["distances"] = self.distances
+        if self.shapes:
+            doc["features"] = [shape.to_feature() for shape in self.shapes]
+        if self.costmap_pgm or self.costmap_yaml:
+            costmap: Dict[str, Any] = {}
+            if self.costmap_pgm:
+                costmap["pgm"] = self.costmap_pgm
+            if self.costmap_yaml:
+                costmap["yaml"] = self.costmap_yaml
+            doc["costmap"] = costmap
+        return doc
 
 
 @dataclass
@@ -176,15 +211,24 @@ class Course:
         return f"golfcart-{self.slug()}-{osm}-{when:%Y%m%d}.zip"
 
     def to_course_yaml(self) -> Dict[str, Any]:
+        course: Dict[str, Any] = {
+            "name": self.course_name,
+            "origin": {
+                "latitude_deg": self.origin.latitude_deg,
+                "longitude_deg": self.origin.longitude_deg,
+                "rotation_rad": self.origin.rotation_rad,
+            },
+        }
+        if self.origin.course_id:
+            course["id"] = self.origin.course_id
+        if self.osm_id is not None:
+            course["osm_id"] = self.osm_id
+        if self.bbox:
+            course["bbox"] = list(self.bbox)
         return {
-            "course_name": self.course_name,
-            "course_id": self.origin.course_id,
-            "osm_id": self.osm_id,
-            "origin_latitude_deg": self.origin.latitude_deg,
-            "origin_longitude_deg": self.origin.longitude_deg,
-            "origin_rotation_rad": self.origin.rotation_rad,
-            "bbox": list(self.bbox) if self.bbox else None,
-            "holes": [h.number for h in self.holes],
+            "schema_version": 1,
+            "course": course,
+            "holes": [f"holes/hole{h.number}.yaml" for h in self.holes],
         }
 
 

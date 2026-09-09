@@ -60,6 +60,17 @@
 10. Export whole course → Zip: `course.yaml` + `holes/holeN.yaml` + `holes/costmapN.pgm/.yaml` + `holes/geojson/` (per-hole GeoJSON for web). Emit the same origin convention (`origin_latitude_deg`/`origin_longitude_deg`/`origin_rotation_rad`) used by `georeference_node`/geofence.
 11. **IMPLEMENTED 2026-09-09** — `course_loader_node` (golfcart_navigation) reads an exported course Zip and publishes `CourseMap` on `/course/map` (transient-local). `map_server` added to `navigation.launch.py` to serve the static costmap to `global_costmap`'s `static_layer`. `scripts/deploy_course.sh` copies the Zip to the cart, unpacks `holes/holeN.yaml` into `golfcart_geofence/config/`, and installs a `golfcart-course-loader.service` systemd unit. Verified: node loads a sample course (2 holes, 2 forbidden zones); full workspace build + 66 tests pass.
 
+### Phase 5b — Schema-validated course format (IMPLEMENTED 2026-09-09)
+12. **Course format v2** — JSON Schemas in `tools/map_editor/schema/`
+    (`course.schema.json` + `hole.schema.json`), validated by
+    `map_editor/validator.py`. Hole-level properties (par, handicap,
+    per-tee-color `distances`) moved onto the hole; features are pure geometry
+    + type (TEE_BOX carries `tee_color`). Origin moved to `course.origin` in
+    course.yaml. Consumers updated: `geofence_node` (reads origin from
+    `course_file` param, legacy fallback), `course_loader_node` (new
+    `course.origin` + `features`, legacy `shapes` fallback). GUI hole-level
+    property editors. 21 editor tests + 66 workspace tests pass.
+
 
 
 ### Phase 6 — Verification
