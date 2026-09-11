@@ -7,6 +7,7 @@
 #include "golfcart_msgs/msg/imu_data.hpp"
 #include "golfcart_msgs/msg/motion_request.hpp"
 #include "golfcart_msgs/msg/obstacle_state.hpp"
+#include "golfcart_msgs/msg/slope_status.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_srvs/srv/trigger.hpp"
@@ -70,6 +71,21 @@ public:
         }
       });
 
+    // Predictive tip-over: use the terrain slope projected onto the trolley's
+    // heading (from slope_node) to stop BEFORE driving onto steep terrain.
+    slope_sub_ = create_subscription<golfcart_msgs::msg::SlopeStatus>(
+      "slope/status", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::SlopeStatus::SharedPtr msg) {
+        if (msg->valid) {
+          predicted_roll_ = msg->roll_rad;
+          predicted_pitch_ = msg->pitch_rad;
+          // Stop if the predicted roll OR pitch exceeds the limit.
+          excessive_predicted_roll_ =
+            std::abs(msg->roll_rad) > max_roll_rad_ ||
+            std::abs(msg->pitch_rad) > max_pitch_rad_;
+        }
+      });
+
     obstacle_sub_ = create_subscription<golfcart_msgs::msg::ObstacleState>(
       "obstacles/state", rclcpp::SensorDataQoS(),
       [this](const golfcart_msgs::msg::ObstacleState::SharedPtr msg) {
@@ -121,6 +137,7 @@ public:
     const double rate_hz = declare_parameter<double>("control_rate_hz", 50.0);
     request_timeout_s_ = declare_parameter<double>("request_timeout_s", 0.5);
     max_roll_rad_ = declare_parameter<double>("max_roll_rad", 0.6);  // ~34 deg
+    max_pitch_rad_ = declare_parameter<double>("max_pitch_rad", 0.6);  // ~34 deg
 
     const auto period = std::chrono::duration<double>(1.0 / rate_hz);
     timer_ = create_wall_timer(
@@ -135,6 +152,13 @@ public:
         }
         // Excessive roll (tip-over risk): force a safe stop.
         if (excessive_roll_) {
+          if (state_ == SafetyState::MOVING || state_ == SafetyState::LIMITED) {
+            state_ = SafetyState::READY;
+            publish_safe(0.0, 0.0);
+          }
+        }
+        // Predictive tip-over: terrain ahead is too steep (roll or pitch).
+        if (excessive_predicted_roll_) {
           if (state_ == SafetyState::MOVING || state_ == SafetyState::LIMITED) {
             state_ = SafetyState::READY;
             publish_safe(0.0, 0.0);
@@ -167,8 +191,12 @@ private:
   double max_angular_ = 1.0;
   double request_timeout_s_ = 0.5;
   double max_roll_rad_ = 0.6;
+  double max_pitch_rad_ = 0.6;
   bool battery_critical_ = false;
   bool excessive_roll_ = false;
+  bool excessive_predicted_roll_ = false;
+  float predicted_roll_ = 0.0f;
+  float predicted_pitch_ = 0.0f;
   bool obstacle_in_zone_ = false;
   uint8_t current_priority_ = 0;  // highest-priority active source
   rclcpp::Time last_request_time_;
@@ -176,6 +204,7 @@ private:
   rclcpp::Subscription<golfcart_msgs::msg::MotionRequest>::SharedPtr req_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::BatteryState>::SharedPtr battery_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::ImuData>::SharedPtr imu_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::SlopeStatus>::SharedPtr slope_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::ObstacleState>::SharedPtr obstacle_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr safe_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub_;

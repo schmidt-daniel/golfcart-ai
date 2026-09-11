@@ -118,6 +118,36 @@ def test_geojson_export():
         assert len(gj["features"]) >= 3  # boundary + green + water
 
 
+def test_export_includes_gradient():
+    """Gradient PGM files written next to the costmap are bundled in the zip."""
+    import numpy as np
+    import tempfile
+    import zipfile
+    from pathlib import Path
+    from map_editor.dem import write_gradient
+    from map_editor.exporter import export_course
+
+    c = make_course()
+    hole = c.holes[0]
+    d = Path(tempfile.mkdtemp())
+    # Write a costmap + gradient for the hole.
+    pgm = d / "hole5_slope.pgm"
+    pgm.write_bytes(b"P5\n6 4\n65535\n" + np.zeros(24, dtype=np.float32).tobytes())
+    hole.costmap_pgm = str(pgm)
+    hole.costmap_yaml = str(d / "hole5_slope.yaml")
+    write_gradient(np.full((4, 6), 0.1, dtype=np.float32),
+                   np.full((4, 6), -0.05, dtype=np.float32),
+                   5.0, 0.0, 0.0, pgm)
+
+    out = export_course(c, d)
+    with zipfile.ZipFile(out) as zf:
+        names = zf.namelist()
+        assert "holes/costmap5.pgm" in names
+        assert "holes/hole5_slope_gradx.pgm" in names
+        assert "holes/hole5_slope_grady.pgm" in names
+        assert "holes/hole5_slope_grad.yaml" in names
+
+
 def test_classify():
     assert _classify({"golf": "green"}) == "GREEN"
     assert _classify({"golf": "tee"}) == "TEE_BOX"
@@ -198,6 +228,36 @@ def test_slope_to_cost_values():
     assert cost.max() <= 254
 
 
+def test_compute_gradient():
+    """Gradient is ground-fixed (east/north components)."""
+    import numpy as np
+    from map_editor.dem import compute_gradient
+    # z increases by 1 m per 30 m cell in x (east) -> dzdx = 1/30, dzdy = 0.
+    z = np.tile(np.arange(5, dtype=np.float64) * 1.0, (5, 1))
+    dzdx, dzdy = compute_gradient(z, 30.0)
+    assert np.allclose(dzdx[2, 2], 1.0 / 30.0, atol=1e-6)
+    assert np.allclose(dzdy[2, 2], 0.0, atol=1e-6)
+
+
+def test_project_onto_heading():
+    """Roll/pitch depend on the trolley's heading (yaw)."""
+    import numpy as np
+    from map_editor.dem import project_onto_heading
+    # A ramp rising to the east: dzdx = 1/30, dzdy = 0.
+    dzdx = np.full((3, 3), 1.0 / 30.0)
+    dzdy = np.zeros((3, 3))
+    # ROS yaw convention: yaw=0 faces +x (east), yaw=pi/2 faces +y (north).
+    # Facing east (yaw=0): the east-rising slope is ahead -> positive pitch.
+    pitch, roll = project_onto_heading(dzdx, dzdy, 0.0)
+    assert np.allclose(pitch, np.degrees(np.arctan(1.0 / 30.0)), atol=0.1)
+    assert np.allclose(roll, 0.0, atol=1e-6)
+    # Facing north (yaw=pi/2): the east-rising slope is to the right ->
+    # negative roll (uphill to the right), zero pitch.
+    pitch2, roll2 = project_onto_heading(dzdx, dzdy, np.pi / 2.0)
+    assert np.allclose(pitch2, 0.0, atol=1e-6)
+    assert np.allclose(roll2, -np.degrees(np.arctan(1.0 / 30.0)), atol=0.1)
+
+
 def test_write_costmap_roundtrip():
     """Written PGM+YAML can be read back with matching dimensions."""
     import numpy as np
@@ -222,6 +282,32 @@ def test_write_costmap_roundtrip():
     meta = yaml.safe_load(yml.read_text())
     assert meta["resolution"] == 0.05
     assert meta["origin"] == [1.0, 2.0, 0.0]
+
+
+def test_write_gradient_roundtrip():
+    """Gradient PGM files can be read back with matching values."""
+    import numpy as np
+    from pathlib import Path
+    import tempfile
+    from map_editor.dem import write_gradient
+    dzdx = np.full((4, 6), 0.033, dtype=np.float32)
+    dzdy = np.full((4, 6), -0.017, dtype=np.float32)
+    d = Path(tempfile.mkdtemp())
+    gx, gy = write_gradient(dzdx, dzdy, 5.0, 1.0, 2.0, d / "hole1_slope.pgm")
+    assert gx.exists() and gy.exists()
+    # Read back the float32 data.
+    def read_pgm_f32(path):
+        with open(path, "rb") as f:
+            assert f.readline().strip() == b"P5"
+            dims = f.readline().split()
+            assert f.readline().strip() == b"65535"
+            data = np.frombuffer(f.read(), dtype=np.float32)
+        return data.reshape(int(dims[1]), int(dims[0]))
+    rx = read_pgm_f32(gx)
+    ry = read_pgm_f32(gy)
+    assert rx.shape == (4, 6)
+    assert np.allclose(rx, 0.033, atol=1e-6)
+    assert np.allclose(ry, -0.017, atol=1e-6)
 
 
 def test_sample_elevation():

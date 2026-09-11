@@ -68,4 +68,15 @@ def export_course(course: Course, out_dir: Path, filename: Optional[str] = None)
             if hole.costmap_yaml and Path(hole.costmap_yaml).exists():
                 zf.write(hole.costmap_yaml, f"holes/costmap{hole.number}.yaml")
 
+            # holes/holeN_slope_gradx.pgm / _grady.pgm / _grad.yaml (optional).
+            # These are written by write_gradient() as siblings of the costmap
+            # pgm (e.g. hole1_slope_gradx.pgm). The runtime slope_node reads
+            # them to compute trolley-relative roll/pitch.
+            if hole.costmap_pgm:
+                base = Path(hole.costmap_pgm)
+                for suffix in ("_gradx.pgm", "_grady.pgm", "_grad.yaml"):
+                    grad = base.with_name(base.stem + suffix)
+                    if grad.exists():
+                        zf.write(grad, f"holes/{grad.name}")
+
     return out_path

@@ -451,10 +451,12 @@ class MainWindow(QMainWindow):
             return
         try:
             from map_editor.dem import (
+                compute_gradient,
                 compute_slope,
                 fetch_dem,
                 slope_to_cost_values,
                 write_costmap,
+                write_gradient,
                 Costmap,
             )
 
@@ -478,6 +480,7 @@ class MainWindow(QMainWindow):
             # Fill NaN cells with the grid mean so slope math is stable.
             z_filled = np.where(np.isnan(z), np.nanmean(z), z)
             slope_deg, aspect_deg = compute_slope(z_filled, spacing_m)
+            dzdx, dzdy = compute_gradient(z_filled, spacing_m)
 
             # Store in-memory for heatmap overlay.
             hole.slope_deg = slope_deg
@@ -493,6 +496,10 @@ class MainWindow(QMainWindow):
             write_costmap(cm, pgm, yml)
             hole.costmap_pgm = str(pgm)
             hole.costmap_yaml = str(yml)
+
+            # Write the terrain gradient (ground-fixed) for the runtime
+            # slope_node to compute trolley-relative roll/pitch.
+            write_gradient(dzdx, dzdy, spacing_m, 0.0, 0.0, pgm)
 
             self.canvas.viewport().update()
             self._mark_dirty()

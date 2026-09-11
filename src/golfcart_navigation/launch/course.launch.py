@@ -41,8 +41,16 @@ def generate_launch_description():
         parameters=[{'auto_radius_m': 30.0}],
     )
 
+    slope_node = Node(
+        package='golfcart_navigation',
+        executable='slope_node',
+        name='slope_node',
+        output='screen',
+    )
+
     return LaunchDescription([
         courses_dir_arg,
         registry_node,
         session_node,
+        slope_node,
     ])

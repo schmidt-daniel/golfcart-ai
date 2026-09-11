@@ -28,6 +28,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/CourseList.msg"
   "msg/CourseSelected.msg"
   "msg/HoleSession.msg"
+  "msg/SlopeStatus.msg"
   "msg/PowerState.msg"
   "msg/PhoneFix.msg"
   "msg/SummonStatus.msg"

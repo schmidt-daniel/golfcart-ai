@@ -49,7 +49,13 @@ target_include_directories(course_session_node PRIVATE
 )
 target_link_libraries(course_session_node rclcpp::rclcpp geometry_msgs::geometry_msgs yaml-cpp::yaml-cpp golfcart_msgs::golfcart_msgs z)
 
-install(TARGETS navigation_node georeference_node summon_node course_loader_node course_registry_node course_session_node
+add_executable(slope_node src/slope_node.cpp)
+target_include_directories(slope_node PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(slope_node rclcpp::rclcpp nav_msgs::nav_msgs yaml-cpp::yaml-cpp golfcart_msgs::golfcart_msgs z)
+
+install(TARGETS navigation_node georeference_node summon_node course_loader_node course_registry_node course_session_node slope_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY config

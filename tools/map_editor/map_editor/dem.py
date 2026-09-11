@@ -26,6 +26,36 @@ import numpy as np
 # ---------------------------------------------------------------------------
 
 
+def compute_gradient(
+    z: np.ndarray,
+    cell_size_m: float,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Compute the terrain gradient (dz/dx, dz/dy) via Horn's method.
+
+    The gradient is **ground-fixed** (east/north components of elevation
+    change per meter). It is the raw terrain truth from which both slope
+    magnitude/aspect and the trolley-relative roll/pitch are derived.
+
+    Args:
+        z: 2D array of elevations (meters), shape (rows, cols).
+        cell_size_m: ground resolution of one cell (meters).
+
+    Returns:
+        (dzdx, dzdy): same shape as `z`. dzdx is the east component
+        (elevation change per meter east), dzdy the north component.
+        Cells with no valid neighbors get 0.
+    """
+    z = np.asarray(z, dtype=np.float64)
+    rows, cols = z.shape
+    dzdx = np.zeros_like(z)
+    dzdy = np.zeros_like(z)
+    if rows < 3 or cols < 3:
+        return dzdx, dzdy
+    dzdx[:, 1:-1] = (z[:, 2:] - z[:, :-2]) / (2.0 * cell_size_m)
+    dzdy[1:-1, :] = (z[2:, :] - z[:-2, :]) / (2.0 * cell_size_m)
+    return dzdx, dzdy
+
+
 def compute_slope(
     z: np.ndarray,
     cell_size_m: float,
@@ -43,16 +73,7 @@ def compute_slope(
         horizontal; aspect in degrees clockwise from north (direction of
         steepest descent). Cells with no valid neighbors get slope 0.
     """
-    z = np.asarray(z, dtype=np.float64)
-    rows, cols = z.shape
-    if rows < 3 or cols < 3:
-        return np.zeros_like(z), np.zeros_like(z)
-
-    # dz/dx and dz/dy via central differences (Horn).
-    dzdx = np.zeros_like(z)
-    dzdy = np.zeros_like(z)
-    dzdx[:, 1:-1] = (z[:, 2:] - z[:, :-2]) / (2.0 * cell_size_m)
-    dzdy[1:-1, :] = (z[2:, :] - z[:-2, :]) / (2.0 * cell_size_m)
+    dzdx, dzdy = compute_gradient(z, cell_size_m)
 
     slope_rad = np.arctan(np.hypot(dzdx, dzdy))
     slope_deg = np.degrees(slope_rad)
@@ -64,6 +85,36 @@ def compute_slope(
     aspect_deg[slope_deg < 1e-6] = 0.0
 
     return slope_deg, aspect_deg
+
+
+def project_onto_heading(
+    dzdx: np.ndarray,
+    dzdy: np.ndarray,
+    yaw_rad: float,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Project the terrain gradient onto the trolley's heading frame.
+
+    Roll and pitch are **trolley-relative** and depend on the heading (yaw).
+    This decomposes the ground-fixed gradient into:
+        pitch = gradient · forward   (slope along the trolley's forward axis)
+        roll  = gradient · lateral   (slope perpendicular to the forward axis)
+
+    Args:
+        dzdx, dzdy: ground-fixed gradient components (east, north).
+        yaw_rad: trolley heading (radians, 0 = north, + = east).
+
+    Returns:
+        (pitch_deg, roll_deg): same shape as the inputs, in degrees.
+        Positive pitch = uphill ahead; positive roll = uphill to the left.
+    """
+    dzdx = np.asarray(dzdx, dtype=np.float64)
+    dzdy = np.asarray(dzdy, dtype=np.float64)
+    cy = np.cos(yaw_rad)
+    sy = np.sin(yaw_rad)
+    # forward = (cy, sy), lateral = (-sy, cy)
+    pitch = dzdx * cy + dzdy * sy
+    roll = -dzdx * sy + dzdy * cy
+    return np.degrees(np.arctan(pitch)), np.degrees(np.arctan(roll))
 
 
 def slope_to_cost_values(
@@ -141,6 +192,55 @@ def write_costmap(costmap: Costmap, pgm_path: Path, yaml_path: Path) -> None:
 
     with open(yaml_path, "w") as f:
         _yaml.safe_dump(meta, f, sort_keys=False)
+
+
+def write_gradient(
+    dzdx: np.ndarray,
+    dzdy: np.ndarray,
+    resolution: float,
+    origin_x: float,
+    origin_y: float,
+    base_path: Path,
+) -> Tuple[Path, Path]:
+    """Write the terrain gradient as a pair of float PGM files.
+
+    The gradient is the ground-fixed terrain truth (east/north elevation
+    change per meter) from which the runtime slope_node computes the
+    trolley-relative roll/pitch. Written as two PGM files:
+        {base_path}_gradx.pgm   (dz/dx, east)
+        {base_path}_grady.pgm   (dz/dy, north)
+
+    Values are stored as float32 in a P5 PGM with maxval 65535 (16-bit), so
+    the runtime can read them back losslessly. Returns the two paths.
+    """
+    base_path = Path(base_path)
+    base_path.parent.mkdir(parents=True, exist_ok=True)
+    gradx_path = base_path.with_name(base_path.stem + "_gradx.pgm")
+    grady_path = base_path.with_name(base_path.stem + "_grady.pgm")
+
+    for path, g in ((gradx_path, dzdx), (grady_path, dzdy)):
+        g = np.asarray(g, dtype=np.float32)
+        rows, cols = g.shape
+        with open(path, "wb") as f:
+            f.write(b"P5\n")
+            f.write(f"{cols} {rows}\n".encode())
+            f.write(b"65535\n")
+            f.write(g.tobytes())
+
+    # Write a small YAML describing the gradient grid (resolution + origin).
+    meta = {
+        "resolution": resolution,
+        "origin": [origin_x, origin_y, 0.0],
+        "frame_id": "map",
+        "gradx": gradx_path.name,
+        "grady": grady_path.name,
+    }
+    import yaml as _yaml
+
+    with open(base_path.with_name(base_path.stem + "_grad.yaml"), "w") as f:
+        _yaml.safe_dump(meta, f, sort_keys=False)
+
+    return gradx_path, grady_path
 
 
 # ---------------------------------------------------------------------------
