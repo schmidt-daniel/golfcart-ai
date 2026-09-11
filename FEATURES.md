@@ -130,6 +130,21 @@ features are added.
 - `launch/sim.launch.py` — `ros2 launch golfcart_gazebo sim.launch.py [headless:=true]`
 - `scripts/sim_check.sh` — headless sanity check (topics, sim time, cart movement)
 
+### Learning / Map Refinement
+- `tools/map_editor/map_editor/refine.py` — merge recorded observations into an
+  existing course map (confidence-weighted blending + Gaussian spatial
+  smoothing so new/old data align without border artifacts)
+- `scripts/extract_flags.py` — reads a recorded rosbag (`record_bag.sh --all`)
+  and extracts discrete flags (drivable / steep / obstacle) in the course map
+  frame
+- `scripts/refine_map.sh` — end-to-end: bag -> obs.jsonl -> refined course zip
+- **Alignment:** observations rasterize onto the exact existing costmap grid
+  (same origin + resolution); blending uses a baseline weight for the existing
+  DEM data so unobserved cells are preserved and borders transition smoothly
+- `gradient_from_imu()` recovers the ground-fixed gradient from trolley-relative
+  IMU pitch/roll + yaw (inverse of the slope_node projection)
+- 34 editor tests pass (9 new refine tests)
+
 ### Deployment (Option D, Hybrid)
 - `systemd/` — systemd units per service, auto-start on boot + restart on crash:
   `golfcart-core`, `golfcart-teleop`, `golfcart-localization`, `golfcart-mapping`,
@@ -145,9 +160,12 @@ features are added.
 
 See `docs/features/` for design docs.
 
-- HMI Display (TFT display) — spec + mockups in `docs/hmi-spec.md` & `docs/hmi/`
 - Speed Zones
 - Voice Control
+- Push Assist (pedelec-style force sensing)
+- Learning on-board flags (design doc `docs/features/learning.md` describes an
+  on-board recorder; we instead derive flags off-board from rosbags — see the
+  Learning section above)
 
 ## Key decisions (permanent)
 
