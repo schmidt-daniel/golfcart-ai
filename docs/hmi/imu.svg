@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="640" viewBox="0 0 480 640">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0F172A"/><stop offset="1" stop-color="#0B1220"/></linearGradient></defs>
+  <rect width="480" height="640" fill="url(#bg)"/>
+  <rect x="0" y="0" width="480" height="40" fill="#1E293B"/>
+  <text x="16" y="26" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#F8FAFC" letter-spacing="1">IMU</text>
+  <text x="452" y="26" font-family="Arial,sans-serif" font-size="13" fill="#94A3B8" text-anchor="end">14:32</text>
+  <text x="17" y="60" font-family="Arial,sans-serif" font-size="17" fill="#94A3B8">Roll</text>
+  <text x="452" y="60" font-family="Arial,sans-serif" font-size="17" fill="#F8FAFC" text-anchor="end" font-weight="bold">+0.02 rad</text>
+  <text x="17" y="100" font-family="Arial,sans-serif" font-size="17" fill="#94A3B8">Pitch</text>
+  <text x="452" y="100" font-family="Arial,sans-serif" font-size="17" fill="#F8FAFC" text-anchor="end" font-weight="bold">+0.31 rad</text>
+  <text x="17" y="140" font-family="Arial,sans-serif" font-size="17" fill="#94A3B8">Heading</text>
+  <text x="452" y="140" font-family="Arial,sans-serif" font-size="17" fill="#F8FAFC" text-anchor="end" font-weight="bold">- none -</text>
+  <text x="17" y="180" font-family="Arial,sans-serif" font-size="17" fill="#94A3B8">Accel x</text>
+  <text x="452" y="180" font-family="Arial,sans-serif" font-size="17" fill="#F8FAFC" text-anchor="end" font-weight="bold">+0.02 m/s²</text>
+  <text x="17" y="220" font-family="Arial,sans-serif" font-size="17" fill="#94A3B8">Accel y</text>
+  <text x="452" y="220" font-family="Arial,sans-serif" font-size="17" fill="#F8FAFC" text-anchor="end" font-weight="bold">+0.11 m/s²</text>
+  <text x="17" y="260" font-family="Arial,sans-serif" font-size="17" fill="#94A3B8">Accel z</text>
+  <text x="452" y="260" font-family="Arial,sans-serif" font-size="17" fill="#F8FAFC" text-anchor="end" font-weight="bold">-9.81 m/s²</text>
+  <text x="17" y="300" font-family="Arial,sans-serif" font-size="17" fill="#94A3B8">Temperature</text>
+  <text x="452" y="300" font-family="Arial,sans-serif" font-size="17" fill="#F8FAFC" text-anchor="end" font-weight="bold">n/a</text>
+  <text x="17" y="340" font-family="Arial,sans-serif" font-size="17" fill="#94A3B8">Status</text>
+  <text x="452" y="340" font-family="Arial,sans-serif" font-size="17" fill="#F8FAFC" text-anchor="end" font-weight="bold">VALID</text>
+  <rect x="0" y="600" width="480" height="40" fill="#1E293B"/>
+  <text x="16" y="624" font-family="Arial,sans-serif" font-size="13" fill="#94A3B8">● Select   ◉ Back   ◎ Home</text>
+</svg>

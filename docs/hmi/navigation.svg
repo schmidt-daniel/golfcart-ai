@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="640" viewBox="0 0 480 640">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0F172A"/><stop offset="1" stop-color="#0B1220"/></linearGradient></defs>
+  <rect width="480" height="640" fill="url(#bg)"/>
+  <rect x="0" y="0" width="480" height="40" fill="#1E293B"/>
+  <text x="16" y="26" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="#F8FAFC" letter-spacing="1">NAVIGATION</text>
+  <text x="452" y="26" font-family="Arial,sans-serif" font-size="13" fill="#94A3B8" text-anchor="end">14:32</text>
+  <text x="17" y="76" font-family="Arial,sans-serif" font-size="17" fill="#94A3B8">Status</text>
+  <text x="452" y="76" font-family="Arial,sans-serif" font-size="17" fill="#34D399" text-anchor="end" font-weight="bold">NAVIGATING</text>
+  <rect x="40" y="110" width="400" height="360" fill="#0B1220" stroke="#334155" stroke-width="2"/>
+  <polygon points="120,420 360,420 180,150" fill="#1B3A2B" stroke="#34D399" stroke-width="2"/>
+  <polyline points="120,420 180,360 220,300 180,150" fill="none" stroke="#38BDF8" stroke-width="3"/>
+  <circle cx="120" cy="420" r="8" fill="#F8FAFC"/>
+  <text x="17" y="500" font-family="Arial,sans-serif" font-size="17" fill="#94A3B8">Path length</text>
+  <text x="452" y="500" font-family="Arial,sans-serif" font-size="17" fill="#F8FAFC" text-anchor="end" font-weight="bold">45.2 m</text>
+  <text x="17" y="540" font-family="Arial,sans-serif" font-size="17" fill="#94A3B8">Target</text>
+  <text x="452" y="540" font-family="Arial,sans-serif" font-size="17" fill="#F8FAFC" text-anchor="end" font-weight="bold">Hole 5 green</text>
+  <rect x="0" y="600" width="480" height="40" fill="#1E293B"/>
+  <text x="16" y="624" font-family="Arial,sans-serif" font-size="13" fill="#94A3B8">● Select   ◉ Back   ◎ Home</text>
+</svg>
