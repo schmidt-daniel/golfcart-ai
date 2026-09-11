@@ -120,26 +120,46 @@ def test_observations_roundtrip():
     assert loaded[2].kind == "obstacle"
 
 
-def test_refine_course_roundtrip():
-    """refine_course produces a zip with a refined costmap."""
-    import tempfile
-    import zipfile
+def _build_course_with_costmap(d, grid, resolution=5.0):
+    """Build + export a course zip whose hole 1 has the given costmap grid."""
     from map_editor.model import Course, CourseOrigin, Hole
     from map_editor.exporter import export_course
     from map_editor.dem import write_costmap, Costmap
 
-    d = Path(tempfile.mkdtemp())
-    # Build a course with a costmap.
     course = Course(origin=CourseOrigin(latitude_deg=48.0, longitude_deg=11.0,
                                         course_name="Test", course_id="1"))
     hole = Hole(number=1, boundary=[(48.0, 11.0), (48.001, 11.0), (48.001, 11.001), (48.0, 11.001)])
     course.holes = [hole]
     pgm = d / "hole1_slope.pgm"
-    write_costmap(Costmap(data=np.full((10, 10), 100, dtype=np.uint8),
-                          resolution=5.0, origin_x=0.0, origin_y=0.0), pgm, pgm.with_suffix(".yaml"))
+    write_costmap(Costmap(data=grid, resolution=resolution,
+                          origin_x=0.0, origin_y=0.0), pgm, pgm.with_suffix(".yaml"))
     hole.costmap_pgm = str(pgm)
     hole.costmap_yaml = str(pgm.with_suffix(".yaml"))
-    src = export_course(course, d)
+    return export_course(course, d)
+
+
+def _read_costmap_from_zip(zip_path):
+    """Read the hole-1 costmap grid back from a course zip."""
+    import zipfile
+    import io
+    with zipfile.ZipFile(zip_path) as zf:
+        raw = zf.read("holes/costmap1.pgm")
+    # Parse P5 (P5\n<w> <h>\n255\n<payload>).
+    import io as _io
+    f = _io.BytesIO(raw)
+    assert f.readline().strip() == b"P5"
+    w, h = map(int, f.readline().split())
+    assert f.readline().strip() == b"255"
+    return np.frombuffer(f.read(), dtype=np.uint8).reshape(h, w)
+
+
+def test_refine_course_roundtrip():
+    """refine_course produces a zip with a refined costmap."""
+    import tempfile
+    import zipfile
+
+    d = Path(tempfile.mkdtemp())
+    src = _build_course_with_costmap(d, np.full((10, 10), 100, dtype=np.uint8))
 
     # Observations: an obstacle in the middle of the grid.
     obs = d / "obs.jsonl"
@@ -151,6 +171,64 @@ def test_refine_course_roundtrip():
     with zipfile.ZipFile(out) as zf:
         names = zf.namelist()
         assert "holes/costmap1.pgm" in names
-        # The refined costmap should differ from the original (obstacle added).
         refined = zf.read("holes/costmap1.pgm")
         assert len(refined) > 0
+
+
+def test_refine_course_alignment_and_smoothing():
+    """Refinement raises cost at an obstacle, smooth at the border, keeps far.
+
+    This is the key alignment property: an observation at a point should raise
+    the cost there, fall off smoothly to neighbors, and leave far, unobserved
+    cells unchanged (no border artifacts from old/new data colliding).
+    """
+    import tempfile
+
+    d = Path(tempfile.mkdtemp())
+    base = np.full((20, 20), 50, dtype=np.uint8)
+    src = _build_course_with_costmap(d, base, resolution=2.0)
+
+    # Obstacle at (20,20)m -> cell (row=10, col=10) at 2 m/cell.
+    obs = d / "obs.jsonl"
+    save_observations([Observation(kind="obstacle", x=20.0, y=20.0, conf=1.0)], obs)
+
+    out = d / "refined.zip"
+    refine_course(src, obs, out)
+    refined = _read_costmap_from_zip(out)
+
+    assert refined.shape == (20, 20)
+    # Center cell (obstacle) is much higher than baseline.
+    assert refined[10, 10] > 150
+    # Smooth falloff: center > immediate neighbor > far corner, all monotonic.
+    assert refined[10, 10] > refined[10, 11]
+    assert refined[10, 11] >= refined[0, 0]
+    # Far, unobserved cells are preserved exactly (no drift).
+    assert refined[0, 0] == 50
+    assert refined[19, 19] == 50
+
+
+def test_refine_course_drivable_lowers_cost():
+    """A 'drivable' flag (trolley drove here) lowers the steep cost there."""
+    import tempfile
+
+    d = Path(tempfile.mkdtemp())
+    # A uniformly steep grid (high DEM-derived cost), so drivable is meaningful.
+    base = np.full((20, 20), 254, dtype=np.uint8)
+    src = _build_course_with_costmap(d, base, resolution=2.0)
+
+    # Trolley drove through (20,20)m and (22,20)m -> along the x-axis.
+    obs = d / "obs.jsonl"
+    save_observations([
+        Observation(kind="drivable", x=20.0, y=20.0, conf=1.0),
+        Observation(kind="drivable", x=22.0, y=20.0, conf=1.0),
+    ], obs)
+
+    out = d / "refined.zip"
+    refine_course(src, obs, out)
+    refined = _read_costmap_from_zip(out)
+
+    # The two driven cells drop well below the lethal baseline.
+    assert refined[10, 10] < 200
+    assert refined[10, 11] < 200
+    # A far, unobserved cell stays lethal (unchanged).
+    assert refined[0, 0] == 254

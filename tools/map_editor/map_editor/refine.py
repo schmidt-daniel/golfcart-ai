@@ -122,15 +122,21 @@ def save_observations(obs: List[Observation], path: Path) -> None:
 
 
 def _gaussian_kernel(radius_cells: float) -> np.ndarray:
-    """A 2D Gaussian kernel of the given radius (in cells), normalized to sum 1."""
+    """A 2D Gaussian kernel of the given radius (in cells).
+
+    The kernel **peaks at 1 at its center** and decays outward (it is NOT
+    normalized to sum to 1), so a single observation carries full (confidence)
+    weight at its exact cell and fades smoothly into the neighborhood. This
+    gives a truthful per-cell blend: one ``conf=1`` observation fully overrides
+    the existing value at its cell while still producing a smooth, artifact-free
+    transition at the observed/unobserved border.
+    """
     r = int(math.ceil(radius_cells * 2.5))
     if r < 1:
         r = 1
     ax = np.arange(-r, r + 1, dtype=np.float64)
     xx, yy = np.meshgrid(ax, ax)
-    k = np.exp(-(xx * xx + yy * yy) / (2.0 * radius_cells * radius_cells))
-    k /= k.sum()
-    return k
+    return np.exp(-(xx * xx + yy * yy) / (2.0 * radius_cells * radius_cells))
 
 
 def rasterize_observations(
