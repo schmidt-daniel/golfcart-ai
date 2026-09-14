@@ -38,6 +38,10 @@ This document covers the whole-system architecture. Individual features are docu
 | Voice Control | [`features/voice-control.md`](features/voice-control.md) |
 | Summon | [`features/summon.md`](features/summon.md) |
 
+> **Next features:** see [`roadmap.md`](roadmap.md) for the planned batch
+> (Remote E-Stop + Telemetry, Go to Hole N, GPS-Denied Fallback, Obstacle
+> Steering Assist, Battery Range Estimator).
+
 ---
 
 # 2. Target Platform

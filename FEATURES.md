@@ -176,9 +176,10 @@ features are added.
 
 ## Not yet implemented (documented only)
 
-See `docs/features/` for design docs.
+See `docs/features/` for design docs, and `docs/roadmap.md` for the next
+planned batch (Remote E-Stop + Telemetry, Go to Hole N, GPS-Denied Fallback,
+Obstacle Steering Assist, Battery Range Estimator).
 
-- Speed Zones
 - Voice Control
 - Push Assist (pedelec-style force sensing)
 - Learning on-board flags (design doc `docs/features/learning.md` describes an
