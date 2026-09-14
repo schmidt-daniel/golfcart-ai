@@ -1254,6 +1254,40 @@ restart on crash:
 ./scripts/uninstall_services.sh         # stop + disable + remove
 ```
 
+### 34.1.1 Boot-time optimization
+
+The ESP32 handle unit shows a splash screen while the Pi boots, but a faster
+Pi reaches the course screen sooner. `scripts/optimize_boot.sh` applies safe,
+reversible boot optimizations on the Pi:
+
+```bash
+./scripts/optimize_boot.sh --dry-run    # show what would change (no changes)
+./scripts/optimize_boot.sh --apply      # apply optimizations
+./scripts/optimize_boot.sh --measure    # report boot time (systemd-analyze)
+./scripts/optimize_boot.sh --revert     # undo optimizations
+```
+
+What it does:
+
+- **systemd drop-in overrides** (written to `/etc/systemd/system/<svc>.d/`, so
+  the tracked unit files stay clean and a re-deploy doesn't clobber the tuning):
+  - parallel service startup — relaxes strict `After=` chains where the
+    service is independent, so systemd starts units concurrently
+  - removes the duplicate ROS sourcing (`ExecStartPre` + `ExecStart` both
+    source; the core service's `ExecStartPre` is cleared since `ExecStart`
+    already sources)
+  - faster crash recovery (`RestartSec=2`), shorter stop timeout
+    (`TimeoutStopSec=10`), and a slight priority boost (`Nice=-5`,
+    `OOMScoreAdjust=-500`)
+- **Bootloader / kernel** (`/boot/firmware/config.txt` + `cmdline.txt`):
+  quiet boot, no splash, no overscan, reduced kernel log verbosity
+  (`loglevel=3`)
+- **Disables unneeded services** (bluetooth, avahi, cups, ModemManager, etc.)
+- **Hotspot** no longer blocks boot on `network-online.target`
+
+All edits are marked with a `golfcart-optimize-boot` comment and backed up to
+`/etc/golfcart-boot-backup/` so `--revert` can undo them.
+
 ---
 
 # 34.2 Off-Board Map Building

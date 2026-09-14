@@ -229,6 +229,22 @@ Services: `golfcart-core` (control pipeline), `golfcart-teleop` (web),
 `golfcart-localization` (EKF), `golfcart-mapping` (SLAM), `golfcart-navigation`
 (Nav2). See `systemd/` and `docs/architecture.md` §34.1 for details.
 
+### Boot-time optimization
+
+To reduce the Pi's boot-to-ready time (the ESP32 handle shows a splash screen
+while it boots), run on the Pi:
+
+```bash
+./scripts/optimize_boot.sh --dry-run    # show what would change (no changes)
+./scripts/optimize_boot.sh --apply      # apply optimizations
+./scripts/optimize_boot.sh --measure    # report boot time (systemd-analyze)
+./scripts/optimize_boot.sh --revert     # undo optimizations
+```
+
+It applies reversible systemd drop-in overrides (parallel startup, faster
+crash recovery, no duplicate ROS sourcing), quiets the bootloader/kernel, and
+disables unneeded services. See `docs/architecture.md` §34.1.1 for details.
+
 
 
 ## Tests
