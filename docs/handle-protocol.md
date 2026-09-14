@@ -366,12 +366,13 @@ optional and on-demand.
 
 | Item | Decision |
 | --- | --- |
-| **ESP32 variant** | **ESP32-S3 with PSRAM** (safest for a 320×480 LVGL UI) |
+| **ESP32 variant** | **ESP32-S3-WROOM-1 (N8R8)** — 8 MB flash + 8 MB PSRAM (safest for a 320×480 LVGL UI) |
 | **Joystick** | 2-axis analog + button, read via ADC on the ESP32 |
 | **Load cell** | HX711 amplifier, connects to the ESP32 |
+| **Backlight** | **Controllable** (PWM, GPIO 9) — dim/off when idle |
 | **Power** | **Powered by the Pi** (see §12.1) |
-| **Display connector** | 14-pin header on the display board |
-| **Enclosure** | **Custom PCB** — plug in the display module + ESP32, connect load cell + joystick |
+| **Display connector** | 14-pin header on the display board (see `docs/handle-pcb.md` §4.1) |
+| **Enclosure** | **Custom PCB** — plug in the display module + ESP32, connect load cell + joystick (see `docs/handle-pcb.md`) |
 
 ### 12.1 Power budget (powered by the Pi)
 

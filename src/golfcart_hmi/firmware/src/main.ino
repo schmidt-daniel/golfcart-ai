@@ -142,6 +142,7 @@ static void on_frame(uint8_t type, const uint8_t *payload, size_t len, uint8_t s
           case ST_ASSIST_ENABLED: screens_set_state(id, payload[1]); break;
           case ST_HILL_ASSIST_ENABLED: screens_set_state(id, payload[1]); break;
           case ST_TIME_HHMM: screens_set_state(id, (uint16_t)(payload[1] | (payload[2] << 8))); break;
+          case ST_BACKLIGHT: screens_set_backlight(payload[1]); break;
           default: break;  // unknown id: ignore
         }
       }

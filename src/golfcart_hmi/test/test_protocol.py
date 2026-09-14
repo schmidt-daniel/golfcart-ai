@@ -65,6 +65,8 @@ def test_state_value_encodings():
     assert p._encode_value(p.ST_HOLE_DISTANCE_M, 380) == b'\x7c\x01'
     # int32
     assert p._encode_value(p.ST_GPS_LAT, 481234500) == b'\x44\x0e\xaf\x1c'
+    # backlight is uint8
+    assert p._encode_value(p.ST_BACKLIGHT, 200) == bytes([200])
 
 
 def test_uplink_parsers():

@@ -17,6 +17,10 @@ static TFT_eSPI tft = TFT_eSPI();
 static lv_disp_drv_t disp_drv;
 static lv_disp_t *disp;
 
+// Elecrow 14-pin header pin 8 (LED) = backlight. PWM-driven for dimming.
+// GPIO 9 is free (firmware uses GPIO 4-8 for joystick + HX711).
+#define BACKLIGHT_PIN 9
+
 // ---------------------------------------------------------------------------
 // Shared state cache (populated by the Pi via STATE_UPDATE).
 // ---------------------------------------------------------------------------
@@ -610,6 +614,10 @@ void screens_init(void)
   tft.init();
   tft.setRotation(1);  // portrait 320x480
 
+  // Backlight: PWM-driven for controllable brightness.
+  pinMode(BACKLIGHT_PIN, OUTPUT);
+  analogWrite(BACKLIGHT_PIN, 255);  // full brightness at boot
+
   lv_init();
   lv_disp_draw_buf_init(&draw_buf, buf1, NULL, 320 * 40);
   lv_disp_drv_init(&disp_drv);
@@ -684,6 +692,14 @@ void screens_set_boot_status(uint8_t progress, const char *text)
     snprintf(buf, sizeof(buf), "%u%%", g_boot_progress);
     lv_label_set_text(splash_progress_label, buf);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Backlight (called from main.ino on_frame when a ST_BACKLIGHT arrives).
+// ---------------------------------------------------------------------------
+void screens_set_backlight(uint8_t brightness)
+{
+  analogWrite(BACKLIGHT_PIN, brightness);
 }
 
 // ---------------------------------------------------------------------------

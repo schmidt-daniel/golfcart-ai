@@ -47,6 +47,10 @@ void screens_set_state(uint8_t id, int32_t value);
 // DL_BOOT_STATUS frame). progress is 0-100; text is a short status string.
 void screens_set_boot_status(uint8_t progress, const char *text);
 
+// Set the display backlight brightness (0-255). 0 = off, 255 = full.
+// The backlight is a dedicated pin on the Elecrow 14-pin header (pin 8, LED).
+void screens_set_backlight(uint8_t brightness);
+
 // Handle a tap at (x, y) in display coordinates. Returns the menu item id to
 // send to the Pi, or -1 if the tap was not on a menu item (e.g. a map tap).
 int screens_handle_tap(int x, int y);

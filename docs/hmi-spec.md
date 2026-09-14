@@ -31,7 +31,7 @@ interaction rules. Mockups are provided as SVGs in [`docs/hmi/`](hmi/).
 
 | Item | Value |
 | --- | --- |
-| Display | 3.5" Elecrow IPS SPI LCD Touch (ST7796) |
+| Display | [3.5" Elecrow IPS SPI LCD Touch (ST7796)](https://www.elecrow.com/download/product/DLS30035B/3.5inch_SPI_Module_Specification.pdf) |
 | Resolution | 320 × 480 px (portrait) |
 | Display interface | SPI (via TFT_eSPI on the ESP32) |
 | Touch | Capacitive, 5-point (FT6336U, I2C) |
