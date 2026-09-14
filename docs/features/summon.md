@@ -87,7 +87,8 @@ Summon is autonomous motion toward a person, so it requires extra care:
   approach-cone) for unit testing.
 - `golfcart_msgs` — `PhoneFix.msg`, `SummonStatus.msg`, `SummonTrigger.srv`.
 - `web/summon.html` — phone page.
-- `hmi_node` — `summon_to()`/`cancel_summon()` + summon status.
+- HMI (ESP32 handle unit) — summon status display; the Pi `handle_gateway`
+  bridges summon state to the handle.
 - `golfcart_gazebo/gps_dropout_node.py` — simulate GPS loss for testing.
 - `scripts/summon_check.sh` — sim smoke test.
 

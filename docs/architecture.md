@@ -276,7 +276,7 @@ Safety / Control
 └── geofence_node
 
 HMI / Diagnostics
-├── hmi_node
+├── handle_gateway   (Pi side; bridges the ESP32 handle unit to ROS)
 └── diagnostics_node
 ```
 
@@ -845,8 +845,9 @@ The executor/threading architecture should be documented once actual implementat
 
 The HMI consists of:
 
-- joystick (navigation + selection)
-- TFT display (3.5" ILI9488, SPI, no touch)
+- touch (capacitive panel, primary input)
+- joystick (fallback navigation + selection)
+- TFT display (3.5" Elecrow IPS SPI LCD Touch, ST7796, SPI + I2C touch)
 - dedicated physical safety arm switch
 
 The HMI should provide:
@@ -866,12 +867,15 @@ The HMI should provide:
 
 ## Display
 
-- **3.5" ILI9488 SPI TFT** (480×320), driven via `luma.lcd` (Python).
-- No touch (unsuitable with golf gloves).
+- **3.5" Elecrow IPS SPI LCD Touch** (ST7796, 320×480 portrait), driven by the
+  **ESP32 handle unit** via LVGL / TFT_eSPI over SPI.
+- **Capacitive touch** (FT6336U) over I2C, read by the ESP32.
 
 ## Input
 
-- **Joystick** for menu navigation:
+- **Touch** (primary): tap a target to select. Targets are ≥ 44×44 px for
+  gloved use.
+- **Joystick** (fallback) for menu navigation:
   - short press = select / confirm
   - double press = back / cancel
   - long press = reserved
@@ -880,9 +884,12 @@ The HMI should provide:
 
 ## Node
 
-A `hmi_node` (Python, non-critical) renders the menu on the TFT and translates
-joystick input into menu navigation and feature commands. It calls per-feature
-enable/disable services and publishes speed/distance commands.
+The **ESP32 handle unit** renders the HMI (LVGL) and reads touch + joystick +
+load cell. It talks to the Pi over a single USB serial link (see
+`docs/handle-protocol.md`). The Pi-side `handle_gateway` node (`golfcart_hmi`)
+bridges the handle to the ROS bus: it subscribes to state topics and sends
+`STATE_UPDATE` frames down, and receives `JOYSTICK` / `TOUCH` / `MENU_SELECT` /
+`FORCE` frames up.
 
 HMI commands are requests only.
 
@@ -1384,13 +1391,20 @@ MVP and are now fixed.
 
 ## HMI
 
-- **Decision:** 3.5" ILI9488 SPI TFT (480×320), no touch, driven via `luma.lcd`
-  (Python). Joystick for menu navigation (short = select, double = back, long =
-  reserved). A dedicated physical safety arm switch for arm/disarm.
-- **Rationale:** SPI is the standard, cheap interface for a 3.5" status display;
-  no touch suits golf gloves; a dedicated safety switch is safer and frees the
-  joystick button for HMI navigation.
-- **Status:** design only; `hmi_node` not yet implemented.
+- **Decision:** the HMI lives on an **ESP32 handle unit** (ESP32-S3 with PSRAM)
+  driving a 3.5" Elecrow IPS SPI LCD Touch (ST7796, 320×480 portrait) via LVGL /
+  TFT_eSPI over SPI. Capacitive touch (FT6336U) over I2C is the primary input;
+  joystick retained as a gloved fallback (short = select, double = back, long =
+  reserved). A dedicated physical safety arm switch for arm/disarm. The ESP32
+  talks to the Pi over a single USB serial link; the Pi-side `handle_gateway`
+  node bridges it to the ROS bus.
+- **Rationale:** SPI + I2C is the standard, cheap interface for a 3.5" status
+  display; an ESP32 handle unit consolidates display + touch + joystick + load
+  cell into one cable to the Pi; capacitive touch gives a modern, direct
+  interaction model while the joystick remains for gloved use; a dedicated
+  safety switch is safer and frees the joystick button for HMI navigation.
+- **Status:** protocol + Pi gateway + ESP32 firmware scaffold implemented;
+  LVGL screens and sensor drivers in progress.
 
 ## Smartphone network
 

@@ -11,7 +11,8 @@ stack without hardware.
 
 - ROS 2 Lyrical / Ubuntu 26.04
 - Raspberry Pi 5 (aarch64)
-- C++ for safety/motion/hardware; Python for teleop/perception/HMI
+- ESP32-S3 handle unit (LVGL HMI + sensor interface)
+- C++ for safety/motion/hardware + ESP32 firmware; Python for teleop/perception
 
 ## Pipeline
 
@@ -45,7 +46,8 @@ obstacle-in-zone, request-timeout) and outputs the approved `Twist`.
 | `golfcart_description` | URDF/xacro model of the 3-wheeled trolley + sensor mounts (lidar, camera, imu, gps) |
 | `golfcart_localization` | `wheel_odometry_node`, `sensor_fusion_node`, `localization_quality_node` + robot_localization EKF |
 | `golfcart_mapping` | slam_toolbox online async mapping (`mapping.launch.py`) + offline map building (`offline_mapping.launch.py`) |
-| `golfcart_navigation` | `navigation_node`, `georeference_node`, Nav2 stack (planner, RPP controller, bt_navigator, costmaps) |
+| `golfcart_navigation` | `navigation_node`, `georeference_node`, `speed_zone_node`, Nav2 stack (planner, RPP controller, bt_navigator, costmaps) |
+| `golfcart_hmi` | Handle-unit HMI: ESP32 firmware (LVGL screens, FT6336U touch, HX711) + Pi-side `handle_gateway` serial bridge |
 | `golfcart_gazebo` | gz-sim course world + cart model, `gz_ros2_control`, sensors, `cmd_vel_converter`, `sim.launch.py` |
 | `golfcart_bringup` | Launch files (`joystick_control`, `keyboard_control`, `web_teleop`) |
 
@@ -55,15 +57,16 @@ See `FEATURES.md` for the full tracker. Implemented: joystick/keyboard/web teleo
 battery monitoring, ODrive driver (pending hardware validation), IMU, GPS, LiDAR +
 obstacle detection, auto-shutdown, hill/rollback behaviors, URDF model, localization
 (robot_localization EKF), course mapping (slam_toolbox), autonomous navigation (Nav2),
-and a full gz-sim simulation. Planned: HMI display, geofencing, speed
-zones, voice control, summon.
+speed zones, the ESP32 handle-unit HMI, and a full gz-sim simulation. Planned:
+geofencing, voice control, summon.
 
 ## Build
 
 ### Option A: Docker (recommended for development)
 
 Build and test the workspace inside a ROS 2 Lyrical container — no ROS install
-needed on the host.
+needed on the host. The image includes PlatformIO, so the ESP32 handle-unit
+firmware can be built too.
 
 ```bash
 ./docker/build.sh          # build the image
@@ -73,6 +76,23 @@ needed on the host.
 
 > If your user is in the `docker` group but the group isn't active in the
 > current session, run via `sg docker -c "./docker/build.sh test"`.
+
+### ESP32 handle-unit firmware
+
+The firmware lives in `src/golfcart_hmi/firmware`. The standard build pipeline
+compiles the pure-C protocol layer (fast, no deps) as part of `build.sh test`.
+To build the full firmware (downloads the ESP32 toolchain + LVGL/TFT_eSPI/HX711
+on first run):
+
+```bash
+# In the container:
+cd src/golfcart_hmi/firmware
+bash build_firmware.sh protocol   # compile handle_protocol.c only (fast)
+bash build_firmware.sh full       # full PlatformIO build (pio run -e esp32s3)
+```
+
+See `docs/handle-protocol.md` for the serial protocol and `docs/hmi-spec.md`
+for the screen definitions.
 
 ### Option B: Native
 

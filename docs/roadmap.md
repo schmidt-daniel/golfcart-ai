@@ -84,7 +84,7 @@ exist — this is mostly orchestration.
   `/set_goal_geo` (lat/lon) — already drive to a goal.
 - `summon_node` — its live-target re-target loop is a template for
   re-issuing goals as the trolley progresses.
-- HMI (`hmi_node`) + web app — already have hole/tee selection screens.
+- HMI (ESP32 handle unit) + web app — already have hole/tee selection screens.
 
 ### Design
 ```text

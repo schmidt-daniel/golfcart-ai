@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'golfcart_teleop'
+package_name = 'golfcart_hmi'
 
 setup(
     name=package_name,
@@ -9,21 +9,17 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/' + package_name + '/web', ['web/index.html', 'web/summon.html']),
     ],
     install_requires=['setuptools', 'pyserial', 'Pillow'],
     extras_require={'test': ['pytest']},
     zip_safe=True,
     maintainer='golfcart',
     maintainer_email='dev@example.com',
-    description='Joystick and keyboard teleop nodes.',
+    description='Handle-unit HMI: ESP32 firmware (LVGL) + Pi-side serial gateway.',
     license='Apache-2.0',
     entry_points={
         'console_scripts': [
-            'joystick_node = golfcart_teleop.joystick_node:main',
-            'arduino_joystick_node = golfcart_teleop.arduino_joystick_node:main',
-            'keyboard_teleop_node = golfcart_teleop.keyboard_teleop_node:main',
-            'web_teleop_server = golfcart_teleop.web_teleop_server:main',
+            'handle_gateway = golfcart_hmi.handle_gateway:main',
         ],
     },
 )

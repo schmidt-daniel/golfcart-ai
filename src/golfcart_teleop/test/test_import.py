@@ -10,7 +10,6 @@ import os
 
 def test_import_teleop_modules():
     import golfcart_teleop.arduino_joystick_node  # noqa: F401
-    import golfcart_teleop.hmi_node  # noqa: F401
     import golfcart_teleop.joystick_node  # noqa: F401
     import golfcart_teleop.keyboard_teleop_node  # noqa: F401
     import golfcart_teleop.web_teleop_server  # noqa: F401

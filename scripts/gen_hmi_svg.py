@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-"""Generate HMI mockup SVGs (480x640 portrait) from the new HMI spec."""
+"""Generate HMI mockup SVGs (320x480 portrait) from the HMI spec.
+
+NOTE: The committed mockups in docs/hmi/ were generated at 480x640 (the
+previous display). The display is now 320x480 (Elecrow ST7796). This generator
+is kept for reference; the mockups should be regenerated at 320x480 when the
+screen layouts are finalized.
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-W = 480
-H = 640
+W = 320
+H = 480
 
 BG = "#0F172A"
 SURFACE = "#1E293B"

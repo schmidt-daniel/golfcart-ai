@@ -1,0 +1,52 @@
+// LVGL screen definitions for the handle-unit HMI.
+//
+// Implements the full screen set from docs/hmi-spec.md on the 320x480 ST7796
+// display. Screens are built with LVGL widgets; the Pi drives navigation via
+// SCREEN_NAV and state via STATE_UPDATE (see handle_protocol.h).
+//
+// The ESP32 maps taps to menu items locally and sends MENU_SELECT back to the
+// Pi (see handle_protocol.h UL_MENU_SELECT).
+
+#ifndef HANDLE_SCREENS_H
+#define HANDLE_SCREENS_H
+
+#include <stdint.h>
+
+// Screen IDs (must match handle_protocol.h SCREEN_*).
+#define SCR_COURSE       0x01
+#define SCR_TEE          0x02
+#define SCR_HOLE         0x03
+#define SCR_MENU         0x04
+#define SCR_MODE         0x05
+#define SCR_ASSIST       0x06
+#define SCR_CHANGE_HOLE  0x07
+#define SCR_WIFI         0x08
+#define SCR_DEBUG        0x09
+#define SCR_DEBUG_SYSTEM 0x0A
+#define SCR_DEBUG_GPS    0x0B
+#define SCR_DEBUG_LIDAR  0x0C
+#define SCR_DEBUG_CAMERA 0x0D
+#define SCR_DEBUG_IMU    0x0E
+#define SCR_DEBUG_NAV    0x0F
+
+// Initialize the LVGL screen system (called once from setup()).
+void screens_init(void);
+
+// Show the given screen (by ID). Rebuilds the LVGL widget tree.
+void screens_show(uint8_t screen_id);
+
+// Refresh the active screen with the latest cached state values.
+void screens_refresh(void);
+
+// Update a cached state value (from a STATE_UPDATE frame). id is a ST_* id
+// from handle_protocol.h; value is the decoded payload value.
+void screens_set_state(uint8_t id, int32_t value);
+
+// Handle a tap at (x, y) in display coordinates. Returns the menu item id to
+// send to the Pi, or -1 if the tap was not on a menu item (e.g. a map tap).
+int screens_handle_tap(int x, int y);
+
+// LVGL tick (call from loop()).
+void screens_tick(void);
+
+#endif // HANDLE_SCREENS_H

@@ -20,6 +20,10 @@ RUN python3 -m pip install --break-system-packages \
     numpy \
     jsonschema
 
+# PlatformIO for the ESP32 handle-unit firmware (src/golfcart_hmi/firmware).
+# --ignore-installed avoids the Debian typing_extensions uninstall conflict.
+RUN python3 -m pip install --break-system-packages --ignore-installed platformio
+
 # Install ROS 2 packages used by the workspace.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-rclcpp \

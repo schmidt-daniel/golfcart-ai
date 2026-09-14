@@ -39,6 +39,9 @@ if [[ "$MODE" == "test" ]]; then
   CMD="${CMD} && colcon test --parallel-workers ${BUILD_JOBS} && colcon test-result --verbose"
 fi
 
+# Build the ESP32 firmware protocol layer (pure C, fast, no deps).
+CMD="${CMD} && bash src/golfcart_hmi/firmware/build_firmware.sh protocol"
+
 # --memory limits the container so a runaway build can't OOM the host.
 docker_cmd run --rm \
   --memory "${CONTAINER_MEM_LIMIT}" \

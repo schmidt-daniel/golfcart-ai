@@ -1,9 +1,9 @@
 # HMI Specification — Golf Cart Display
 
 > **Status:** Specification
-> **Hardware:** 3.5" ILI9488 SPI TFT (480×640 portrait), no touch
-> **Input:** Joystick (move / press / long-press / double-press)
-> **Node:** `hmi_node` (Python, non-critical)
+> **Hardware:** 3.5" Elecrow IPS SPI LCD Touch (ST7796, 320×480 portrait), capacitive touch
+> **Input:** Touch (tap) + Joystick (move / press / long-press / double-press)
+> **Node:** ESP32 handle unit (LVGL) + Pi `handle_gateway`
 
 This document is the authoritative specification for the golf cart's operator
 display. It defines the screen layout, navigation model, data sources, and
@@ -16,8 +16,8 @@ interaction rules. Mockups are provided as SVGs in [`docs/hmi/`](hmi/).
 1. **Safety first.** The HMI is *informational and request-only*. It can never
    bypass the Safety Controller. A fault must never be cleared in a way that
    causes unexpected motor activation.
-2. **Glove-friendly.** No touch. All interaction is via the joystick. Targets
-   are large, high-contrast, and readable in direct sunlight.
+2. **Glove-friendly.** Touch targets are large, high-contrast, and readable in
+   direct sunlight. The joystick remains a fallback for gloved use.
 3. **Glanceable.** The operator should read speed, battery, and safety state in
    under a second while driving. Critical info is always on screen.
 4. **Consistent.** Every screen shares the same header/footer chrome and
@@ -31,38 +31,44 @@ interaction rules. Mockups are provided as SVGs in [`docs/hmi/`](hmi/).
 
 | Item | Value |
 | --- | --- |
-| Display | 3.5" ILI9488 SPI TFT |
-| Resolution | 480 × 640 px (portrait) |
-| Interface | SPI (via `luma.lcd`) |
-| Touch | None |
+| Display | 3.5" Elecrow IPS SPI LCD Touch (ST7796) |
+| Resolution | 320 × 480 px (portrait) |
+| Display interface | SPI (via TFT_eSPI on the ESP32) |
+| Touch | Capacitive, 5-point (FT6336U, I2C) |
+| Touch interface | I2C (FT6336U, read by the ESP32) |
 | Refresh | ~10–30 Hz (HMI layer) |
-| Language | Python (`hmi_node`) |
+| Language | C (LVGL on the ESP32) |
 
-**Rendering stack:** `luma.lcd` drives the ILI9488. A small drawing layer
-(`hmi_draw.py`) provides primitives (rounded rects, text, icons, progress bars,
-polygons) so screens are declarative and easy to maintain.
+**Rendering stack:** the **ESP32 handle unit** drives the display via
+**LVGL** (widget toolkit) over **TFT_eSPI** (ST7796 driver). Screens are
+declarative LVGL widget trees.
+
+**Touch stack:** the FT6336U capacitive controller is read over I2C by the
+ESP32, which maps tap coordinates to on-screen targets. The joystick remains a
+supported fallback input.
+
+The ESP32 talks to the Pi over a single USB serial link (see
+`docs/handle-protocol.md`); the Pi-side `handle_gateway` node bridges it to the
+ROS bus.
 
 ---
 
 ## 3. General Layout
 
-The screen is in **portrait** mode, 480×640 pixels.
+The screen is in **portrait** mode, 320×480 pixels.
 
 ```text
-+--------------------+
-| [TIME]    [STATUS] |
-+--------------------+
-|                    |
-|                    |
-|                    |
-|                    |
-|     [CONTENT]      |
-|                    |
-|                    |
-|                    |
-|                    |
-|                    |
-+--------------------+
++------------------+
+| [TIME]  [STATUS] |
++------------------+
+|                  |
+|                  |
+|                  |
+|    [CONTENT]     |
+|                  |
+|                  |
+|                  |
++------------------+
 ```
 
 **Status bar** (always shown):
@@ -84,8 +90,26 @@ sensor debug data, configuration screen).
 
 ## 4. Input Model
 
-The joystick is the sole HMI input. It has a 4-way tilt (up/down/left/right)
-and a push button.
+The HMI has two inputs: **touch** (primary) and **joystick** (fallback for
+gloved use).
+
+### 4.1 Touch
+
+The capacitive touch panel is the primary input. A tap on a target selects it.
+
+| Gesture | Action |
+| --- | --- |
+| **TAP** | Tap a target (button / list item / map point). Selects or activates it. |
+| **TAP outside** | Tap on empty space. Dismisses a transient overlay or does nothing. |
+| **HOLD** | Press and hold (≥ 3 s) on a target. Reserved for destructive actions (e.g. shutdown confirm). |
+
+Touch targets must be **large** (≥ 44×44 px) and well-spaced for gloved use.
+The ESP32 maps a tap coordinate to the active screen's hit regions.
+
+### 4.2 Joystick (fallback)
+
+The joystick has a 4-way tilt (up/down/left/right) and a push button. It
+remains supported for operators wearing gloves.
 
 | Gesture | Action |
 | --- | --- |
@@ -94,8 +118,12 @@ and a push button.
 | **LONG** | Long-press (≥ 3 s) of the joystick button. Usually returns to the main view. |
 | **DOUBLE** | Double-press (2 presses within 1.5 s) of the joystick button. Usually returns to the previous screen. |
 
-The `hmi_node` debounces and classifies presses (short/double/long) from the
-raw button field in the Arduino serial stream.
+The ESP32 debounces and classifies presses (short/double/long) from the raw
+joystick button.
+
+> **Touch vs. joystick:** both inputs drive the same action set (select, back,
+> home). A tap maps directly to a target; the joystick moves a cursor and
+> confirms with a press. The two never conflict — the last input wins.
 
 ---
 
@@ -123,8 +151,10 @@ flowchart TD
 ```
 
 - **Course selection** is the first screen shown when the HMI loads.
-- **Double press** from any sub-screen returns to the previous screen.
-- **Long press** from any sub-screen returns to the **Main Menu**.
+- **Double press** (or a **Back** tap target) from any sub-screen returns to
+  the previous screen.
+- **Long press** (or a **Home** tap target) from any sub-screen returns to the
+  **Main Menu**.
 
 ---
 
@@ -583,7 +613,7 @@ Mockup: [`docs/hmi/lidar.svg`](hmi/lidar.svg)
 
 | Field | Source | Details |
 | --- | --- | --- |
-| **Scan cloud** | `/scan` (`sensor_msgs/LaserScan`) | Points rendered top-down around the trolley. Trolley at center; ~20 m radius. Downsampled to a few hundred points for the 480×640 display. Obstacle points (inside the stopping zone) in red, free points dim. |
+| **Scan cloud** | `/scan` (`sensor_msgs/LaserScan`) | Points rendered top-down around the trolley. Trolley at center; ~20 m radius. Downsampled to a few hundred points for the 320×480 display. Obstacle points (inside the stopping zone) in red, free points dim. |
 | **Obstacle** | `/obstacles/state` (`obstacle_in_zone`) | `NONE` (green) / `OBSTACLE` (red). |
 | **Nearest** | `nearest_distance_m` | Closest obstacle distance (m). |
 | **Angle** | `nearest_angle_rad` | Bearing to nearest obstacle (deg). |
@@ -717,8 +747,9 @@ DOUBLE to the main menu.
 
 ## 7. Data Sources
 
-The `hmi_node` subscribes to existing topics (read-only) and calls existing
-services (request-only).
+The Pi-side `handle_gateway` node subscribes to existing topics (read-only) and
+calls existing services (request-only), then pushes state to the ESP32 over the
+serial link.
 
 | Data | Topic / Service |
 | --- | --- |
@@ -776,9 +807,10 @@ services (request-only).
 
 ### 9.3 Layout
 
-- **Header:** 40 px — mode + safety state + clock.
+- **Header:** 32 px — mode + safety state + clock.
 - **Content:** flexible.
-- **Footer:** 32 px — hints (e.g. "● Select   ◉ Back").
+- **Footer:** 28 px — hints (e.g. "● Select   ◉ Back").
+- **Touch targets:** ≥ 44×44 px, well-spaced for gloved use.
 
 ---
 
@@ -788,3 +820,4 @@ services (request-only).
 - Whether mode selection requires the cart to be stopped.
 - Camera segmentation source (RealSense D435i) and rendering.
 - LiDAR point-cloud rendering density / downsampling.
+- Touch calibration + the exact I2C input device path (`/dev/input/event*`).
