@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golf Cart — E-Stop &amp; Telemetry</title>
+  <!-- ROS 2 web client -->
+  <script src="https://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: sans-serif; margin: 0; background: #0F172A; color: #F8FAFC; }
+    h1 { margin: 8px; font-size: 1.2em; }
+    #conn { color: #888; font-size: 0.9em; }
+    a { color: #38BDF8; }
+
+    /* ---- E-STOP button ---- */
+    #estop {
+      display: block; width: 100%; max-width: 420px; margin: 16px auto;
+      padding: 48px 0; font-size: 2.2em; font-weight: bold;
+      background: #F87171; color: white; border: none; border-radius: 50%;
+      cursor: pointer; box-shadow: 0 0 0 6px #F87171;
+    }
+    #estop:active { transform: scale(0.96); }
+    #estop.armed { background: #F87171; }
+    #estop.ready { background: #34D399; color: #0F172A; }
+    #estopHint { text-align: center; color: #94A3B8; font-size: 0.9em; margin: 4px; }
+
+    /* ---- Telemetry panel ---- */
+    .panel { max-width: 420px; margin: 12px auto; background: #1E293B; border-radius: 10px; padding: 12px; }
+    .panel h2 { font-size: 1em; margin: 4px 0; color: #94A3B8; }
+    .row { display: flex; justify-content: space-between; padding: 4px 8px; }
+    .row .k { color: #94A3B8; }
+    .row .v { font-weight: bold; }
+
+    /* ---- Fault badges ---- */
+    #faults { max-width: 420px; margin: 12px auto; }
+    .badge { display: inline-block; padding: 4px 10px; margin: 4px; border-radius: 12px; font-size: 0.85em; }
+    .badge.ok { background: #1E293B; color: #34D399; }
+    .badge.warn { background: #334155; color: #FBBF24; }
+    .badge.fault { background: #F87171; color: white; }
+
+    /* ---- Re-enable ---- */
+    #enableBtn { display: block; margin: 8px auto; padding: 10px 20px; background: #34D399; color: #0F172A; border: none; border-radius: 8px; font-size: 1em; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>🛑 Golf Cart — E-Stop &amp; Telemetry</h1>
+  <p id="conn">Connecting...</p>
+  <p><a href="index.html">← Web Teleop</a></p>
+
+  <!-- E-STOP button (hold to confirm) -->
+  <button id="estop" class="armed">E-STOP</button>
+  <p id="estopHint">Hold for 1.5 s to stop</p>
+
+  <!-- Re-enable -->
+  <button id="enableBtn" style="display:none;">RE-ENABLE</button>
+
+  <!-- Telemetry panel -->
+  <div class="panel">
+    <h2>Telemetry</h2>
+    <div class="row"><span class="k">Safety</span><span class="v" id="safety">unknown</span></div>
+    <div class="row"><span class="k">Speed</span><span class="v" id="speed">0.0 m/s</span></div>
+    <div class="row"><span class="k">Battery</span><span class="v" id="battery">--</span></div>
+    <div class="row"><span class="k">Position</span><span class="v" id="position">--</span></div>
+    <div class="row"><span class="k">Navigation</span><span class="v" id="nav">idle</span></div>
+    <div class="row"><span class="k">Geofence</span><span class="v" id="geofence">--</span></div>
+    <div class="row"><span class="k">Speed limit</span><span class="v" id="speedzone">--</span></div>
+    <div class="row"><span class="k">Slope</span><span class="v" id="slope">--</span></div>
+  </div>
+
+  <!-- Fault badges -->
+  <div id="faults">
+    <span class="badge ok" id="badgeBattery">Battery OK</span>
+    <span class="badge ok" id="badgeGeofence">Geofence OK</span>
+    <span class="badge ok" id="badgeObstacle">No Obstacle</span>
+    <span class="badge ok" id="badgeSlope">Slope OK</span>
+  </div>
+
+  <script>
+    // ---- ROS connection ----
+    var ros = new ROSLIB.Ros({ url: 'ws://' + location.hostname + ':9090' });
+    ros.on('connection', function () {
+      document.getElementById('conn').textContent = 'Connected';
+      document.getElementById('conn').style.color = '#34D399';
+    });
+    ros.on('error', function (e) {
+      document.getElementById('conn').textContent = 'Error: ' + e;
+      document.getElementById('conn').style.color = '#F87171';
+    });
+    ros.on('close', function () {
+      document.getElementById('conn').textContent = 'Disconnected';
+      document.getElementById('conn').style.color = '#888';
+    });
+
+    // ---- Services ----
+    var stopSrv = new ROSLIB.Service({ ros: ros, name: '/safety/stop', serviceType: 'std_srvs/srv/Trigger' });
+    var enableSrv = new ROSLIB.Service({ ros: ros, name: '/safety/enable', serviceType: 'std_srvs/srv/Trigger' });
+
+    function callService(srv) {
+      var req = new ROSLIB.ServiceRequest({});
+      srv.callService(req, function (resp) { console.log(resp.message); });
+    }
+
+    // ---- E-STOP: hold-to-confirm ----
+    var estop = document.getElementById('estop');
+    var estopTimer = null;
+    var HOLD_MS = 1500;
+
+    function startHold() {
+      estopTimer = setTimeout(function () {
+        callService(stopSrv);
+        estop.textContent = 'STOPPED';
+        estop.classList.remove('armed');
+        estop.classList.add('ready');
+        document.getElementById('estopHint').textContent = 'Stopped. Press RE-ENABLE to resume.';
+        document.getElementById('enableBtn').style.display = 'block';
+      }, HOLD_MS);
+    }
+    function cancelHold() {
+      if (estopTimer) { clearTimeout(estopTimer); estopTimer = null; }
+    }
+    estop.addEventListener('mousedown', startHold);
+    estop.addEventListener('mouseup', cancelHold);
+    estop.addEventListener('mouseleave', cancelHold);
+    estop.addEventListener('touchstart', function (e) { e.preventDefault(); startHold(); });
+    estop.addEventListener('touchend', function (e) { e.preventDefault(); cancelHold(); });
+
+    document.getElementById('enableBtn').onclick = function () {
+      callService(enableSrv);
+      estop.textContent = 'E-STOP';
+      estop.classList.remove('ready');
+      estop.classList.add('armed');
+      document.getElementById('estopHint').textContent = 'Hold for 1.5 s to stop';
+      document.getElementById('enableBtn').style.display = 'none';
+    };
+
+    // ---- Telemetry subscriptions ----
+    var safetySub = new ROSLIB.Topic({ ros: ros, name: '/safety/state', messageType: 'std_msgs/msg/String' });
+    safetySub.subscribe(function (msg) {
+      var el = document.getElementById('safety');
+      el.textContent = msg.data;
+      el.style.color = (msg.data === 'FAULT' || msg.data === 'SAFE_STOPPED') ? '#F87171' : '#34D399';
+    });
+
+    var motorSub = new ROSLIB.Topic({ ros: ros, name: '/motor/state', messageType: 'golfcart_msgs/msg/MotorState' });
+    motorSub.subscribe(function (msg) {
+      var speed = (Math.abs(msg.left_velocity) + Math.abs(msg.right_velocity)) / 2;
+      document.getElementById('speed').textContent = speed.toFixed(2) + ' m/s';
+    });
+
+    var batterySub = new ROSLIB.Topic({ ros: ros, name: '/battery/state', messageType: 'golfcart_msgs/msg/BatteryState' });
+    batterySub.subscribe(function (msg) {
+      document.getElementById('battery').textContent = msg.voltage_v.toFixed(1) + ' V (' + msg.charge_percent.toFixed(0) + '%)';
+      var badge = document.getElementById('badgeBattery');
+      if (msg.charge_percent < 20) { badge.textContent = 'Battery LOW'; badge.className = 'badge fault'; }
+      else { badge.textContent = 'Battery OK'; badge.className = 'badge ok'; }
+    });
+
+    var gpsSub = new ROSLIB.Topic({ ros: ros, name: '/gps/fix', messageType: 'golfcart_msgs/msg/GpsFix' });
+    gpsSub.subscribe(function (msg) {
+      if (msg.valid) {
+        document.getElementById('position').textContent =
+          msg.latitude_deg.toFixed(5) + ', ' + msg.longitude_deg.toFixed(5);
+      } else {
+        document.getElementById('position').textContent = 'no fix';
+      }
+    });
+
+    var navSub = new ROSLIB.Topic({ ros: ros, name: '/navigation/status', messageType: 'golfcart_msgs/msg/NavigationStatus' });
+    navSub.subscribe(function (msg) {
+      document.getElementById('nav').textContent = msg.state;
+    });
+
+    var geofenceSub = new ROSLIB.Topic({ ros: ros, name: '/geofence/status', messageType: 'golfcart_msgs/msg/GeofenceStatus' });
+    geofenceSub.subscribe(function (msg) {
+      var el = document.getElementById('geofence');
+      el.textContent = msg.state;
+      var badge = document.getElementById('badgeGeofence');
+      if (msg.state === 'CROSSED' || msg.state === 'OUT_OF_FIX') {
+        el.style.color = '#F87171';
+        badge.textContent = 'Geofence ' + msg.state; badge.className = 'badge fault';
+      } else if (msg.state === 'NEAR') {
+        el.style.color = '#FBBF24';
+        badge.textContent = 'Geofence NEAR'; badge.className = 'badge warn';
+      } else {
+        el.style.color = '#34D399';
+        badge.textContent = 'Geofence OK'; badge.className = 'badge ok';
+      }
+    });
+
+    var speedzoneSub = new ROSLIB.Topic({ ros: ros, name: '/speed_zone/status', messageType: 'golfcart_msgs/msg/SpeedZoneStatus' });
+    speedzoneSub.subscribe(function (msg) {
+      var el = document.getElementById('speedzone');
+      if (msg.valid && msg.limit_mps > 0) {
+        el.textContent = msg.limit_mps.toFixed(2) + ' m/s' + (msg.zone ? ' (' + msg.zone + ')' : '');
+        el.style.color = '#FBBF24';
+      } else {
+        el.textContent = 'none';
+        el.style.color = '#34D399';
+      }
+    });
+
+    var slopeSub = new ROSLIB.Topic({ ros: ros, name: '/slope/status', messageType: 'golfcart_msgs/msg/SlopeStatus' });
+    slopeSub.subscribe(function (msg) {
+      var el = document.getElementById('slope');
+      if (msg.valid) {
+        el.textContent = msg.slope_deg.toFixed(1) + '°';
+        var badge = document.getElementById('badgeSlope');
+        if (Math.abs(msg.slope_deg) > 10) { badge.textContent = 'Steep slope'; badge.className = 'badge warn'; }
+        else { badge.textContent = 'Slope OK'; badge.className = 'badge ok'; }
+      } else {
+        el.textContent = '--';
+      }
+    });
+
+    // Obstacle badge (from obstacle state).
+    var obstacleSub = new ROSLIB.Topic({ ros: ros, name: '/obstacles/state', messageType: 'golfcart_msgs/msg/ObstacleState' });
+    obstacleSub.subscribe(function (msg) {
+      var badge = document.getElementById('badgeObstacle');
+      if (msg.obstacle_in_zone) {
+        badge.textContent = 'OBSTACLE'; badge.className = 'badge fault';
+      } else {
+        badge.textContent = 'No Obstacle'; badge.className = 'badge ok';
+      }
+    });
+  </script>
+</body>
+</html>
