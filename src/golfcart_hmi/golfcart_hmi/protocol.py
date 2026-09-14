@@ -32,6 +32,7 @@ DL_STATE_UPDATE = 0x03
 DL_DEBUG_SUMMARY = 0x04
 DL_CONFIG = 0x05
 DL_ACK = 0x06
+DL_BOOT_STATUS = 0x07
 
 # --- Message types (uplink: ESP32 -> Pi) ---
 UL_HELLO = 0x81
@@ -74,6 +75,7 @@ CAP_FORCE = 0x04
 CAP_DISPLAY = 0x08
 
 # --- Screen IDs (downlink SCREEN_NAV payload: screen id + optional arg) ---
+SCREEN_SPLASH = 0x00
 SCREEN_COURSE = 0x01
 SCREEN_TEE = 0x02
 SCREEN_HOLE = 0x03
@@ -220,6 +222,16 @@ def _encode_value(state_id: int, value: int) -> bytes:
 
 def build_config(config_id: int, value: int) -> bytes:
     return bytes([config_id, value & 0xFF])
+
+
+def build_boot_status(text: str, progress: int = 0) -> bytes:
+    """Build a DL_BOOT_STATUS payload: progress (0-100) + short status text.
+
+    The ESP32 shows this on the splash screen while the Pi boots. Text is
+    truncated to 31 bytes (fits the splash label).
+    """
+    text = text.encode('utf-8', 'replace')[:31]
+    return bytes([progress & 0xFF]) + text
 
 
 def build_ack(acked_seq: int, status: int = 0) -> bytes:

@@ -110,6 +110,7 @@ ROS nodes (battery, GPS, IMU,               LVGL screens (menu, hole, debug)
 | `0x04` | `DEBUG_SUMMARY` | debug id (1 byte) + summary payload |
 | `0x05` | `CONFIG` | config id (1 byte) + value |
 | `0x06` | `ACK` | acked seq (1 byte) + status (1 byte) |
+| `0x07` | `BOOT_STATUS` | progress (1 byte, 0–100) + status text (≤31 bytes) |
 
 ### 3.2 Uplink (ESP32 → Pi)
 
@@ -277,9 +278,14 @@ push-assist if `0x04` is set).
 ## 8. Example session
 
 ```text
-ESP32 → Pi : HELLO  v1, caps=0x0F (joystick+touch+force+display)
+# Power-on: the ESP32 boots in <1 s and shows the splash screen immediately.
+ESP32 → Pi : HELLO  v1, caps=0x0F (joystick+touch+force+display)   (re-sent 1 Hz)
+# ... Pi is still booting; it pushes progress to the splash screen ...
+Pi    → ESP32: BOOT_STATUS  progress=10 "Starting ROS"
+Pi    → ESP32: BOOT_STATUS  progress=30 "Loading gateway"
+# ... Pi gateway is up and answers the HELLO ...
 Pi    → ESP32: HELLO  v1
-Pi    → ESP32: SCREEN_NAV  screen=COURSE
+Pi    → ESP32: SCREEN_NAV  screen=COURSE      (leaves the splash screen)
 ESP32 → Pi : MENU_SELECT  item=course:0
 Pi    → ESP32: SCREEN_NAV  screen=TEE
 ESP32 → Pi : MENU_SELECT  item=tee:1
@@ -291,6 +297,22 @@ ESP32 → Pi : FORCE  +42
 ESP32 → Pi : JOYSTICK  x=0 y=512 btn=1
 ...
 ```
+
+### 8.1 Boot / splash sequence
+
+The ESP32 boots in under a second, so it shows a **splash screen** (logo +
+animated spinner) while the Raspberry Pi takes 30–60 s to boot ROS and start
+the gateway:
+
+1. **ESP32 powers on** → shows `SCREEN_SPLASH` and sends `HELLO` (re-sent every
+   1 s until the Pi answers).
+2. **Pi boots** → the gateway starts and pushes `BOOT_STATUS` frames (progress
+   0–100 + short text) so the splash shows live progress.
+3. **Pi gateway is ready** → on the first `HELLO` it replies `HELLO` and sends
+   `SCREEN_NAV screen=COURSE`, which switches the ESP32 off the splash screen.
+
+The ESP32 keeps re-sending `HELLO` until it gets a `DL_HELLO`, so it works even
+if the Pi boots after the ESP32's first `HELLO`.
 
 ---
 

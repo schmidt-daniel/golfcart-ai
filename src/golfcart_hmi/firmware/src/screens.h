@@ -13,6 +13,7 @@
 #include <stdint.h>
 
 // Screen IDs (must match handle_protocol.h SCREEN_*).
+#define SCR_SPLASH       0x00
 #define SCR_COURSE       0x01
 #define SCR_TEE          0x02
 #define SCR_HOLE         0x03
@@ -41,6 +42,10 @@ void screens_refresh(void);
 // Update a cached state value (from a STATE_UPDATE frame). id is a ST_* id
 // from handle_protocol.h; value is the decoded payload value.
 void screens_set_state(uint8_t id, int32_t value);
+
+// Update the boot-status line shown on the splash screen (from a
+// DL_BOOT_STATUS frame). progress is 0-100; text is a short status string.
+void screens_set_boot_status(uint8_t progress, const char *text);
 
 // Handle a tap at (x, y) in display coordinates. Returns the menu item id to
 // send to the Pi, or -1 if the tap was not on a menu item (e.g. a map tap).

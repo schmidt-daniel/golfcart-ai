@@ -33,6 +33,7 @@ extern "C" {
 #define DL_DEBUG_SUMMARY 0x04
 #define DL_CONFIG        0x05
 #define DL_ACK           0x06
+#define DL_BOOT_STATUS   0x07
 
 // Uplink (ESP32 -> Pi).
 #define UL_HELLO       0x81
@@ -75,6 +76,7 @@ extern "C" {
 #define CAP_DISPLAY  0x08
 
 // Screen IDs.
+#define SCREEN_SPLASH       0x00
 #define SCREEN_COURSE       0x01
 #define SCREEN_TEE          0x02
 #define SCREEN_HOLE         0x03

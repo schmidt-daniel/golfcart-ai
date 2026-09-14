@@ -38,7 +38,9 @@
 // ---------------------------------------------------------------------------
 static HandleDecoder g_decoder;
 static uint8_t g_seq = 0;
-static uint8_t g_screen = SCREEN_COURSE;
+static uint8_t g_screen = SCREEN_SPLASH;
+static bool g_pi_ready = false;   // set once the Pi answers our HELLO
+static uint32_t g_hello_last_ms = 0;
 
 // ---------------------------------------------------------------------------
 // Serial send helpers
@@ -88,7 +90,22 @@ static void on_frame(uint8_t type, const uint8_t *payload, size_t len, uint8_t s
 {
   switch (type) {
     case DL_HELLO:
-      // Pi acknowledged; nothing more to do.
+      // Pi is up. Leave the splash screen and show the course screen.
+      g_pi_ready = true;
+      g_screen = SCREEN_COURSE;
+      screens_show(g_screen);
+      break;
+    case DL_BOOT_STATUS:
+      // Pi is still booting; show progress on the splash screen.
+      if (len >= 1) {
+        uint8_t progress = payload[0];
+        char text[32];
+        size_t n = len - 1;
+        if (n > 31) n = 31;
+        memcpy(text, payload + 1, n);
+        text[n] = '\0';
+        screens_set_boot_status(progress, text);
+      }
       break;
     case DL_SCREEN_NAV:
       if (len >= 1) {
@@ -197,7 +214,10 @@ void setup()
   screens_init();
   sensors_init();
 
+  // Show the splash screen immediately (the Pi is still booting).
+  screens_show(SCREEN_SPLASH);
   send_hello();
+  g_hello_last_ms = millis();
 }
 
 void loop()
@@ -206,6 +226,16 @@ void loop()
   while (Serial.available()) {
     uint8_t b = (uint8_t)Serial.read();
     handle_decoder_feed(&g_decoder, &b, 1, on_frame);
+  }
+
+  // Re-send HELLO every second until the Pi answers, so we pick it up even
+  // if the Pi boots after our first HELLO.
+  if (!g_pi_ready) {
+    uint32_t now = millis();
+    if (now - g_hello_last_ms >= 1000) {
+      g_hello_last_ms = now;
+      send_hello();
+    }
   }
 
   sample_joystick();

@@ -543,12 +543,45 @@ static void build_debug_nav(void)
 }
 
 // ---------------------------------------------------------------------------
+// Splash / boot screen (SCR_SPLASH).
+// Shown immediately on power-up while the Pi boots. The Pi pushes progress
+// via DL_BOOT_STATUS; the ESP32 animates a spinner in screens_tick().
+// ---------------------------------------------------------------------------
+static lv_obj_t *splash_status_label;
+static lv_obj_t *splash_progress_label;
+static uint8_t g_boot_progress = 0;
+static char g_boot_text[32] = "Starting...";
+
+static void build_splash(void)
+{
+  scr = make_screen();
+  // Logo / title.
+  lv_obj_t *title = make_label(scr, "GOLF CART", 0, 150, 320, 40, C_ACCENT);
+  lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
+  lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 150);
+  make_label(scr, "Autonomous Push Trolley", 0, 196, 320, 24, C_TEXT_DIM);
+
+  // Spinner (drawn as an arc in screens_tick).
+  lv_obj_t *spinner = lv_obj_create(scr);
+  lv_obj_set_pos(spinner, 140, 240);
+  lv_obj_set_size(spinner, 40, 40);
+  lv_obj_set_style_bg_color(spinner, C_BG, 0);
+  lv_obj_set_style_border_width(spinner, 0, 0);
+
+  // Status + progress labels.
+  splash_status_label = make_label(scr, "Starting...", 0, 300, 320, 24, C_TEXT);
+  lv_obj_align(splash_status_label, LV_ALIGN_TOP_MID, 0, 300);
+  splash_progress_label = make_label(scr, "0%", 0, 330, 320, 24, C_TEXT_DIM);
+  lv_obj_align(splash_progress_label, LV_ALIGN_TOP_MID, 0, 330);
+}
+
+// ---------------------------------------------------------------------------
 // Screen registry
 // ---------------------------------------------------------------------------
 typedef void (*ScreenBuilder)(void);
 
 static ScreenBuilder screen_builders[16] = {
-  NULL,                 // 0x00 unused
+  build_splash,         // 0x00 SCR_SPLASH
   build_course,         // 0x01 SCR_COURSE
   build_tee,            // 0x02 SCR_TEE
   build_hole,           // 0x03 SCR_HOLE
@@ -614,9 +647,43 @@ int screens_handle_tap(int x, int y)
   return hit_test(x, y);
 }
 
+// Spinner animation state (splash screen).
+static uint32_t g_spinner_last_ms = 0;
+static int g_spinner_angle = 0;
+
 void screens_tick(void)
 {
   lv_timer_handler();
+
+  // Animate the splash spinner (~15 fps) while the Pi is booting.
+  if (g_current_screen == SCR_SPLASH) {
+    uint32_t now = millis();
+    if (now - g_spinner_last_ms >= 66) {
+      g_spinner_last_ms = now;
+      g_spinner_angle = (g_spinner_angle + 30) % 360;
+      // Draw a rotating arc (a 270-degree wedge) centered at (160, 260).
+      // drawArc takes raw RGB565 colors (not lv_color_t).
+      tft.drawArc(160, 260, 20, 14, g_spinner_angle,
+                  g_spinner_angle + 270, 0x38BDF8, 0x0F172A, true);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Boot status (called from main.ino on_frame when a DL_BOOT_STATUS arrives).
+// ---------------------------------------------------------------------------
+void screens_set_boot_status(uint8_t progress, const char *text)
+{
+  g_boot_progress = progress;
+  if (text != NULL) {
+    snprintf(g_boot_text, sizeof(g_boot_text), "%s", text);
+  }
+  if (g_current_screen == SCR_SPLASH && splash_status_label != NULL) {
+    lv_label_set_text(splash_status_label, g_boot_text);
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%u%%", g_boot_progress);
+    lv_label_set_text(splash_progress_label, buf);
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -83,3 +83,14 @@ def test_builders():
     assert p.build_screen_nav(p.SCREEN_COURSE) == bytes([p.SCREEN_COURSE, 0])
     assert p.build_config(1, 3) == bytes([1, 3])
     assert p.build_ack(9) == bytes([9, 0])
+
+
+def test_build_boot_status():
+    """DL_BOOT_STATUS payload: progress byte + truncated status text."""
+    assert p.build_boot_status('Starting ROS', 10) == bytes([10]) + b'Starting ROS'
+    # Text longer than 31 bytes is truncated.
+    long_text = 'x' * 50
+    payload = p.build_boot_status(long_text, 50)
+    assert payload[0] == 50
+    assert len(payload) == 1 + 31
+    assert payload[1:] == b'x' * 31

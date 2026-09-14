@@ -96,13 +96,16 @@ class HandleGatewayNode(Node):
             CourseMap, 'course/map', self.on_course_map, 10)
 
         # ---- Screen state (for MENU_SELECT interpretation) ----
-        self.screen = p.SCREEN_COURSE
+        self.screen = p.SCREEN_SPLASH
         self.courses = []          # [(id, name)]
         self.tees = []             # [(id, name)]
 
         # ---- Timers ----
         self.read_timer = self.create_timer(0.02, self.read_serial)   # 50 Hz
         self.heartbeat_timer = self.create_timer(1.0, self.send_heartbeat)
+        # Push boot progress to the splash screen while ROS comes up.
+        self._boot_stage = 0
+        self.boot_timer = self.create_timer(1.0, self.send_boot_status)
 
         self.get_logger().info('Handle gateway started')
 
@@ -126,6 +129,8 @@ class HandleGatewayNode(Node):
             version, caps = p.parse_hello(payload)
             self.get_logger().info(f'Handle HELLO v{version}, caps=0x{caps:02x}')
             self._send(p.DL_HELLO, p.build_hello())
+            # The Pi is up: leave the splash screen and show the course screen.
+            self._nav(p.SCREEN_COURSE)
         elif mtype == p.UL_JOYSTICK:
             x, y, btn = p.parse_joystick(payload)
             self._on_joystick(x, y, btn)
@@ -346,6 +351,28 @@ class HandleGatewayNode(Node):
 
     def send_heartbeat(self):
         self._send(p.DL_ACK, p.build_ack(self._seq))
+
+    def send_boot_status(self):
+        """Push boot progress to the splash screen while ROS comes up.
+
+        The ESP32 shows a splash screen until it receives DL_HELLO (sent when
+        we get its UL_HELLO). Until then, report our startup progress so the
+        user sees something is happening. Once the handle is ready (HELLO
+        exchanged), stop sending.
+        """
+        if self.screen != p.SCREEN_SPLASH:
+            return
+        stages = [
+            (10, 'Starting ROS'),
+            (30, 'Loading gateway'),
+            (50, 'Opening serial'),
+            (70, 'Waiting for services'),
+            (90, 'Almost ready'),
+        ]
+        if self._boot_stage < len(stages):
+            progress, text = stages[self._boot_stage]
+            self._boot_stage += 1
+            self._send(p.DL_BOOT_STATUS, p.build_boot_status(text, progress))
 
 
 def main(args=None):

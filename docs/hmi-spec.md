@@ -131,6 +131,7 @@ joystick button.
 
 ```mermaid
 flowchart TD
+    SPLASH[Splash / boot] --> COURSE[Course selection]
     COURSE[Course selection] --> TEE[Teebox selection]
     TEE --> MAP[Map view]
     MAP --> MENU[Main Menu]
@@ -150,7 +151,12 @@ flowchart TD
     DEBUG --> NAV[Navigation]
 ```
 
-- **Course selection** is the first screen shown when the HMI loads.
+- **Splash / boot** is shown immediately on power-up (the ESP32 boots in <1 s)
+  while the Raspberry Pi boots ROS. It shows a logo, an animated spinner, and
+  live boot progress pushed by the Pi (`BOOT_STATUS`). It transitions to
+  **Course selection** once the Pi gateway is ready.
+- **Course selection** is the first interactive screen shown when the HMI
+  loads.
 - **Double press** (or a **Back** tap target) from any sub-screen returns to
   the previous screen.
 - **Long press** (or a **Home** tap target) from any sub-screen returns to the
@@ -159,6 +165,38 @@ flowchart TD
 ---
 
 ## 6. Screens
+
+### 6.0 Splash / Boot
+
+Shown immediately on power-up while the Raspberry Pi boots ROS (30–60 s). The
+ESP32 boots in under a second, so this is the first thing the user sees.
+
+```text
++--------------------+
+|                    |
+|    GOLF CART       |
+| Autonomous Push    |
+| Trolley            |
+|                    |
+|      (spinner)     |
+|                    |
+| Starting ROS       |
+| 30%                |
++--------------------+
+```
+
+- **Logo / title** — "GOLF CART" in the accent color, with a subtitle.
+- **Spinner** — an animated rotating arc (drawn by the ESP32 in `screens_tick`).
+- **Status line** — live boot progress pushed by the Pi via `BOOT_STATUS`
+  (progress 0–100 + short text, e.g. "Starting ROS", "Loading gateway").
+- **Transition** — the Pi sends `HELLO` + `SCREEN_NAV screen=COURSE` once the
+  gateway is ready, switching off the splash screen.
+
+| Input | Action |
+| --- | --- |
+| (none) | The splash is non-interactive; it auto-advances when the Pi is ready. |
+
+---
 
 ### 6.1 Main Menu
 
