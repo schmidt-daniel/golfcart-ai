@@ -87,14 +87,20 @@
           "type": "string",
           "enum": [
             "GREEN", "TEE_BOX", "HOLE", "FAIRWAY", "HAZARD",
-            "WATER_HAZARD", "BUNKER", "ROUGH", "PATH", "FORBIDDEN_ZONE", "EXIT_POINT"
+            "WATER_HAZARD", "BUNKER", "ROUGH", "PATH", "FORBIDDEN_ZONE", "EXIT_POINT",
+            "SPEED_ZONE"
           ],
-          "description": "Feature type. Forbidden types: GREEN, TEE_BOX, WATER_HAZARD, ROUGH, BUNKER, FORBIDDEN_ZONE."
+          "description": "Feature type. Forbidden types: GREEN, TEE_BOX, WATER_HAZARD, ROUGH, BUNKER, FORBIDDEN_ZONE. SPEED_ZONE is a speed-limit zone (not forbidden)."
         },
         "label": { "type": "string", "description": "Optional human label." },
         "tee_id": {
           "type": "string",
           "description": "For TEE_BOX features: which tee (ID defined in course.yaml under course.tees) this box serves."
+        },
+        "max_speed_mps": {
+          "type": "number",
+          "minimum": 0,
+          "description": "For SPEED_ZONE features: max speed (m/s) inside the zone."
         },
         "osm_id": { "type": ["integer", "null"], "description": "Source OSM element id." },
         "osm_type": { "type": ["string", "null"], "description": "Source OSM element type (node/way/relation)." },

@@ -123,6 +123,14 @@ def generate_launch_description():
         output='screen',
     )
 
+    # Speed zone node (limit max speed inside course speed-limit zones)
+    speed_zone_node = Node(
+        package='golfcart_navigation',
+        executable='speed_zone_node',
+        name='speed_zone_node',
+        output='screen',
+    )
+
     return LaunchDescription([
         use_sim_time_arg,
         planner,
@@ -135,4 +143,5 @@ def generate_launch_description():
         navigation_node,
         georeference_node,
         summon_node,
+        speed_zone_node,
     ])

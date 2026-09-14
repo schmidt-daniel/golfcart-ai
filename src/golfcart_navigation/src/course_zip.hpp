@@ -361,6 +361,14 @@ void parse_hole_yaml(const std::string & text, int hole_num,
       feat.tee_id = tee_id;
       feat.hole_number = static_cast<uint32_t>(hole_num);
 
+      // For SPEED_ZONE features: the max speed (m/s) inside the zone.
+      double max_speed_mps = -1.0;
+      if (s["max_speed_mps"]) {
+        max_speed_mps = s["max_speed_mps"].as<double>();
+      } else if (s["properties"] && s["properties"]["max_speed_mps"]) {
+        max_speed_mps = s["properties"]["max_speed_mps"].as<double>();
+      }
+
       const std::string gtype = geom["type"] ? geom["type"].as<std::string>() : "";
       geometry_msgs::msg::Polygon poly;
       if (gtype == "Polygon") {
@@ -391,7 +399,14 @@ void parse_hole_yaml(const std::string & text, int hole_num,
         }
       }
 
-      if (poly.points.size() >= 3) {
+      if (type == "SPEED_ZONE") {
+        // Speed-limit zone: add to the parallel speed-zone arrays (map frame).
+        if (poly.points.size() >= 3) {
+          map.speed_zones.push_back(poly);
+          map.speed_zone_limits_mps.push_back(max_speed_mps);
+          map.speed_zone_labels.push_back(label);
+        }
+      } else if (poly.points.size() >= 3) {
         map.forbidden_zones.push_back(poly);
       }
       if (poly.points.size() >= 1) {

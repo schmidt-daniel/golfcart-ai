@@ -145,6 +145,24 @@ features are added.
   IMU pitch/roll + yaw (inverse of the slope_node projection)
 - 34 editor tests pass (9 new refine tests)
 
+### Speed Zones (Speed Limiting by Zone)
+- `speed_zone_node` (`golfcart_navigation`) — limits the trolley's max speed
+  inside course speed-limit zones
+- **Zone data:** a `SPEED_ZONE` shape type in the map editor carries a
+  `max_speed_mps` property (polygon); exported into `holes/holeN.yaml` and
+  loaded into `CourseMap.speed_zones` / `speed_zone_limits_mps` /
+  `speed_zone_labels` (parallel arrays, map frame)
+- **Limit semantics:** inside a zone → that zone's `max_speed_mps`
+  (most-restrictive wins on overlap); outside all zones → `-1` (no limit);
+  stale pose → conservative low limit (never speed up on unknown data)
+- **Safety Controller** subscribes `/speed_zone/status` and clamps requested
+  velocity to `min(max_linear_velocity_mps, limit_mps)` — the limit is a cap,
+  not a stop
+- `golfcart_msgs` — `SpeedZoneStatus.msg`; `CourseMap` gained `speed_zones` /
+  `speed_zone_limits_mps` / `speed_zone_labels`
+- Pure math in `speed_zone_math.hpp` (point-in-polygon) — unit-tested;
+  `scripts/test_speed_zone_node.py` headless e2e
+
 ### Deployment (Option D, Hybrid)
 - `systemd/` — systemd units per service, auto-start on boot + restart on crash:
   `golfcart-core`, `golfcart-teleop`, `golfcart-localization`, `golfcart-mapping`,

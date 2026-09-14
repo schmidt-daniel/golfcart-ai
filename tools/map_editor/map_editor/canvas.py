@@ -335,6 +335,8 @@ class MapCanvas(QGraphicsView):
             shape = Shape(type=self.draw_type, vertices=pts)
         else:
             shape = Shape(type=self.draw_type, vertices=pts)
+        if self.draw_type == "SPEED_ZONE":
+            shape.max_speed_mps = 0.5  # default 0.5 m/s; editable in the panel
         self.add_shape(shape)
 
     def _draw_in_progress(self, painter: QPainter) -> None:

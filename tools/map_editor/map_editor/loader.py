@@ -30,6 +30,7 @@ def _shape_from_feature(feature: dict) -> Shape:
         ftype = props.get("type", "FORBIDDEN_ZONE")
         label = props.get("label", "")
         tee_id = props.get("tee_id") or props.get("tee_color")
+        max_speed_mps = props.get("max_speed_mps")
         osm_id = props.get("osm_id")
         osm_type = props.get("osm_type")
         geom = feature.get("geometry", {})
@@ -38,6 +39,7 @@ def _shape_from_feature(feature: dict) -> Shape:
         ftype = feature.get("type", "FORBIDDEN_ZONE")
         label = feature.get("label", "")
         tee_id = feature.get("tee_id") or feature.get("tee_color")
+        max_speed_mps = feature.get("max_speed_mps")
         osm_id = feature.get("osm_id")
         osm_type = feature.get("osm_type")
         geom = feature.get("geometry", {})
@@ -58,6 +60,7 @@ def _shape_from_feature(feature: dict) -> Shape:
         type=ftype,
         label=label,
         tee_id=tee_id,
+        max_speed_mps=float(max_speed_mps) if max_speed_mps is not None else None,
         osm_id=osm_id,
         osm_type=osm_type,
         vertices=vertices,

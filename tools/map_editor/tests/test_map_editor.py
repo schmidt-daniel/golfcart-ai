@@ -66,6 +66,40 @@ def test_shape_forbidden():
     assert Shape(type="BUNKER").is_forbidden
     assert not Shape(type="FAIRWAY").is_forbidden
     assert Shape(type="FORBIDDEN_ZONE").is_forbidden
+    # SPEED_ZONE is a limit, not a forbidden zone.
+    assert not Shape(type="SPEED_ZONE").is_forbidden
+
+
+def test_speed_zone_roundtrip():
+    """A SPEED_ZONE shape survives export -> load with its max_speed_mps."""
+    import tempfile
+    from map_editor.exporter import export_course
+    from map_editor.loader import load_course
+
+    c = make_course()
+    c.holes[0].shapes.append(
+        Shape(type="SPEED_ZONE", label="Near green 5", max_speed_mps=0.5,
+              vertices=[(48.12360, 11.67850), (48.12370, 11.67860), (48.12365, 11.67870)])
+    )
+    d = Path(tempfile.mkdtemp())
+    out = export_course(c, d)
+    loaded = load_course(out)
+    sz = next(s for s in loaded.holes[0].shapes if s.type == "SPEED_ZONE")
+    assert sz.label == "Near green 5"
+    assert sz.max_speed_mps == 0.5
+    assert len(sz.vertices) >= 3
+
+
+def test_speed_zone_in_hole_yaml():
+    """The exported hole YAML carries max_speed_mps on the SPEED_ZONE feature."""
+    c = make_course()
+    c.holes[0].shapes.append(
+        Shape(type="SPEED_ZONE", label="Slow", max_speed_mps=0.3,
+              vertices=[(48.12360, 11.67850), (48.12370, 11.67860), (48.12365, 11.67870)])
+    )
+    y = c.holes[0].to_yaml()
+    sz = next(f for f in y["features"] if f["type"] == "SPEED_ZONE")
+    assert sz["max_speed_mps"] == 0.3
 
 
 def test_hole_yaml_schema():

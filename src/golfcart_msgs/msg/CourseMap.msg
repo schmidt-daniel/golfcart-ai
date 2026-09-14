@@ -29,4 +29,11 @@ nav_msgs/OccupancyGrid pitch_slope
 # Forbidden zones (greens, tees, water, steep) as polygons
 geometry_msgs/Polygon[] forbidden_zones
 
+# Speed-limit zones (polygons) + their max speed, in the map frame.
+# Parallel arrays: speed_zones[i] pairs with speed_zone_limits_mps[i] and
+# speed_zone_labels[i]. A limit of -1 means "no limit" (use configured max).
+geometry_msgs/Polygon[] speed_zones
+float64[] speed_zone_limits_mps
+string[] speed_zone_labels
+
 builtin_interfaces/Time timestamp

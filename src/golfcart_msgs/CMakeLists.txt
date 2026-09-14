@@ -35,6 +35,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/PersonTarget.msg"
   "msg/FollowStatus.msg"
   "msg/GeofenceStatus.msg"
+  "msg/SpeedZoneStatus.msg"
   "srv/SetGoal.srv"
   "srv/SummonTrigger.srv"
   "srv/FollowTrigger.srv"

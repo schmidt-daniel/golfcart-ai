@@ -38,6 +38,7 @@ SHAPE_TYPES = [
     "PATH",
     "FORBIDDEN_ZONE",
     "EXIT_POINT",
+    "SPEED_ZONE",
 ]
 
 
@@ -74,6 +75,8 @@ class Shape:
     label: str = ""
     #: For TEE_BOX features: which tee (ID in Course.tees) this box serves.
     tee_id: Optional[str] = None
+    #: For SPEED_ZONE features: max speed (m/s) inside the zone. None = unset.
+    max_speed_mps: Optional[float] = None
     #: lat/lon vertices (list of (lat, lon) tuples). For a point, a single vertex.
     #: For a polygon, >=3 vertices. For a line, >=2 vertices.
     vertices: List[tuple[float, float]] = field(default_factory=list)
@@ -108,6 +111,8 @@ class Shape:
         }
         if self.tee_id:
             props["tee_id"] = self.tee_id
+        if self.max_speed_mps is not None:
+            props["max_speed_mps"] = self.max_speed_mps
         if self.osm_id is not None:
             props["osm_id"] = self.osm_id
         if self.osm_type is not None:
@@ -134,6 +139,8 @@ class Shape:
             feat["label"] = self.label
         if self.tee_id:
             feat["tee_id"] = self.tee_id
+        if self.max_speed_mps is not None:
+            feat["max_speed_mps"] = self.max_speed_mps
         if self.osm_id is not None:
             feat["osm_id"] = self.osm_id
         if self.osm_type is not None:

@@ -124,6 +124,15 @@ class MainWindow(QMainWindow):
         rl.addWidget(QLabel("Label:"))
         rl.addWidget(self.label_edit)
 
+        # --- Speed zone limit (for SPEED_ZONE shapes) ---
+        self.speed_spin = QSpinBox()
+        self.speed_spin.setRange(0, 200)
+        self.speed_spin.setSuffix(" cm/s")
+        self.speed_spin.setValue(50)
+        self.speed_spin.valueChanged.connect(self._on_speed_zone_changed)
+        rl.addWidget(QLabel("Speed zone limit:"))
+        rl.addWidget(self.speed_spin)
+
         # --- Hole-level properties (par, handicap, distance) ---
         rl.addWidget(QLabel("Hole properties:"))
         self.par_spin = QSpinBox()
@@ -343,11 +352,25 @@ class MainWindow(QMainWindow):
     def _on_selection_changed(self, shape: Optional[Shape]) -> None:
         if shape is None:
             self.label_edit.clear()
+            self.speed_spin.setEnabled(False)
             return
         idx = self.type_combo.findText(shape.type)
         if idx >= 0:
             self.type_combo.setCurrentIndex(idx)
         self.label_edit.setText(shape.label)
+        is_speed = shape.type == "SPEED_ZONE"
+        self.speed_spin.setEnabled(is_speed)
+        if is_speed:
+            self.speed_spin.setValue(
+                int(round(shape.max_speed_mps * 100.0)) if shape.max_speed_mps is not None else 50
+            )
+
+    def _on_speed_zone_changed(self, value: int) -> None:
+        """Update the selected SPEED_ZONE shape's max speed (cm/s -> m/s)."""
+        shape = self.canvas.selected_shape
+        if shape is not None and shape.type == "SPEED_ZONE":
+            shape.max_speed_mps = value / 100.0
+            self._mark_dirty()
 
     def _on_opacity(self, value: int) -> None:
         self.satellite.set_opacity(value / 100.0)

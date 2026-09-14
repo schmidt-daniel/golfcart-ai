@@ -8,6 +8,7 @@
 #include "golfcart_msgs/msg/motion_request.hpp"
 #include "golfcart_msgs/msg/obstacle_state.hpp"
 #include "golfcart_msgs/msg/slope_status.hpp"
+#include "golfcart_msgs/msg/speed_zone_status.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_srvs/srv/trigger.hpp"
@@ -91,6 +92,16 @@ public:
       [this](const golfcart_msgs::msg::ObstacleState::SharedPtr msg) {
         if (msg->valid) {
           obstacle_in_zone_ = msg->obstacle_in_zone;
+        }
+      });
+
+    // Speed zones: cap the max linear velocity inside course speed-limit zones.
+    // limit_mps < 0 means "no zone limit" (use the configured max).
+    speed_zone_sub_ = create_subscription<golfcart_msgs::msg::SpeedZoneStatus>(
+      "speed_zone/status", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::SpeedZoneStatus::SharedPtr msg) {
+        if (msg->valid) {
+          speed_zone_limit_ = msg->limit_mps;
         }
       });
 
@@ -198,6 +209,7 @@ private:
   float predicted_roll_ = 0.0f;
   float predicted_pitch_ = 0.0f;
   bool obstacle_in_zone_ = false;
+  double speed_zone_limit_ = -1.0;  // active speed-zone limit (m/s); -1 = none
   uint8_t current_priority_ = 0;  // highest-priority active source
   rclcpp::Time last_request_time_;
 
@@ -206,6 +218,7 @@ private:
   rclcpp::Subscription<golfcart_msgs::msg::ImuData>::SharedPtr imu_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::SlopeStatus>::SharedPtr slope_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::ObstacleState>::SharedPtr obstacle_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::SpeedZoneStatus>::SharedPtr speed_zone_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr safe_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr enable_srv_;
@@ -243,7 +256,12 @@ private:
     // Apply motion limits.
     double linear = msg->linear_velocity_mps;
     double angular = msg->angular_velocity_radps;
-    linear = std::clamp(linear, -max_linear_, max_linear_);
+    double max_lin = max_linear_;
+    // Speed-zone limit caps the max linear velocity (most restrictive wins).
+    if (speed_zone_limit_ >= 0.0) {
+      max_lin = std::min(max_lin, speed_zone_limit_);
+    }
+    linear = std::clamp(linear, -max_lin, max_lin);
     angular = std::clamp(angular, -max_angular_, max_angular_);
 
     if (std::abs(linear) < 1e-6 && std::abs(angular) < 1e-6) {
