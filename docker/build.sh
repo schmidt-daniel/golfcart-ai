@@ -32,11 +32,13 @@ build_image() {
 # colcon spawns one gcc per package; capping workers + make jobs keeps peak
 # memory low. Override with BUILD_JOBS (e.g. BUILD_JOBS=4 ./docker/build.sh test).
 BUILD_JOBS="${BUILD_JOBS:-2}"
+# Cap the container's memory so a runaway build can't OOM the host.
+CONTAINER_MEM_LIMIT="${CONTAINER_MEM_LIMIT:-4g}"
 
 run_build_test() {
   build_image
-  echo "==> Building and testing workspace (jobs=${BUILD_JOBS})"
-  docker_cmd run --rm -v "${ROOT_DIR}:/workspace" -w /workspace \
+  echo "==> Building and testing workspace (jobs=${BUILD_JOBS}, mem_limit=${CONTAINER_MEM_LIMIT})"
+  docker_cmd run --rm --memory "${CONTAINER_MEM_LIMIT}" -v "${ROOT_DIR}:/workspace" -w /workspace \
     "${IMAGE}" bash -c "source /opt/ros/\${ROS_DISTRO}/setup.bash && \
       export MAKEFLAGS=-j${BUILD_JOBS} && \
       colcon build --parallel-workers ${BUILD_JOBS} && \

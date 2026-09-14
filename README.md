@@ -94,6 +94,31 @@ bash build_firmware.sh full       # full PlatformIO build (pio run -e esp32s3)
 See `docs/handle-protocol.md` for the serial protocol and `docs/hmi-spec.md`
 for the screen definitions.
 
+### OOM protection (small hosts)
+
+The build host has limited RAM (7.8 GiB) and runs several other Docker
+containers. Heavy builds (`colcon build`, `pio run`, `colcon test`) can OOM
+the host and kill the editor. To prevent this:
+
+- **Enable swap** (a 4 GiB `/swapfile` is provided):
+  ```bash
+  sudo swapon /swapfile
+  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+  ```
+- **Use the memory-limited docker helper** for ad-hoc container commands:
+  ```bash
+  ./docker/docker_run.sh golfcart:lyrical /workspace \
+      'source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build'
+  ```
+  It caps the container at `CONTAINER_MEM_LIMIT` (default 4g) and limits
+  parallelism to `BUILD_JOBS` (default 2).
+- **`build.sh` / `build_workspace.sh`** already cap memory + parallelism.
+- **Free disk/cache** when needed:
+  ```bash
+  docker builder prune -f   # build cache
+  docker image prune -f     # dangling images
+  ```
+
 ### Option B: Native
 
 ```bash
