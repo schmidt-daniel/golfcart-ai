@@ -27,6 +27,7 @@ from golfcart_msgs.srv import CourseSelect, HoleSelect
 from golfcart_msgs.msg import MotionRequest, BatteryState, GpsFix, ImuData
 from golfcart_msgs.msg import ObstacleState, GeofenceStatus, SpeedZoneStatus
 from golfcart_msgs.msg import SlopeStatus, NavigationStatus, HoleSession, CourseList, CourseMap
+from golfcart_msgs.msg import HandleForce
 
 from golfcart_hmi import protocol as p
 
@@ -62,8 +63,7 @@ class HandleGatewayNode(Node):
 
         # ---- Publishers (uplink -> ROS) ----
         self.motion_pub = self.create_publisher(MotionRequest, 'motion/request', 10)
-        self.force_pub = self.create_publisher(
-            MotionRequest, 'motion/request', 10)  # push-assist uses same topic
+        self.force_pub = self.create_publisher(HandleForce, 'handle/force', 10)
 
         # ---- Clients ----
         self.enable_client = self.create_client(Trigger, 'safety/enable')
@@ -164,10 +164,12 @@ class HandleGatewayNode(Node):
     def _on_force(self, raw):
         # Apply calibration (zero offset + gain) on the Pi.
         calibrated = (raw - self.force_zero) * self.force_gain
-        # Push-assist: request motion proportional to force (clamped).
-        # This is a placeholder; the real push-assist controller lives in
-        # golfcart_behavior. Here we just log the calibrated force.
-        self.get_logger().info(f'Handle force raw={raw} cal={calibrated:.2f}')
+        # Publish the calibrated force for the push-assist controller.
+        msg = HandleForce()
+        msg.force_n = float(calibrated)
+        msg.valid = True
+        msg.timestamp = self.get_clock().now().to_msg()
+        self.force_pub.publish(msg)
 
     def _publish_motion(self, linear, angular, source):
         req = MotionRequest()
