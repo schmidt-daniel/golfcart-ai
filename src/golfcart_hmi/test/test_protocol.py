@@ -67,6 +67,8 @@ def test_state_value_encodings():
     assert p._encode_value(p.ST_GPS_LAT, 481234500) == b'\x44\x0e\xaf\x1c'
     # backlight is uint8
     assert p._encode_value(p.ST_BACKLIGHT, 200) == bytes([200])
+    # steering assist is uint8
+    assert p._encode_value(p.ST_STEERING_ASSIST, 1) == bytes([1])
 
 
 def test_uplink_parsers():

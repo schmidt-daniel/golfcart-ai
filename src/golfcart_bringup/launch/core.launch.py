@@ -103,6 +103,20 @@ def generate_launch_description():
         output='screen',
     )
 
+    mode_node = Node(
+        package='golfcart_control',
+        executable='mode_node',
+        name='mode_node',
+        output='screen',
+    )
+
+    steering_assist = Node(
+        package='golfcart_follow',
+        executable='steering_assist_node',
+        name='steering_assist_node',
+        output='screen',
+    )
+
     energy_saver = Node(
         package='golfcart_power',
         executable='energy_saver_node',
@@ -124,4 +138,6 @@ def generate_launch_description():
         obstacle_detection,
         hill_rollback,
         push_assist,
+        mode_node,
+        steering_assist,
     ])

@@ -27,7 +27,7 @@ from golfcart_msgs.srv import CourseSelect, HoleSelect
 from golfcart_msgs.msg import MotionRequest, BatteryState, GpsFix, ImuData
 from golfcart_msgs.msg import ObstacleState, GeofenceStatus, SpeedZoneStatus
 from golfcart_msgs.msg import SlopeStatus, NavigationStatus, HoleSession, CourseList, CourseMap
-from golfcart_msgs.msg import HandleForce
+from golfcart_msgs.msg import HandleForce, ModeState, AssistConfig
 
 from golfcart_hmi import protocol as p
 
@@ -64,6 +64,13 @@ class HandleGatewayNode(Node):
         # ---- Publishers (uplink -> ROS) ----
         self.motion_pub = self.create_publisher(MotionRequest, 'motion/request', 10)
         self.force_pub = self.create_publisher(HandleForce, 'handle/force', 10)
+        self.mode_pub = self.create_publisher(ModeState, 'mode/state', 10)
+        self.assist_pub = self.create_publisher(AssistConfig, 'assist/config', 10)
+
+        # ---- Assist state (from the HMI Assist screen) ----
+        self.steering_assist_enabled = True
+        self.push_assist_enabled = True
+        self.assist_level = 3
 
         # ---- Clients ----
         self.enable_client = self.create_client(Trigger, 'safety/enable')
@@ -194,6 +201,8 @@ class HandleGatewayNode(Node):
             self._menu_main(item)
         elif self.screen == p.SCREEN_MODE:
             self._menu_mode(item)
+        elif self.screen == p.SCREEN_ASSIST:
+            self._menu_assist(item)
         elif self.screen == p.SCREEN_DEBUG:
             self._menu_debug(item)
         else:
@@ -241,7 +250,49 @@ class HandleGatewayNode(Node):
         if item == 3:
             self._nav(p.SCREEN_MENU)
         else:
-            self.get_logger().info(f'Mode select item={item} (not wired)')
+            # Mode select: 0=MANUAL, 1=FOLLOW, 2=AUTONOMOUS (matches ST_MODE).
+            self._set_mode(item)
+
+    def _set_mode(self, mode):
+        """Publish the operating mode on /mode/state (ModeState)."""
+        names = ['MANUAL', 'FOLLOW', 'AUTONOMOUS', 'TELEOP']
+        msg = ModeState()
+        msg.mode = mode
+        msg.mode_name = names[mode] if mode < len(names) else 'UNKNOWN'
+        msg.timestamp = self.get_clock().now().to_msg()
+        self.mode_pub.publish(msg)
+        self.get_logger().info(f'Mode set to {msg.mode_name}')
+
+    def _menu_assist(self, item):
+        # Assist screen items: 0=Push Assist, 1=Assist Level, 2=Hill Assist,
+        # 3=Steering Assist, 4=Main Menu.
+        if item == 0:      # Push Assist toggle
+            self.push_assist_enabled = not self.push_assist_enabled
+            self._publish_assist_config()
+        elif item == 1:    # Assist Level (cycle 0-5)
+            self.assist_level = (self.assist_level + 1) % 6
+            self._publish_assist_config()
+        elif item == 2:    # Hill Assist (not wired to a node yet)
+            self.get_logger().info('Hill Assist toggle (not wired)')
+        elif item == 3:    # Steering Assist toggle
+            self.steering_assist_enabled = not self.steering_assist_enabled
+            self._publish_assist_config()
+        elif item == 4:    # Main Menu
+            self._nav(p.SCREEN_MENU)
+
+    def _publish_assist_config(self):
+        """Publish the assist configuration on /assist/config (AssistConfig)."""
+        msg = AssistConfig()
+        msg.steering_assist_enabled = self.steering_assist_enabled
+        msg.push_assist_enabled = self.push_assist_enabled
+        msg.assist_level = self.assist_level
+        msg.timestamp = self.get_clock().now().to_msg()
+        self.assist_pub.publish(msg)
+        # Reflect the steering-assist state back on the HMI Assist screen.
+        self._send_state(p.ST_STEERING_ASSIST, 1 if self.steering_assist_enabled else 0)
+        self.get_logger().info(
+            f'Assist config: steering={self.steering_assist_enabled} '
+            f'push={self.push_assist_enabled} level={self.assist_level}')
 
     def _menu_debug(self, item):
         # item 0..5 = debug view; 6 = Main Menu.

@@ -385,7 +385,7 @@ Mockup: [`docs/hmi/mode-selection.svg`](hmi/mode-selection.svg)
 
 ### 6.6 Assist View
 
-Configures the push-assist / hill-assist behavior.
+Configures the push-assist / hill-assist / steering-assist behavior.
 
 ```text
 +--------------------+
@@ -394,6 +394,7 @@ Configures the push-assist / hill-assist behavior.
 | Push Assist   [ON] |
 | Assist Level  [ 3] |
 | Hill Assist   [ON] |
+| Steering Ass. [ON] |
 |                    |
 | Main Menu          |
 |                    |
@@ -411,6 +412,7 @@ Configures the push-assist / hill-assist behavior.
 | **Push Assist** | Toggle push-assist on/off. |
 | **Assist Level** | Adjust the assist gain (e.g. 1–5). |
 | **Hill Assist** | Toggle hill-assist on/off. |
+| **Steering Assist** | Toggle obstacle steering-assist on/off (manual mode). The state is pushed to the Pi via `ST_STEERING_ASSIST` and published on `/assist/config`; the `steering_assist_node` only nudges when enabled. |
 | **Main Menu** | Return to the main menu. |
 
 Mockup: [`docs/hmi/assist.svg`](hmi/assist.svg)

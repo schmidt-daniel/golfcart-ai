@@ -5,6 +5,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "golfcart_msgs/msg/battery_state.hpp"
 #include "golfcart_msgs/msg/imu_data.hpp"
+#include "golfcart_msgs/msg/mode_state.hpp"
 #include "golfcart_msgs/msg/motion_request.hpp"
 #include "golfcart_msgs/msg/obstacle_state.hpp"
 #include "golfcart_msgs/msg/slope_status.hpp"
@@ -95,6 +96,14 @@ public:
         }
       });
 
+    // Operating mode: in MANUAL mode the operator has full control, so the
+    // obstacle hard-stop is disabled (steering assist nudges instead).
+    mode_sub_ = create_subscription<golfcart_msgs::msg::ModeState>(
+      "mode/state", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::ModeState::SharedPtr msg) {
+        manual_mode_ = (msg->mode == 0);  // 0 = MANUAL
+      });
+
     // Speed zones: cap the max linear velocity inside course speed-limit zones.
     // limit_mps < 0 means "no zone limit" (use the configured max).
     speed_zone_sub_ = create_subscription<golfcart_msgs::msg::SpeedZoneStatus>(
@@ -176,7 +185,9 @@ public:
           }
         }
         // Obstacle in stopping zone: force a safe stop.
-        if (obstacle_in_zone_) {
+        // In MANUAL mode the operator has full control, so the obstacle
+        // hard-stop is disabled (steering assist nudges instead).
+        if (obstacle_in_zone_ && !manual_mode_) {
           if (state_ == SafetyState::MOVING || state_ == SafetyState::LIMITED) {
             state_ = SafetyState::READY;
             publish_safe(0.0, 0.0);
@@ -209,6 +220,7 @@ private:
   float predicted_roll_ = 0.0f;
   float predicted_pitch_ = 0.0f;
   bool obstacle_in_zone_ = false;
+  bool manual_mode_ = true;  // default MANUAL: operator has full control
   double speed_zone_limit_ = -1.0;  // active speed-zone limit (m/s); -1 = none
   uint8_t current_priority_ = 0;  // highest-priority active source
   rclcpp::Time last_request_time_;
@@ -218,6 +230,7 @@ private:
   rclcpp::Subscription<golfcart_msgs::msg::ImuData>::SharedPtr imu_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::SlopeStatus>::SharedPtr slope_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::ObstacleState>::SharedPtr obstacle_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::ModeState>::SharedPtr mode_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::SpeedZoneStatus>::SharedPtr speed_zone_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr safe_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub_;

@@ -25,7 +25,10 @@ target_link_libraries(motion_controller_node golfcart_control rclcpp::rclcpp geo
 add_executable(safety_controller_node src/safety_controller_node.cpp)
 target_link_libraries(safety_controller_node rclcpp::rclcpp std_srvs::std_srvs std_msgs::std_msgs geometry_msgs::geometry_msgs golfcart_msgs::golfcart_msgs)
 
-install(TARGETS motion_controller_node safety_controller_node
+add_executable(mode_node src/mode_node.cpp)
+target_link_libraries(mode_node rclcpp::rclcpp std_srvs::std_srvs golfcart_msgs::golfcart_msgs)
+
+install(TARGETS motion_controller_node safety_controller_node mode_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY include/

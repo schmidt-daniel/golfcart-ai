@@ -69,6 +69,7 @@ extern "C" {
 #define ST_HILL_ASSIST_ENABLED 0x17
 #define ST_TIME_HHMM          0x18
 #define ST_BACKLIGHT          0x19
+#define ST_STEERING_ASSIST    0x1A
 
 // Capabilities.
 #define CAP_JOYSTICK 0x01

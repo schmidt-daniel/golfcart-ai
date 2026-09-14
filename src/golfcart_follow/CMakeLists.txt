@@ -17,7 +17,10 @@ target_link_libraries(follow_controller_node rclcpp::rclcpp std_srvs::std_srvs s
 add_executable(obstacle_awareness_node src/obstacle_awareness_node.cpp)
 target_link_libraries(obstacle_awareness_node rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
 
-install(TARGETS follow_controller_node obstacle_awareness_node
+add_executable(steering_assist_node src/steering_assist_node.cpp)
+target_link_libraries(steering_assist_node rclcpp::rclcpp golfcart_msgs::golfcart_msgs)
+
+install(TARGETS follow_controller_node obstacle_awareness_node steering_assist_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY launch
@@ -29,6 +32,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_follow_controller test/test_follow_controller.cpp)
   if(TARGET test_follow_controller)
     target_link_libraries(test_follow_controller rclcpp::rclcpp golfcart_msgs::golfcart_msgs)
+  endif()
+  ament_add_gtest(test_steering_assist test/test_steering_assist.cpp)
+  if(TARGET test_steering_assist)
+    target_link_libraries(test_steering_assist rclcpp::rclcpp golfcart_msgs::golfcart_msgs)
   endif()
 endif()
 

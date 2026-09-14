@@ -48,6 +48,7 @@ typedef struct {
   uint8_t assist_level;
   uint8_t assist_enabled;
   uint8_t hill_assist_enabled;
+  uint8_t steering_assist_enabled;
   uint16_t time_hhmm;
 } HandleState;
 
@@ -212,6 +213,7 @@ typedef struct {
 #define LABEL_GEOFENCE    14
 #define LABEL_SAFETY      15
 #define LABEL_MODE        16
+#define LABEL_STEERING_ASSIST 17
 
 static LabelRef g_labels[MAX_LABELS];
 static int g_label_count = 0;
@@ -301,6 +303,10 @@ static void set_label_text(LabelRef *lr)
       snprintf(buf, sizeof(buf), "Mode: %s", s < 4 ? names[s] : "UNKNOWN");
       break;
     }
+    case LABEL_STEERING_ASSIST:
+      snprintf(buf, sizeof(buf), "%s",
+               g_state.steering_assist_enabled ? "ON" : "OFF");
+      break;
     default:
       return;
   }
@@ -401,8 +407,12 @@ static void build_assist(void)
   make_label(scr, "Hill Assist", 20, 140, 180, 24, C_TEXT);
   make_label(scr, "OFF", 220, 140, 80, 24, C_TEXT_DIM);
   add_hit(20, 140, 300, 164, 2);
-  make_button(scr, "Main Menu", 20, 188, 280, 40, C_SURFACE2);
-  add_hit(20, 188, 300, 228, 3);
+  make_label(scr, "Steering Assist", 20, 188, 180, 24, C_TEXT);
+  lv_obj_t *sa = make_label(scr, "ON", 220, 188, 80, 24, C_TEXT_DIM);
+  add_label(sa, LABEL_STEERING_ASSIST);
+  add_hit(20, 188, 300, 212, 3);
+  make_button(scr, "Main Menu", 20, 236, 280, 40, C_SURFACE2);
+  add_hit(20, 236, 300, 276, 4);
 }
 
 // Change Hole (SCR_CHANGE_HOLE).
@@ -731,6 +741,7 @@ void screens_set_state(uint8_t id, int32_t value)
     case ST_ASSIST_LEVEL: g_state.assist_level = (uint8_t)value; break;
     case ST_ASSIST_ENABLED: g_state.assist_enabled = (uint8_t)value; break;
     case ST_HILL_ASSIST_ENABLED: g_state.hill_assist_enabled = (uint8_t)value; break;
+    case ST_STEERING_ASSIST: g_state.steering_assist_enabled = (uint8_t)value; break;
     case ST_TIME_HHMM: g_state.time_hhmm = (uint16_t)value; break;
     default: break;
   }
