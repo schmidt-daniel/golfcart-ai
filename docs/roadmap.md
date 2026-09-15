@@ -33,6 +33,7 @@ a material change in requirements or hardware.
 | **Voice Control** | Not appropriate for a golf course — shouting commands across the fairway is impractical and socially unacceptable. Superseded by the gesture-control idea. |
 | **Weather Sensing** | Redundant for a manually-driven cart — the operator is standing next to it and notices rain themselves. Only marginal value for autonomous operation (wet-grass traction), not worth the extra hardware. |
 | **Go to Hole N (tee-to-green)** | Dropped as a roadmap item — the two-leg (tee → green) orchestration didn't make sense as a standalone feature at the time. (The underlying navigation stack it would reuse is implemented.) |
+| **Return-to-base** | No real use case — holes are played in sequence and the round ends at the clubhouse anyway, so there's no scenario where the trolley would need to return mid-round autonomously. |
 
 ---
 
