@@ -35,7 +35,10 @@ target_link_libraries(sensor_fusion_node rclcpp::rclcpp sensor_msgs::sensor_msgs
 add_executable(localization_quality_node src/localization_quality_node.cpp)
 target_link_libraries(localization_quality_node rclcpp::rclcpp nav_msgs::nav_msgs golfcart_msgs::golfcart_msgs)
 
-install(TARGETS wheel_odometry_node sensor_fusion_node localization_quality_node
+add_executable(dead_reckoning_node src/dead_reckoning_node.cpp)
+target_link_libraries(dead_reckoning_node rclcpp::rclcpp nav_msgs::nav_msgs golfcart_msgs::golfcart_msgs)
+
+install(TARGETS wheel_odometry_node sensor_fusion_node localization_quality_node dead_reckoning_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY config
@@ -51,6 +54,12 @@ if(BUILD_TESTING)
   if(TARGET test_wheel_odometry)
     target_include_directories(test_wheel_odometry PRIVATE
       ${golfcart_control_INCLUDE_DIRS}
+    )
+  endif()
+  ament_add_gtest(test_dead_reckoning test/test_dead_reckoning.cpp)
+  if(TARGET test_dead_reckoning)
+    target_include_directories(test_dead_reckoning PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
   endif()
 endif()

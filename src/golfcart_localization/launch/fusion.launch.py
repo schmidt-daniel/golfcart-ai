@@ -63,8 +63,17 @@ def generate_launch_description():
         output='screen',
     )
 
+    dead_reckoning = Node(
+        package='golfcart_localization',
+        executable='dead_reckoning_node',
+        name='dead_reckoning_node',
+        parameters=[_node_params(cfg, 'dead_reckoning_node')],
+        output='screen',
+    )
+
     return LaunchDescription([
         sensor_fusion,
         ekf,
         quality,
+        dead_reckoning,
     ])

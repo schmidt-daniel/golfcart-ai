@@ -6,6 +6,7 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include "golfcart_msgs/msg/dead_reckoning_status.hpp"
 #include "golfcart_msgs/msg/geofence_status.hpp"
 #include "golfcart_msgs/msg/gps_fix.hpp"
 #include "golfcart_msgs/msg/motion_request.hpp"
@@ -57,6 +58,15 @@ public:
       [this](const golfcart_msgs::msg::MotionRequest::SharedPtr msg) {
         last_motion_time_ = now();
         autonomous_active_ = (msg->priority == 0);
+      });
+
+    // Dead-reckoning fallback: while the DR node is driving within budget,
+    // suppress the OUT_OF_FIX stop so the trolley can keep going on the fused
+    // pose. The DR node requests its own stop when the budget is exceeded.
+    dr_sub_ = create_subscription<golfcart_msgs::msg::DeadReckoningStatus>(
+      "dead_reckoning/status", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::DeadReckoningStatus::SharedPtr msg) {
+        dr_active_ = (msg->state == "DRIVING_DR");
       });
 
     // ---- Publishers ----
@@ -200,6 +210,7 @@ private:
     }
 
     // Stale / no fix -> OUT_OF_FIX (autonomous: safe stop).
+    // Suppressed while the dead-reckoning fallback is driving within budget.
     if (!has_fix_ || fix_age() > gps_timeout_s_) {
       msg.state = "OUT_OF_FIX";
       msg.inside = false;
@@ -208,7 +219,7 @@ private:
       msg.latest_lon = latest_lon_;
       msg.last_fix_age_s = fix_age();
       status_pub_->publish(msg);
-      if (autonomous_only_ && autonomous_active_) {
+      if (autonomous_only_ && autonomous_active_ && !dr_active_) {
         publish_stop();
       }
       return;
@@ -278,6 +289,7 @@ private:
   bool armed_ = true;  // always armed on startup
   bool has_fix_ = false;
   bool autonomous_active_ = false;
+  bool dr_active_ = false;  // dead-reckoning fallback driving within budget
   double latest_lat_ = 0.0, latest_lon_ = 0.0;
   Point2 pos_{0.0, 0.0};
   rclcpp::Time last_fix_time_;
@@ -286,6 +298,7 @@ private:
   // ---- ROS handles ----
   rclcpp::Subscription<golfcart_msgs::msg::GpsFix>::SharedPtr gps_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::MotionRequest>::SharedPtr motion_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::DeadReckoningStatus>::SharedPtr dr_sub_;
   rclcpp::Publisher<golfcart_msgs::msg::GeofenceStatus>::SharedPtr status_pub_;
   rclcpp::Publisher<golfcart_msgs::msg::MotionRequest>::SharedPtr motion_pub_;
   rclcpp::Service<golfcart_msgs::srv::GeofenceTrigger>::SharedPtr geofence_srv_;

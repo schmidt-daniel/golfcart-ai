@@ -193,6 +193,19 @@ geofence_node:
 # -----------------------------------------------------------------------------
 localization_quality_node:
   max_position_covariance: 1.0      # EKF covariance above this = DEGRADED
+  gps_timeout_s: 3.0                # no valid GPS fix for this long = LOST (s)
+
+# -----------------------------------------------------------------------------
+# Dead Reckoning Fallback (golfcart_localization/dead_reckoning_node)
+# When GPS is lost, keep driving on the fused pose for a bounded time/distance,
+# then safe-stop if GPS does not recover. The geofence OUT_OF_FIX stop is
+# suppressed while within budget (the DR node requests its own stop when the
+# budget is exceeded).
+# -----------------------------------------------------------------------------
+dead_reckoning_node:
+  max_dr_time_s: 30.0               # max seconds to drive on dead reckoning (s)
+  max_dr_distance_m: 50.0           # max meters to drive on dead reckoning (m)
+  stop_priority: 3                  # priority of the budget-exceeded stop request
 
 # -----------------------------------------------------------------------------
 # Wheel Odometry (golfcart_localization/wheel_odometry_node)
