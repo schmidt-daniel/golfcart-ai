@@ -10,7 +10,6 @@ patterns.
 | # | Feature | Theme | Effort | Reuses |
 | --- | --- | --- | --- | --- |
 | 1 | Remote E-Stop + Live Telemetry Dashboard | Safety / Operator UX | Low-Med | web server, safety controller |
-| 2 | Go to Hole N (tee-to-green navigation) | Core golf use case | Medium | course session, navigation |
 | 6 | GPS-Denied Dead-Reckoning Fallback | Robustness | Medium | localization quality, EKF |
 | 7 | Obstacle Steering Assist (manual) | Safety / UX | Medium | obstacle awareness |
 | 8 | Battery Range Estimator | Operator UX | Medium | battery, slope costmap |
@@ -66,49 +65,6 @@ Phone browser (dashboard.html)
 
 ### Effort
 Low-Medium. Mostly a new HTML page + wiring to existing topics/services.
-
----
-
-## 2. Go to Hole N (tee-to-green autonomous navigation)
-
-**Goal:** Operator selects a hole (and optionally a tee) on the HMI or phone;
-the trolley drives from its current position to that tee, then to the green.
-
-**Why now:** The most natural golf-cart use case, and all the pieces already
-exist — this is mostly orchestration.
-
-### Reuses
-- `course_session_node` — already tracks the active hole, tee, green, and
-  trolley position (`HoleSession`).
-- `navigation_node` + `/set_goal` (map frame) and `georeference_node` +
-  `/set_goal_geo` (lat/lon) — already drive to a goal.
-- `summon_node` — its live-target re-target loop is a template for
-  re-issuing goals as the trolley progresses.
-- HMI (ESP32 handle unit) + web app — already have hole/tee selection screens.
-
-### Design
-```text
-Operator picks hole N (+ tee) on HMI/phone
-        ↓  /course/hole (HoleSelect)  →  course_session_node
-        ↓  /course/hole (HoleSession: tee_x/y, green_x/y)
-   go_to_hole_node
-        │   ├─ goal 1 = tee position (map frame)
-        │   ├─ on arrival → goal 2 = green position
-        │   ├─ re-issue goal as trolley moves (like summon)
-        │   └─ publish /go_to_hole/status (progress, current leg)
-        ↓  /set_goal (map frame)  →  navigation_node → Nav2
-```
-
-- **Two-leg plan:** leg 1 = drive to the selected tee; leg 2 = drive to the
-  green. `course_session_node` already knows both positions.
-- **Progress:** reuse the Nav2 `/plan` route + `NavigationStatus` to show
-  progress and which leg is active.
-- **Safety:** same as summon — target-loss/arrival handling, obstacle handling
-  via Nav2, physical stop override, and the operator can cancel.
-
-### Effort
-Medium. A new `go_to_hole_node` (or extend `summon_node`'s pattern) + HMI/web
-wiring. No new messages needed beyond a status message.
 
 ---
 

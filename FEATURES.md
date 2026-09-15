@@ -15,6 +15,18 @@ features are added.
 - Web teleop: `web/index.html` (roslib.js, rosbridge_server, directional buttons, enable/stop, live status)
 - Docker build/test: `docker/` (Dockerfile, build.sh, docker-compose.yml)
 
+### Remote E-Stop + Live Telemetry Dashboard
+- `web/dashboard.html` — phone/web page with a large **hold-to-confirm E-STOP**
+  button (1.5 s hold → `/safety/stop`) and a **RE-ENABLE** button
+  (`/safety/enable`)
+- Live telemetry panel: safety state, speed (`/motor/state`), battery
+  (voltage + charge %), GPS position, navigation status, geofence state,
+  active speed-zone limit, slope
+- Fault badges: battery low (<20%), geofence CROSSED/OUT_OF_FIX/NEAR, obstacle
+  in zone, steep slope (>10°)
+- Linked from `index.html`; added to `setup.py` data_files so it's installed
+  and served by the web teleop server
+
 ### Battery Monitoring
 - `battery_node` (INA219 over I2C, publishes `BatteryState` on `/battery/state`)
 - Safety Controller stops motion on critical battery
@@ -194,8 +206,7 @@ features are added.
 ## Not yet implemented (documented only)
 
 See `docs/features/` for design docs, and `docs/roadmap.md` for the next
-planned batch (Remote E-Stop + Telemetry, Obstacle Steering Assist, Battery
-Range Estimator).
+planned batch (Obstacle Steering Assist, Battery Range Estimator).
 
 - Voice Control
 - Push Assist (pedelec-style force sensing)
