@@ -37,6 +37,13 @@ def generate_launch_description():
         output='screen',
     )
 
+    capability_node = Node(
+        package='golfcart_system',
+        executable='capability_node',
+        name='capability_node',
+        output='screen',
+    )
+
     safety_controller = Node(
         package='golfcart_control',
         executable='safety_controller_node',
@@ -112,6 +119,7 @@ def generate_launch_description():
     return LaunchDescription([
         impl_arg,
         odrive_node,
+        capability_node,
         motion_controller,
         safety_controller,
         battery_node,

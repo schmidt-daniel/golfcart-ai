@@ -1,6 +1,7 @@
 #include <cmath>
 #include <memory>
 
+#include "golfcart_msgs/msg/capability_status.hpp"
 #include "golfcart_msgs/msg/follow_status.hpp"
 #include "golfcart_msgs/msg/motion_request.hpp"
 #include "golfcart_msgs/msg/obstacle.hpp"
@@ -48,6 +49,14 @@ public:
         on_obstacle(msg);
       });
 
+    // Track horizontal LiDAR capability: follow-me requires it (person target
+    // comes from the LiDAR person detector).
+    cap_sub_ = create_subscription<golfcart_msgs::msg::CapabilityStatus>(
+      "capability/status", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::CapabilityStatus::SharedPtr msg) {
+        lidar_h_ = msg->lidar_horizontal;
+      });
+
     // ---- Publishers ----
     motion_pub_ = create_publisher<golfcart_msgs::msg::MotionRequest>(
       "motion/request", rclcpp::SensorDataQoS());
@@ -93,6 +102,14 @@ private:
       resp->message = "Follow stopped";
       return;
     }
+
+    // Horizontal LiDAR required for follow-me (person target source).
+    if (!lidar_h_) {
+      resp->success = false;
+      resp->message = "Follow unavailable: horizontal LiDAR not present";
+      return;
+    }
+
     active_ = true;
     state_ = "FOLLOWING";
     resp->success = true;
@@ -204,6 +221,7 @@ private:
   // ---- State ----
   bool active_ = false;
   std::string state_ = "IDLE";
+  bool lidar_h_ = false;
   rclcpp::Time hold_start_time_;
   golfcart_msgs::msg::PersonTarget last_target_;
   rclcpp::Time last_target_time_;
@@ -212,6 +230,7 @@ private:
   // ---- ROS handles ----
   rclcpp::Subscription<golfcart_msgs::msg::PersonTarget>::SharedPtr target_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::Obstacle>::SharedPtr obstacle_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::CapabilityStatus>::SharedPtr cap_sub_;
   rclcpp::Publisher<golfcart_msgs::msg::MotionRequest>::SharedPtr motion_pub_;
   rclcpp::Publisher<golfcart_msgs::msg::FollowStatus>::SharedPtr status_pub_;
   rclcpp::Service<golfcart_msgs::srv::FollowTrigger>::SharedPtr follow_srv_;

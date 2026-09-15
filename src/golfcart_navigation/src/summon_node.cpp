@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "golfcart_msgs/msg/capability_status.hpp"
 #include "golfcart_msgs/msg/phone_fix.hpp"
 #include "golfcart_msgs/msg/summon_status.hpp"
 #include "golfcart_msgs/srv/set_goal.hpp"
@@ -70,6 +71,13 @@ public:
         trolley_has_pos_ = true;
       });
 
+    // Track GPS capability: summon (autonomous driving) requires GPS.
+    cap_sub_ = create_subscription<golfcart_msgs::msg::CapabilityStatus>(
+      "capability/status", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::CapabilityStatus::SharedPtr msg) {
+        gps_available_ = msg->gps;
+      });
+
     // ---- Publishers ----
     status_pub_ = create_publisher<golfcart_msgs::msg::SummonStatus>(
       "summon/status", rclcpp::SensorDataQoS());
@@ -123,6 +131,13 @@ private:
       cancel_summon();
       resp->success = true;
       resp->message = "Summon cancelled";
+      return;
+    }
+
+    // GPS required for autonomous driving (summon).
+    if (!gps_available_) {
+      resp->success = false;
+      resp->message = "Summon unavailable: GPS not present";
       return;
     }
 
@@ -325,6 +340,7 @@ private:
 
   bool trolley_has_pos_ = false;
   Vec2 trolley_pos_{0.0, 0.0};
+  bool gps_available_ = false;
 
   std::deque<Fix> history_;
 
@@ -339,6 +355,7 @@ private:
   // ---- ROS handles ----
   rclcpp::Subscription<golfcart_msgs::msg::PhoneFix>::SharedPtr phone_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::CapabilityStatus>::SharedPtr cap_sub_;
   rclcpp::Publisher<golfcart_msgs::msg::SummonStatus>::SharedPtr status_pub_;
   rclcpp::Service<golfcart_msgs::srv::SummonTrigger>::SharedPtr summon_srv_;
   rclcpp::Client<golfcart_msgs::srv::SetGoal>::SharedPtr set_goal_geo_client_;

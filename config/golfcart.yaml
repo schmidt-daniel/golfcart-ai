@@ -308,3 +308,22 @@ gesture_controller_node:
   ignore_in_manual: true            # ignore gestures while joystick is active
   summon_hold_s: 1.0                # hold time to confirm SUMMON (windmill + hold)
   # (uses common map origin)
+
+# -----------------------------------------------------------------------------
+# Capability Node (golfcart_system/capability_node)
+# Tracks which hardware is present (heartbeat + valid flag) and publishes
+# /capability/status. Downstream nodes gate features on these.
+# Overrides: -1 = auto-detect, 0 = force absent, 1 = force present.
+# Use overrides to test without hardware (e.g. force gps=1 to test summon).
+# -----------------------------------------------------------------------------
+capability_node:
+  heartbeat_timeout_s: 2.0          # sensor considered absent after this long
+  publish_rate_hz: 5.0              # capability status publish rate (Hz)
+  override_lidar_horizontal: -1     # -1 auto, 0 absent, 1 present
+  override_lidar_tilted: -1         # -1 auto, 0 absent, 1 present
+  override_gps: -1                  # -1 auto, 0 absent, 1 present
+  override_imu: -1                  # -1 auto, 0 absent, 1 present
+  override_battery: -1              # -1 auto, 0 absent, 1 present
+  override_camera: -1               # -1 auto, 0 absent, 1 present
+  override_coral: -1                # -1 auto, 0 absent, 1 present
+  override_odrive: -1               # -1 auto, 0 absent, 1 present

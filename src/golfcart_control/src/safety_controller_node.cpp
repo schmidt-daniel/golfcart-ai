@@ -4,6 +4,7 @@
 
 #include "geometry_msgs/msg/twist.hpp"
 #include "golfcart_msgs/msg/battery_state.hpp"
+#include "golfcart_msgs/msg/capability_status.hpp"
 #include "golfcart_msgs/msg/imu_data.hpp"
 #include "golfcart_msgs/msg/mode_state.hpp"
 #include "golfcart_msgs/msg/motion_request.hpp"
@@ -114,6 +115,13 @@ public:
         }
       });
 
+    // Track ODrive capability: motion requires the motor controller.
+    cap_sub_ = create_subscription<golfcart_msgs::msg::CapabilityStatus>(
+      "capability/status", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::CapabilityStatus::SharedPtr msg) {
+        odrive_available_ = msg->odrive;
+      });
+
     enable_srv_ = create_service<std_srvs::srv::Trigger>(
       "safety/enable",
       [this](const std::shared_ptr<std_srvs::srv::Trigger::Request>,
@@ -121,6 +129,11 @@ public:
         if (state_ == SafetyState::FAULT) {
           resp->success = false;
           resp->message = "Cannot enable from FAULT";
+          return;
+        }
+        if (!odrive_available_) {
+          resp->success = false;
+          resp->message = "Cannot enable: ODrive not present";
           return;
         }
         state_ = SafetyState::READY;
@@ -221,6 +234,7 @@ private:
   float predicted_pitch_ = 0.0f;
   bool obstacle_in_zone_ = false;
   bool manual_mode_ = true;  // default MANUAL: operator has full control
+  bool odrive_available_ = false;
   double speed_zone_limit_ = -1.0;  // active speed-zone limit (m/s); -1 = none
   uint8_t current_priority_ = 0;  // highest-priority active source
   rclcpp::Time last_request_time_;
@@ -230,6 +244,7 @@ private:
   rclcpp::Subscription<golfcart_msgs::msg::ImuData>::SharedPtr imu_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::SlopeStatus>::SharedPtr slope_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::ObstacleState>::SharedPtr obstacle_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::CapabilityStatus>::SharedPtr cap_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::ModeState>::SharedPtr mode_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::SpeedZoneStatus>::SharedPtr speed_zone_sub_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr safe_pub_;
