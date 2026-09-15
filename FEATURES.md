@@ -152,6 +152,18 @@ features are added.
 - `golfcart_msgs` — `ModeState.msg`, `AssistConfig.msg`
 - Pure nudge math in `test_steering_assist.cpp` — unit-tested
 
+### Wheel-Slip / Traction Detection
+- `wheel_slip_node` (`golfcart_control`) — detects when the wheels spin faster
+  than the trolley actually moves (loss of traction on wet grass / steep
+  slopes); publishes `/slip/status`
+- Compares wheel-derived speed (`/motor/state`) to the fused-pose speed
+  (`/odometry/filtered`); `slip_ratio = (wheel - actual) / wheel`, debounced
+  (sustained slip for `debounce_s` before declaring)
+- Slip is a **warning**, not a fault — no hard stop by default; the Safety
+  Controller may warn and/or limit speed
+- `golfcart_msgs` — `SlipStatus.msg`
+- Pure math in `slip_math.hpp` (slip_ratio, debounced detector) — unit-tested
+
 ### Geofencing (Stay-on-Course)
 - `geofence_node` (`golfcart_geofence`) — /gps/fix → /geofence/status; keeps the trolley inside the outer course boundary polygon
 - **Per-hole boundary config** (`config/hole5.yaml`) as the single source of truth (lat/lon polygon, decoupled from CourseMap)
