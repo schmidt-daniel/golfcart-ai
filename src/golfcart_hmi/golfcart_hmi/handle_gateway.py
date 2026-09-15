@@ -23,7 +23,7 @@ import serial
 import rclpy
 from rclpy.node import Node
 from std_srvs.srv import Trigger
-from golfcart_msgs.srv import CourseSelect, HoleSelect
+from golfcart_msgs.srv import CourseSelect, HoleSelect, DriveDistance
 from golfcart_msgs.msg import MotionRequest, BatteryState, GpsFix, ImuData
 from golfcart_msgs.msg import ObstacleState, GeofenceStatus, SpeedZoneStatus
 from golfcart_msgs.msg import SlopeStatus, NavigationStatus, HoleSession, CourseList, CourseMap
@@ -78,6 +78,7 @@ class HandleGatewayNode(Node):
         self.stop_client = self.create_client(Trigger, 'safety/stop')
         self.course_select_client = self.create_client(CourseSelect, 'course/select')
         self.hole_select_client = self.create_client(HoleSelect, 'course/hole')
+        self.drive_distance_client = self.create_client(DriveDistance, 'drive_distance')
 
         # ---- Subscriptions (ROS -> downlink) ----
         self.battery_sub = self.create_subscription(
@@ -210,6 +211,8 @@ class HandleGatewayNode(Node):
             self._menu_mode(item)
         elif self.screen == p.SCREEN_ASSIST:
             self._menu_assist(item)
+        elif self.screen == p.SCREEN_DRIVE_DIST:
+            self._menu_drive_dist(item)
         elif self.screen == p.SCREEN_DEBUG:
             self._menu_debug(item)
         else:
@@ -233,26 +236,40 @@ class HandleGatewayNode(Node):
             self._nav(p.SCREEN_COURSE)
 
     def _menu_main(self, item):
-        # Main menu items: MAP, MODE, ASSIST, ENERGY, CHANGE HOLE,
+        # Main menu items: MAP, DRIVE DIST, MODE, ASSIST, ENERGY, CHANGE HOLE,
         # SELECT COURSE, WIFI, DEBUG, SHUTDOWN.
         if item == 0:      # MAP
             self._nav(p.SCREEN_HOLE)
-        elif item == 1:    # MODE
+        elif item == 1:    # DRIVE DIST
+            self._nav(p.SCREEN_DRIVE_DIST)
+        elif item == 2:    # MODE
             self._nav(p.SCREEN_MODE)
-        elif item == 2:    # ASSIST
+        elif item == 3:    # ASSIST
             self._nav(p.SCREEN_ASSIST)
-        elif item == 3:    # ENERGY
+        elif item == 4:    # ENERGY
             self._nav(p.SCREEN_ENERGY)
-        elif item == 4:    # CHANGE HOLE
+        elif item == 5:    # CHANGE HOLE
             self._nav(p.SCREEN_CHANGE_HOLE)
-        elif item == 5:    # SELECT COURSE
+        elif item == 6:    # SELECT COURSE
             self._nav(p.SCREEN_COURSE)
-        elif item == 6:    # WIFI
+        elif item == 7:    # WIFI
             self._nav(p.SCREEN_WIFI)
-        elif item == 7:    # DEBUG
+        elif item == 8:    # DEBUG
             self._nav(p.SCREEN_DEBUG)
-        elif item == 8:    # SHUTDOWN
+        elif item == 9:    # SHUTDOWN
             self.get_logger().info('SHUTDOWN requested (not wired)')
+
+    def _menu_drive_dist(self, item):
+        # item 0..4 = 10/20/30/40/50 m; 5 = Cancel; 6 = Main Menu.
+        if item == 6:
+            self._nav(p.SCREEN_MENU)
+            return
+        if item == 5:
+            self._call_drive_distance(0.0, cancel=True)
+            return
+        dists = [10, 20, 30, 40, 50]
+        if 0 <= item < len(dists):
+            self._call_drive_distance(float(dists[item]), cancel=False)
 
     def _menu_mode(self, item):
         # item 0..2 = mode; 3 = Main Menu.
@@ -342,6 +359,18 @@ class HandleGatewayNode(Node):
         future.add_done_callback(
             lambda f: self.get_logger().info(
                 f'course/hole: {f.result().message if f.result() else "failed"}'))
+
+    def _call_drive_distance(self, distance_m, cancel=False):
+        if not self.drive_distance_client.wait_for_service(timeout_sec=2.0):
+            self.get_logger().warn('drive_distance service not available')
+            return
+        req = DriveDistance.Request()
+        req.distance_m = distance_m
+        req.cancel = cancel
+        future = self.drive_distance_client.call_async(req)
+        future.add_done_callback(
+            lambda f: self.get_logger().info(
+                f'drive_distance: {f.result().message if f.result() else "failed"}'))
 
     def on_course_list(self, msg):
         self.courses = [(c.id, c.name) for c in msg.courses]

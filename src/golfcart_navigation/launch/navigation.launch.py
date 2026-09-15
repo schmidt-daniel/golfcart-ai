@@ -164,6 +164,15 @@ def generate_launch_description():
         output='screen',
     )
 
+    # Drive distance (drive N meters in the current heading direction)
+    drive_distance_node = Node(
+        package='golfcart_navigation',
+        executable='drive_distance_node',
+        name='drive_distance_node',
+        parameters=[_node_params(cfg, 'drive_distance_node')],
+        output='screen',
+    )
+
     return LaunchDescription([
         use_sim_time_arg,
         planner,
@@ -178,4 +187,5 @@ def generate_launch_description():
         summon_node,
         speed_zone_node,
         range_estimator_node,
+        drive_distance_node,
     ])

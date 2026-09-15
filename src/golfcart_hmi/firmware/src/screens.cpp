@@ -365,10 +365,10 @@ static void build_menu(void)
 {
   scr = make_screen();
   make_header("Main Menu");
-  const char *items[] = {"MAP", "MODE", "ASSIST", "ENERGY", "CHANGE HOLE",
-                         "SELECT COURSE", "WIFI", "DEBUG", "SHUTDOWN"};
+  const char *items[] = {"MAP", "DRIVE DIST", "MODE", "ASSIST", "ENERGY",
+                         "CHANGE HOLE", "SELECT COURSE", "WIFI", "DEBUG", "SHUTDOWN"};
   int y = 40;
-  for (int i = 0; i < 9; ++i) {
+  for (int i = 0; i < 10; ++i) {
     make_button(scr, items[i], 20, y, 280, 40, C_SURFACE2);
     add_hit(20, y, 300, y + 40, i);  // item id = index
     y += 48;
@@ -509,6 +509,29 @@ static void build_sensors(void)
   }
   make_button(scr, "Main Menu", 20, y0 + 8 * dy, 280, 40, C_SURFACE2);
   add_hit(20, y0 + 8 * dy, 300, y0 + 8 * dy + 40, 0);
+}
+
+// Drive Distance (SCR_DRIVE_DIST).
+// Lets the operator drive a fixed distance in the current heading direction.
+// Buttons: 10/20/30/40/50 m + Cancel.
+static void build_drive_dist(void)
+{
+  scr = make_screen();
+  make_header("Drive Distance");
+  const int dists[] = {10, 20, 30, 40, 50};
+  int y = 44;
+  for (int i = 0; i < 5; ++i) {
+    char label[16];
+    snprintf(label, sizeof(label), "%d m", dists[i]);
+    make_button(scr, label, 20, y, 280, 40, C_SURFACE2);
+    add_hit(20, y, 300, y + 40, i);
+    y += 48;
+  }
+  make_button(scr, "Cancel", 20, y, 280, 40, C_DANGER);
+  add_hit(20, y, 300, y + 40, 5);
+  y += 48;
+  make_button(scr, "Main Menu", 20, y, 280, 40, C_SURFACE2);
+  add_hit(20, y, 300, y + 40, 6);
 }
 
 // Change Hole (SCR_CHANGE_HOLE).
@@ -692,7 +715,7 @@ static void build_splash(void)
 // ---------------------------------------------------------------------------
 typedef void (*ScreenBuilder)(void);
 
-static ScreenBuilder screen_builders[18] = {
+static ScreenBuilder screen_builders[19] = {
   build_splash,         // 0x00 SCR_SPLASH
   build_course,         // 0x01 SCR_COURSE
   build_tee,            // 0x02 SCR_TEE
@@ -711,6 +734,7 @@ static ScreenBuilder screen_builders[18] = {
   build_debug_nav,      // 0x0F SCR_DEBUG_NAV
   build_energy,         // 0x10 SCR_ENERGY
   build_sensors,        // 0x11 SCR_SENSORS
+  build_drive_dist,     // 0x12 SCR_DRIVE_DIST
 };
 
 // ---------------------------------------------------------------------------

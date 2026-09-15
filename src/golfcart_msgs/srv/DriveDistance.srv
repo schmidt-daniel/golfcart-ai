@@ -1,0 +1,9 @@
+# Drive the trolley a fixed distance in its current heading direction.
+# The drive_distance_node computes the goal point N meters ahead of the
+# current pose and forwards it to the navigation stack (Nav2), so obstacle
+# avoidance applies automatically.
+float64 distance_m   # distance to drive (m); 10/20/30/40/50
+bool cancel          # true = cancel any active drive
+---
+bool success
+string message

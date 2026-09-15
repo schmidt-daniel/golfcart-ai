@@ -31,6 +31,7 @@
 #define SCR_DEBUG_NAV    0x0F
 #define SCR_ENERGY       0x10
 #define SCR_SENSORS      0x11
+#define SCR_DRIVE_DIST   0x12
 
 // Initialize the LVGL screen system (called once from setup()).
 void screens_init(void);

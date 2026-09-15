@@ -327,3 +327,11 @@ capability_node:
   override_camera: -1               # -1 auto, 0 absent, 1 present
   override_coral: -1                # -1 auto, 0 absent, 1 present
   override_odrive: -1               # -1 auto, 0 absent, 1 present
+
+# -----------------------------------------------------------------------------
+# Drive Distance (golfcart_navigation/drive_distance_node)
+# Drive a fixed distance (10/20/30/40/50 m) in the current heading direction.
+# Uses the navigation stack (Nav2), so obstacle avoidance applies. GPS required.
+# -----------------------------------------------------------------------------
+drive_distance_node:
+  max_distance_m: 50.0              # max drivable distance (m)

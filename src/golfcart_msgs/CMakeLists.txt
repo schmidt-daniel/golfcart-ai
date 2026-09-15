@@ -50,6 +50,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GeofenceTrigger.srv"
   "srv/CourseSelect.srv"
   "srv/HoleSelect.srv"
+  "srv/DriveDistance.srv"
   DEPENDENCIES builtin_interfaces nav_msgs geometry_msgs
 )
 
