@@ -145,6 +145,14 @@ def generate_launch_description():
         output='screen',
     )
 
+    wheel_slip = Node(
+        package='golfcart_control',
+        executable='wheel_slip_node',
+        name='wheel_slip_node',
+        parameters=[_node_params(cfg, 'wheel_slip_node')],
+        output='screen',
+    )
+
     steering_assist = Node(
         package='golfcart_follow',
         executable='steering_assist_node',
@@ -176,5 +184,6 @@ def generate_launch_description():
         hill_rollback,
         push_assist,
         mode_node,
+        wheel_slip,
         steering_assist,
     ])

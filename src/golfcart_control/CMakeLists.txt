@@ -28,7 +28,10 @@ target_link_libraries(safety_controller_node rclcpp::rclcpp std_srvs::std_srvs s
 add_executable(mode_node src/mode_node.cpp)
 target_link_libraries(mode_node rclcpp::rclcpp std_srvs::std_srvs golfcart_msgs::golfcart_msgs)
 
-install(TARGETS motion_controller_node safety_controller_node mode_node
+add_executable(wheel_slip_node src/wheel_slip_node.cpp)
+target_link_libraries(wheel_slip_node golfcart_control rclcpp::rclcpp nav_msgs::nav_msgs golfcart_msgs::golfcart_msgs)
+
+install(TARGETS motion_controller_node safety_controller_node mode_node wheel_slip_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY include/
@@ -44,6 +47,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_safety_state test/test_safety_state.cpp)
   if(TARGET test_safety_state)
     target_link_libraries(test_safety_state golfcart_control)
+  endif()
+  ament_add_gtest(test_slip_math test/test_slip_math.cpp)
+  if(TARGET test_slip_math)
+    target_link_libraries(test_slip_math golfcart_control)
   endif()
 endif()
 

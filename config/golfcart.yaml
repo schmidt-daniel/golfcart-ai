@@ -72,6 +72,17 @@ mode_node:
   default_mode: 0                   # 0=MANUAL, 1=FOLLOW, 2=AUTONOMOUS, 3=TELEOP
 
 # -----------------------------------------------------------------------------
+# Wheel-Slip / Traction Detection (golfcart_control/wheel_slip_node)
+# Detects when the wheels spin faster than the trolley actually moves (loss of
+# traction on wet grass / steep slopes). Publishes /slip/status; the Safety
+# Controller may warn and/or limit speed. Slip is a warning, not a fault.
+# -----------------------------------------------------------------------------
+wheel_slip_node:
+  slip_threshold: 0.3               # slip_ratio above this = slipping (0-1)
+  debounce_s: 0.5                   # sustained slip time before declaring (s)
+  publish_rate_hz: 20.0             # status publish rate (Hz)
+
+# -----------------------------------------------------------------------------
 # Hill / Rollback Behavior (golfcart_behavior/hill_rollback_node)
 # -----------------------------------------------------------------------------
 hill_rollback_node:
