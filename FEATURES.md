@@ -206,6 +206,19 @@ features are added.
 - Pure math in `speed_zone_math.hpp` (point-in-polygon) — unit-tested;
   `scripts/test_speed_zone_node.py` headless e2e
 
+### Battery Range Estimator (self-learning)
+- `range_estimator_node` (`golfcart_navigation`) — estimates remaining range
+  from battery charge + terrain slope + remaining hole distance; publishes
+  `/range/status` (OK / CAUTION / CRITICAL)
+- **Self-learning energy model:** slope-bucketed `Wh/m` (downhill/flat/uphill)
+  updated via online EMA from measured battery current × distance, so it
+  improves with every round (no persistence across reboots in v1)
+- Informational only — never commands motion; reserve + margin keep the
+  estimate conservative
+- `golfcart_msgs` — `RangeStatus.msg`
+- Pure math in `range_estimator_math.hpp` (slope bucketing, EMA learning, range
+  estimate, warning states) — unit-tested
+
 ### Deployment (Option D, Hybrid)
 - `systemd/` — systemd units per service, auto-start on boot + restart on crash:
   `golfcart-core`, `golfcart-teleop`, `golfcart-localization`, `golfcart-mapping`,
@@ -219,8 +232,9 @@ features are added.
 
 ## Not yet implemented (documented only)
 
-See `docs/features/` for design docs, and `docs/roadmap.md` for the next
-planned batch (Battery Range Estimator).
+See `docs/features/` for design docs. The software-only roadmap batch is
+complete (Remote E-Stop + Telemetry, GPS-Denied Fallback, Obstacle Steering
+Assist, Battery Range Estimator).
 
 - Voice Control
 - Push Assist (pedelec-style force sensing)

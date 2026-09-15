@@ -5,15 +5,13 @@ being **software-only** (no new hardware) and building directly on the existing
 autonomous stack. Each feature reuses already-implemented nodes, messages, and
 patterns.
 
-**Selected (in priority order):**
+**Status: the software-only batch is complete.**
 
-| # | Feature | Theme | Effort | Reuses |
-| --- | --- | --- | --- | --- |
-| 8 | Battery Range Estimator | Operator UX | Medium | battery, slope costmap |
-
-> **Completed:** Remote E-Stop + Live Telemetry Dashboard (`docs/features/remote-estop-dashboard.md`),
-> GPS-Denied Dead-Reckoning Fallback (`docs/features/dead-reckoning.md`),
-> Obstacle Steering Assist (`docs/features/steering-assist.md`).
+> **Completed:**
+> - Remote E-Stop + Live Telemetry Dashboard (`docs/features/remote-estop-dashboard.md`)
+> - GPS-Denied Dead-Reckoning Fallback (`docs/features/dead-reckoning.md`)
+> - Obstacle Steering Assist (`docs/features/steering-assist.md`)
+> - Battery Range Estimator (`docs/features/range-estimator.md`)
 
 > **Not selected now:** Voice Control, Push Assist, camera person re-ID,
 > weather sensing — these require new hardware (mic, load cell, camera
@@ -61,14 +59,6 @@ Medium. A new `range_estimator_node` + a calibration pass; reuses battery,
 slope, and course data.
 
 ---
-
-## Suggested implementation order
-
-1. **#8 Battery Range Estimator** — independent, medium, good operator value.
-4. **#6 GPS-Denied Fallback** — robustness; pairs with #8 (both touch
-   localization/battery policy).
-5. **#7 Obstacle Steering Assist** — UX polish; last because it needs careful
-   tuning against the safety backstop.
 
 Each feature should follow the existing pattern: a plan in `plans/`, a feature
 doc in `docs/features/`, unit tests for pure math, a headless e2e check script,
