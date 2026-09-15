@@ -113,6 +113,48 @@ graph LR
 
 ---
 
+## 3.1 Regenerative Braking & Braking Resistor
+
+The ODrive does **regenerative braking by default** in the velocity-control
+mode used by `odrive_motor_controller.cpp` (`requested_state: 8` =
+`CLOSED_LOOP_CONTROL`). When the commanded velocity is lower than the current
+velocity (e.g. a stop), the ODrive applies negative torque, and the motor acts
+as a generator feeding energy back to the DC bus.
+
+**The critical caveat:** regen only works if the battery can absorb the
+returned current. If the battery is **full** (or the BMS blocks charging), the
+DC bus voltage spikes and the ODrive can **fault (overvoltage)** — losing
+braking. To prevent this, a **braking resistor** dumps the excess energy as
+heat.
+
+### Braking resistor sizing (ballpark)
+
+| Parameter | Value |
+| --- | --- |
+| **Resistance** | ~10–15 Ω |
+| **Power rating** | ≥ 150 W (continuous) |
+| **Voltage rating** | ≥ 60 V (margin over the 42 V full charge) |
+
+Derivation (assumes ~150 kg cart + operator, 1.0 m/s max speed):
+
+- Peak regen power ≈ 2 × kinetic energy / stop time ≈ **~150 W**.
+- Resistance: `R = V² / P = 44² / 150 ≈ 13 Ω`.
+
+**Verify the mass** — the number scales with cart+operator weight. Lighter
+(~100 kg) → ~10 Ω / 100 W; heavier → scale up.
+
+### ODrive wiring
+
+The ODrive 3.6 has a dedicated braking-resistor interface (`BRN`/`BRP`
+terminals). Wire the resistor there (not inline with the battery) and configure
+`brake_resistance` and `dc_bus_overvoltage_trip_level` (set just above the
+full-charge voltage, e.g. ~44–45 V for a 42 V pack).
+
+> **Status:** regen is automatic in the current driver; the braking resistor
+> and overvoltage configuration are **hardware-phase** items to validate.
+
+---
+
 ## 4. Arduino Uno Joystick Interface
 
 The Arduino reads the analog joystick axes, the joystick button (for HMI), and
