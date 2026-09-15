@@ -247,6 +247,16 @@ features are added.
 - Pure math in `range_estimator_math.hpp` (slope bucketing, EMA learning, range
   estimate, warning states) — unit-tested
 
+### Energy Dashboard (HMI)
+- New **ENERGY** screen on the ESP32 handle-unit HMI showing the range
+  estimator's `/range/status`: remaining range (colored by state), state badge
+  (OK/CAUTION/CRITICAL), remaining hole distance, return distance, battery %
+- `handle_gateway` subscribes `/range/status` and forwards to the ESP32 via new
+  state IDs (`ST_RANGE_M`/`ST_RETURN_M` uint16, `ST_RANGE_STATE` uint8);
+  ENERGY item added to the main menu
+- Informational only — never commands motion
+- `test_protocol.py` encode tests; firmware builds (RAM 29.7%, Flash 15.5%)
+
 ### Deployment (Option D, Hybrid)
 - `systemd/` — systemd units per service, auto-start on boot + restart on crash:
   `golfcart-core`, `golfcart-teleop`, `golfcart-localization`, `golfcart-mapping`,
