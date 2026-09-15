@@ -50,6 +50,9 @@ graph LR
 
     subgraph Handle[ESP32 Handle Unit]
         HANDLE_USB[USB-C]
+        HANDLE_DISPLAY[Display (TFT)]
+        HANDLE_JOY[Joystick]
+        HANDLE_LOAD[Load Cell]
     end
 
     subgraph GPS[USB GPS Dongle]
