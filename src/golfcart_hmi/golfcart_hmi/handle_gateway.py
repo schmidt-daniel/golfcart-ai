@@ -28,6 +28,7 @@ from golfcart_msgs.msg import MotionRequest, BatteryState, GpsFix, ImuData
 from golfcart_msgs.msg import ObstacleState, GeofenceStatus, SpeedZoneStatus
 from golfcart_msgs.msg import SlopeStatus, NavigationStatus, HoleSession, CourseList, CourseMap
 from golfcart_msgs.msg import HandleForce, ModeState, AssistConfig, RangeStatus, SlipStatus
+from golfcart_msgs.msg import CapabilityStatus
 
 from golfcart_hmi import protocol as p
 
@@ -105,6 +106,8 @@ class HandleGatewayNode(Node):
             RangeStatus, 'range/status', self.on_range, 10)
         self.slip_sub = self.create_subscription(
             SlipStatus, 'slip/status', self.on_slip, 10)
+        self.cap_sub = self.create_subscription(
+            CapabilityStatus, 'capability/status', self.on_capability, 10)
 
         # ---- Screen state (for MENU_SELECT interpretation) ----
         self.screen = p.SCREEN_SPLASH
@@ -301,13 +304,14 @@ class HandleGatewayNode(Node):
             f'push={self.push_assist_enabled} level={self.assist_level}')
 
     def _menu_debug(self, item):
-        # item 0..5 = debug view; 6 = Main Menu.
-        if item == 6:
+        # item 0..6 = debug view; 7 = Main Menu.
+        if item == 7:
             self._nav(p.SCREEN_MENU)
         else:
             debug_screens = [p.SCREEN_DEBUG_SYSTEM, p.SCREEN_DEBUG_GPS,
                              p.SCREEN_DEBUG_LIDAR, p.SCREEN_DEBUG_CAMERA,
-                             p.SCREEN_DEBUG_IMU, p.SCREEN_DEBUG_NAV]
+                             p.SCREEN_DEBUG_IMU, p.SCREEN_DEBUG_NAV,
+                             p.SCREEN_SENSORS]
             if 0 <= item < len(debug_screens):
                 self._nav(debug_screens[item])
 
@@ -402,6 +406,21 @@ class HandleGatewayNode(Node):
     def on_slip(self, msg):
         if msg.valid:
             self._send_state(p.ST_SLIP, 1 if msg.slipping else 0)
+
+    def on_capability(self, msg):
+        # Pack the capability bitmask (must match the ESP32 CAP_* bit order:
+        # 0=LiDAR H, 1=LiDAR T, 2=GPS, 3=IMU, 4=Battery, 5=Camera, 6=Coral,
+        # 7=ODrive).
+        mask = 0
+        mask |= (1 << 0) if msg.lidar_horizontal else 0
+        mask |= (1 << 1) if msg.lidar_tilted else 0
+        mask |= (1 << 2) if msg.gps else 0
+        mask |= (1 << 3) if msg.imu else 0
+        mask |= (1 << 4) if msg.battery else 0
+        mask |= (1 << 5) if msg.camera else 0
+        mask |= (1 << 6) if msg.coral else 0
+        mask |= (1 << 7) if msg.odrive else 0
+        self._send_state(p.ST_CAPABILITY, mask)
 
     # ------------------------------------------------------------------
     # Serial send helpers

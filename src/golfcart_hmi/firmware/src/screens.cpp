@@ -54,6 +54,7 @@ typedef struct {
   uint16_t return_m;          // estimated return distance (m)
   uint8_t range_state;        // 0=OK, 1=CAUTION, 2=CRITICAL
   uint8_t slip;               // 0=no slip, 1=wheels slipping
+  uint16_t capability;        // bitmask of present sensors (see CAP_*)
 } HandleState;
 
 static HandleState g_state;
@@ -195,10 +196,11 @@ static int hit_test(int x, int y)
 // Each screen registers labels it wants updated; screens_refresh() sets their
 // text from the current state.
 // ---------------------------------------------------------------------------
-#define MAX_LABELS 16
+#define MAX_LABELS 24
 typedef struct {
   lv_obj_t *obj;
   uint8_t kind;   // which state value to render (see LABEL_*)
+  uint8_t bit;    // for LABEL_CAPABILITY: which capability bit to render
 } LabelRef;
 
 #define LABEL_BATTERY_PCT 1
@@ -222,6 +224,7 @@ typedef struct {
 #define LABEL_RETURN_M    19
 #define LABEL_RANGE_STATE 20
 #define LABEL_SLIP        21
+#define LABEL_CAPABILITY  22
 
 static LabelRef g_labels[MAX_LABELS];
 static int g_label_count = 0;
@@ -231,13 +234,19 @@ static void clear_labels(void)
   g_label_count = 0;
 }
 
-static void add_label(lv_obj_t *obj, uint8_t kind)
+static void add_label_bit(lv_obj_t *obj, uint8_t kind, uint8_t bit)
 {
   if (g_label_count < MAX_LABELS) {
     g_labels[g_label_count].obj = obj;
     g_labels[g_label_count].kind = kind;
+    g_labels[g_label_count].bit = bit;
     ++g_label_count;
   }
+}
+
+static void add_label(lv_obj_t *obj, uint8_t kind)
+{
+  add_label_bit(obj, kind, 0);
 }
 
 static void set_label_text(LabelRef *lr)
@@ -330,6 +339,17 @@ static void set_label_text(LabelRef *lr)
     case LABEL_SLIP:
       snprintf(buf, sizeof(buf), "%s", g_state.slip ? "SLIP" : "OK");
       break;
+    case LABEL_CAPABILITY: {
+      // Render one sensor's presence from the capability bitmask.
+      const char *names[] = {"LiDAR H", "LiDAR T", "GPS", "IMU",
+                             "Battery", "Camera", "Coral", "ODrive"};
+      uint8_t b = lr->bit;
+      const bool present = (g_state.capability >> b) & 1u;
+      snprintf(buf, sizeof(buf), "%-8s %s",
+               b < 8 ? names[b] : "?",
+               present ? "OK" : "MISSING");
+      break;
+    }
     default:
       return;
   }
@@ -474,6 +494,23 @@ static void build_energy(void)
   add_hit(20, 284, 300, 324, 0);
 }
 
+// Sensor status (SCR_SENSORS).
+// Shows which hardware sensors are present vs. missing, from the capability
+// bitmask (ST_CAPABILITY). Each row is a sensor name + OK/MISSING.
+static void build_sensors(void)
+{
+  scr = make_screen();
+  make_header("Sensors");
+  const int y0 = 44;
+  const int dy = 40;
+  for (int b = 0; b < 8; ++b) {
+    lv_obj_t *l = make_label(scr, "--", 20, y0 + b * dy, 280, 24, C_TEXT);
+    add_label_bit(l, LABEL_CAPABILITY, (uint8_t)b);
+  }
+  make_button(scr, "Main Menu", 20, y0 + 8 * dy, 280, 40, C_SURFACE2);
+  add_hit(20, y0 + 8 * dy, 300, y0 + 8 * dy + 40, 0);
+}
+
 // Change Hole (SCR_CHANGE_HOLE).
 static void build_change_hole(void)
 {
@@ -510,15 +547,15 @@ static void build_debug(void)
 {
   scr = make_screen();
   make_header("Debug");
-  const char *items[] = {"System", "GPS", "LiDAR", "Camera", "IMU", "Navigation"};
+  const char *items[] = {"System", "GPS", "LiDAR", "Camera", "IMU", "Navigation", "Sensors"};
   int y = 40;
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < 7; ++i) {
     make_button(scr, items[i], 20, y, 280, 40, C_SURFACE2);
     add_hit(20, y, 300, y + 40, i);
     y += 48;
   }
   make_button(scr, "Main Menu", 20, y, 280, 40, C_SURFACE2);
-  add_hit(20, y, 300, y + 40, 6);
+  add_hit(20, y, 300, y + 40, 7);
 }
 
 // System debug (SCR_DEBUG_SYSTEM).
@@ -655,7 +692,7 @@ static void build_splash(void)
 // ---------------------------------------------------------------------------
 typedef void (*ScreenBuilder)(void);
 
-static ScreenBuilder screen_builders[17] = {
+static ScreenBuilder screen_builders[18] = {
   build_splash,         // 0x00 SCR_SPLASH
   build_course,         // 0x01 SCR_COURSE
   build_tee,            // 0x02 SCR_TEE
@@ -673,6 +710,7 @@ static ScreenBuilder screen_builders[17] = {
   build_debug_imu,      // 0x0E SCR_DEBUG_IMU
   build_debug_nav,      // 0x0F SCR_DEBUG_NAV
   build_energy,         // 0x10 SCR_ENERGY
+  build_sensors,        // 0x11 SCR_SENSORS
 };
 
 // ---------------------------------------------------------------------------
@@ -809,6 +847,7 @@ void screens_set_state(uint8_t id, int32_t value)
     case ST_RETURN_M: g_state.return_m = (uint16_t)value; break;
     case ST_RANGE_STATE: g_state.range_state = (uint8_t)value; break;
     case ST_SLIP: g_state.slip = (uint8_t)value; break;
+    case ST_CAPABILITY: g_state.capability = (uint16_t)value; break;
     default: break;
   }
   screens_refresh();

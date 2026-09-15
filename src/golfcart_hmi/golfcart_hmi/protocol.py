@@ -78,6 +78,9 @@ ST_RANGE_STATE = 0x42
 # --- Wheel-slip state value ---
 ST_SLIP = 0x43
 
+# --- Hardware capability bitmask (downlink) ---
+ST_CAPABILITY = 0x44
+
 # --- Capabilities bitmask (uplink HELLO) ---
 CAP_JOYSTICK = 0x01
 CAP_TOUCH = 0x02
@@ -102,6 +105,7 @@ SCREEN_DEBUG_CAMERA = 0x0D
 SCREEN_DEBUG_IMU = 0x0E
 SCREEN_DEBUG_NAV = 0x0F
 SCREEN_ENERGY = 0x10
+SCREEN_SENSORS = 0x11
 
 
 def _crc16(data: bytes) -> int:

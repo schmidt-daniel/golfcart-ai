@@ -75,6 +75,8 @@ def test_state_value_encodings():
     assert p._encode_value(p.ST_RETURN_M, 1200) == b'\xb0\x04'
     # range state is uint8
     assert p._encode_value(p.ST_RANGE_STATE, 2) == bytes([2])
+    # capability bitmask is uint8 (max 8 bits)
+    assert p._encode_value(p.ST_CAPABILITY, 0b10100101) == bytes([0b10100101])
 
 
 def test_uplink_parsers():
