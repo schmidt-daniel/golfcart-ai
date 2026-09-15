@@ -21,7 +21,7 @@
 | Form factor | **Raspberry Pi HAT** — mounts on the Pi 5 GPIO header, standard HAT footprint + mounting holes |
 | Purpose | Provide **connectors** for all non-USB sensors, so they plug into the HAT instead of loose wires to the Pi's GPIO |
 | I2C | **INA219 battery monitor** + **IMU** (e.g. MPU-6050 / BNO055) — both on the I2C bus |
-| UART | **LiDAR** (FHL-LD19P) — the single hardware UART (GPIO 14/15) |
+| UART | **LiDAR ×2** (FHL-LD19P) — LiDAR 1 on UART0 (GPIO 14/15), LiDAR 2 on UART2 (GPIO 0/1) |
 | GPS | **USB GPS dongle** — NOT on the HAT (frees the hardware UART for the LiDAR) |
 | Power | 5 V from the Pi's GPIO (or a dedicated 5 V regulator input) for the sensors |
 | Out of scope | USB devices (ODrive, ESP32 handle, USB GPS dongle, Coral USB Accelerator) — plug into Pi USB directly |
@@ -39,7 +39,7 @@
         ┌──────────────────────────────────────────────┐
         │  [INA219 conn]  [IMU conn]                   │
         │                                              │
-        │  [LiDAR conn]                                │
+        │  [LiDAR 1 conn]  [LiDAR 2 conn]              │
         │                                              │
         │  [5V/GND in]    [status LED]                 │
         └──────────────────────────────────────────────┘
@@ -57,7 +57,14 @@
 | --- | --- | --- | --- |
 | **INA219 battery monitor** | I2C | GPIO 2 (SDA), GPIO 3 (SCL) | 4-pin (SDA, SCL, 3V3, GND) |
 | **IMU** (MPU-6050 / BNO055) | I2C | GPIO 2 (SDA), GPIO 3 (SCL) | 4-pin (SDA, SCL, 3V3, GND) |
-| **LiDAR** (FHL-LD19P) | UART | GPIO 14 (TXD), GPIO 15 (RXD) | 4-pin (TXD, RXD, 3V3, GND) |
+| **LiDAR 1** (FHL-LD19P, horizontal) | UART0 | GPIO 14 (TXD), GPIO 15 (RXD) | 4-pin (TXD, RXD, 3V3, GND) |
+| **LiDAR 2** (FHL-LD19P, tilted) | UART2 | GPIO 0 (TXD), GPIO 1 (RXD) | 4-pin (TXD, RXD, 3V3, GND) |
+
+> **Two LiDARs, two UARTs:** the Pi 5 exposes **6 UARTs** (UART0–UART5) on the
+> GPIO header (unlike the Pi 4's single usable UART). LiDAR 1 (horizontal,
+> follow-me/obstacles) uses UART0; LiDAR 2 (tilted, ditches/streams) uses
+> UART2. The HAT routes both UARTs to the two LiDAR connectors — **no USB
+> adapter needed** (USB ports are full: ODrive, ESP32, GPS, Coral).
 
 > **I2C bus sharing:** the INA219 and IMU share the same I2C bus (GPIO 2/3).
 > They must have **different I2C addresses** (INA219 default `0x40`; IMU
@@ -65,9 +72,8 @@
 > bus to both connectors — no address conflict handling on the board.
 >
 > **GPS:** a **USB GPS dongle** (NMEA over USB serial) is used instead of a
-> UART GPS. This frees the Pi's single hardware UART (GPIO 14/15) entirely for
-> the **LiDAR**, resolving the UART-sharing conflict. The GPS dongle plugs into
-> a Pi USB port (out of scope for the HAT).
+> UART GPS. This keeps the Pi's UARTs free for the **two LiDARs** (UART0 +
+> UART2). The GPS dongle plugs into a Pi USB port (out of scope for the HAT).
 
 ---
 
@@ -99,7 +105,8 @@
 | **40-pin GPIO header (female)** | Plugs onto the Pi 5 GPIO pins. Standard HAT header. |
 | **INA219 battery monitor** | I2C, address `0x40`. Plugs into the INA219 connector. |
 | **IMU** (MPU-6050 / BNO055) | I2C. Plugs into the IMU connector. |
-| **LiDAR** (FHL-LD19P) | UART. Plugs into the LiDAR connector. |
+| **LiDAR 1** (FHL-LD19P, horizontal) | UART0. Plugs into the LiDAR 1 connector. |
+| **LiDAR 2** (FHL-LD19P, tilted) | UART2. Plugs into the LiDAR 2 connector. |
 | **USB GPS dongle** | USB (out of scope — plugs into a Pi USB port). |
 | **Status LED** | Optional; indicates HAT power / I2C activity. |
 
@@ -138,7 +145,8 @@
 
 - **I2C:** both INA219 and IMU appear on the I2C bus (`i2cdetect -y 1`) at their
   addresses.
-- **UART:** the LiDAR produces serial data on the hardware UART (GPIO 14/15).
+- **UART:** LiDAR 1 produces serial data on UART0 (GPIO 14/15); LiDAR 2 on
+  UART2 (GPIO 0/1).
 - **GPS:** the USB GPS dongle produces NMEA data on its USB serial port.
 - **Power:** all sensors powered and reporting valid data.
 - **Software:** `battery_node`, `imu_node`, `gps_node`, `lidar_node` all report

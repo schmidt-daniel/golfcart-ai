@@ -638,12 +638,15 @@ Sensor mounting orientation and coordinate transformation must be explicitly doc
 
 # 15. LiDAR
 
-The FHL-LD19P is used for:
+The trolley uses **two FHL-LD19P 2D LiDARs** (see `docs/features/camera-vision.md`):
 
-- obstacle detection
-- environment scanning
-- Follow Me
-- future navigation functions
+- **LiDAR 1 (horizontal)** — obstacle detection, environment scanning, Follow
+  Me (leg detection), future navigation.
+- **LiDAR 2 (tilted ~25° down)** — ground-plane break detection (ditches,
+  streams, drop-offs) that a horizontal 2D LiDAR cannot see.
+
+Each connects to its own UART on the Pi 5 (UART0 for LiDAR 1, UART2 for
+LiDAR 2 — see `docs/wiring.md` and `docs/pi-hat-pcb.md`).
 
 Raw LiDAR data should be processed into application-level information.
 

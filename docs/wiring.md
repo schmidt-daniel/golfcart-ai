@@ -58,6 +58,11 @@ graph LR
         CORAL_USB[USB]
     end
 
+    subgraph Lidar[FHL-LD19P LiDAR ×2]
+        LIDAR1[LiDAR 1 - Horizontal]
+        LIDAR2[LiDAR 2 - Tilted]
+    end
+
     BAT -->|36V Power| ODRIVE_PWR
     RPI_USB1 <-->|USB Data| ODRIVE_USB
     ODRIVE_M0 -->|Motor + Encoder| M0
@@ -65,6 +70,8 @@ graph LR
     RPI_USB2 <-->|USB Serial| HANDLE_USB
     RPI_USB3 <-->|USB Serial| GPS_USB
     RPI_USB4 <-->|USB| CORAL_USB
+    RPI_UART0 <-->|UART| LIDAR1
+    RPI_UART2 <-->|UART| LIDAR2
 ```
 
 ---
@@ -94,25 +101,30 @@ graph LR
 ## 2.1 Power Consumption (one round of golf)
 
 Estimated energy use for a typical 18-hole round (~7 km, ~4 h), using the
-range estimator's energy model (`default_wh_per_m = 0.02 Wh/m`) and a ~150 kg
-cart + operator:
+range estimator's energy model (`default_wh_per_m = 0.02 Wh/m`).
+
+> **Mass note:** this is an **electric push trolley** — the operator walks and
+> pushes, so the operator's mass is carried by their own legs, not the motor.
+> The relevant mass for propulsion is the **trolley + bag** (~25–40 kg), not
+> the operator. The `0.02 Wh/m` is an **initial guess**; the range estimator
+> learns the real value from measured battery current each round.
 
 | Component | Energy |
 | --- | --- |
-| **Propulsion** (7 km × 0.02 Wh/m, slope-adjusted) | ~150–200 Wh |
+| **Propulsion** (7 km × 0.02 Wh/m, slope-adjusted) | ~100–150 Wh |
 | **Electronics** (Pi 5 + ODrive idle + ESP32 + sensors, ~15 W × 4 h) | ~60 Wh |
-| **Total** | **~210–260 Wh** |
+| **Total** | **~160–210 Wh** |
 
 | | Value |
 | --- | --- |
 | Battery capacity | 500 Wh usable |
-| Usage per round | ~42–52% of the pack |
-| Rounds per charge | ~2 (comfortably) |
+| Usage per round | ~32–42% of the pack |
+| Rounds per charge | ~2–3 (comfortably) |
 
 **Caveats:**
-- The 150 kg mass assumption drives the propulsion estimate.
-- A hilly course pushes propulsion toward 250 Wh; a flat course with good
-  regen (see §3.1) can pull it below 150 Wh.
+- The propulsion estimate assumes a light push trolley (~25–40 kg). A heavier
+  trolley or a hilly course pushes it higher; a flat course with good regen
+  (see §3.1) can pull it below 100 Wh.
 - The Pi 5 is the biggest fixed electronics cost. The energy-saver mode
   (sleeps the Pi when idle) can cut this significantly → ~3 rounds per charge.
 - This is an estimate; the range estimator gives the **actual** number once it
@@ -190,8 +202,8 @@ directly, and talks to the Pi over a single USB serial link (see
 `docs/handle-protocol.md`). **No Arduino** — the ESP32 replaces the Pi-side
 joystick interface.
 
-The **GPS** is a **USB dongle** (NMEA over USB serial), which frees the Pi's
-hardware UART for the LiDAR (see `docs/pi-hat-pcb.md`).
+The **GPS** is a **USB dongle** (NMEA over USB serial), which keeps the Pi's
+UARTs free for the **two LiDARs** (see `docs/pi-hat-pcb.md`).
 
 | Device | Connects To | Notes |
 | --- | --- | --- |
@@ -199,6 +211,28 @@ hardware UART for the LiDAR (see `docs/pi-hat-pcb.md`).
 | USB GPS dongle | RPi 5 USB port | NMEA GPS, serial |
 | Coral USB Accelerator | RPi 5 USB port | NPU for vision models (detection/segmentation) |
 | Pi Camera Module 3 | RPi 5 CSI port | RGB vision (no USB) |
+
+---
+
+## 4.1 LiDAR (FHL-LD19P ×2)
+
+The trolley uses **two FHL-LD19P 2D LiDARs** (see `docs/features/camera-vision.md`):
+
+- **LiDAR 1 (horizontal)** — follow-me leg detection / obstacle stopping zone.
+- **LiDAR 2 (tilted ~25° down)** — ground-plane break detection (ditches/streams).
+
+The Raspberry Pi 5 exposes **multiple UARTs** on the GPIO header (unlike the
+Pi 4's single usable UART). Each LiDAR connects to its own UART:
+
+| LiDAR | UART | GPIO (TXD/RXD) | Purpose |
+| --- | --- | --- | --- |
+| LiDAR 1 (horizontal) | UART0 | GPIO 14 / GPIO 15 | Follow-me legs + obstacle zone |
+| LiDAR 2 (tilted) | UART2 | GPIO 0 / GPIO 1 | Ditches / streams (ground-plane breaks) |
+
+> **Why two UARTs:** the Pi 5 has 6 UARTs (UART0–UART5) on the GPIO header, so
+> both LiDARs connect directly via UART — **no USB adapter needed** (USB ports
+> are full: ODrive, ESP32, GPS, Coral). The HAT routes both UARTs to the two
+> LiDAR connectors (see `docs/pi-hat-pcb.md`).
 
 ---
 
@@ -211,6 +245,8 @@ hardware UART for the LiDAR (see `docs/pi-hat-pcb.md`).
 | USB port | USB GPS dongle | GPS (NMEA) |
 | USB port | Coral USB Accelerator | NPU for vision models (detection/segmentation) |
 | CSI | Pi Camera Module 3 | RGB vision (detection/segmentation/gesture) |
+| UART0 (GPIO 14/15) | LiDAR 1 (horizontal) | Follow-me legs + obstacle zone |
+| UART2 (GPIO 0/1) | LiDAR 2 (tilted) | Ditches / streams |
 | I2C (GPIO 2/3) | INA219 battery monitor | Battery voltage/current |
 | USB-C power | 5 V regulator (from battery) | Power |
 
