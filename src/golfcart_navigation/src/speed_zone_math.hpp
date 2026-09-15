@@ -58,6 +58,44 @@ inline bool point_in_polygon(const MapPoint & p, const std::vector<MapPoint> & p
   return inside;
 }
 
+// Minimum distance from a point to a polygon (meters). Returns 0 if the point
+// is inside the polygon. Used for proximity-based speed limiting near course
+// features (greens, tees, water hazards).
+inline double distance_to_polygon(const MapPoint & p, const std::vector<MapPoint> & poly)
+{
+  if (point_in_polygon(p, poly)) {
+    return 0.0;
+  }
+  const size_t n = poly.size();
+  if (n < 2) {
+    return std::numeric_limits<double>::infinity();
+  }
+  double best = std::numeric_limits<double>::infinity();
+  for (size_t i = 0; i < n; ++i) {
+    const MapPoint & a = poly[i];
+    const MapPoint & b = poly[(i + 1) % n];
+    // Distance from p to segment [a, b].
+    const double abx = b.x - a.x;
+    const double aby = b.y - a.y;
+    const double len2 = abx * abx + aby * aby;
+    double t = 0.0;
+    if (len2 > 0.0) {
+      t = ((p.x - a.x) * abx + (p.y - a.y) * aby) / len2;
+      if (t < 0.0) {
+        t = 0.0;
+      } else if (t > 1.0) {
+        t = 1.0;
+      }
+    }
+    const double cx = a.x + t * abx;
+    const double cy = a.y + t * aby;
+    const double dx = p.x - cx;
+    const double dy = p.y - cy;
+    best = std::min(best, std::hypot(dx, dy));
+  }
+  return best;
+}
+
 }  // namespace golfcart
 
 #endif  // GOLFCART_NAVIGATION__SPEED_ZONE_MATH_HPP_

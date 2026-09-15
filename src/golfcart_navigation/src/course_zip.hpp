@@ -407,7 +407,11 @@ void parse_hole_yaml(const std::string & text, int hole_num,
           map.speed_zone_labels.push_back(label);
         }
       } else if (poly.points.size() >= 3) {
+        // Forbidden zone (green, tee, water, rough, bunker, ...): keep the
+        // polygon AND its type/label so consumers can distinguish them.
         map.forbidden_zones.push_back(poly);
+        map.forbidden_zone_types.push_back(type);
+        map.forbidden_zone_labels.push_back(label);
       }
       if (poly.points.size() >= 1) {
         feat.x = poly.points[0].x;

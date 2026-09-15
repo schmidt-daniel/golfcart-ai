@@ -217,10 +217,14 @@ wheel_odometry_node:
 
 # -----------------------------------------------------------------------------
 # Speed Zones (golfcart_navigation/speed_zone_node)
+# Limits max speed inside explicit SPEED_ZONE polygons AND near forbidden zones
+# (greens, tees, water hazards, rough, bunkers) via the course-aware governor.
 # -----------------------------------------------------------------------------
 speed_zone_node:
   pose_timeout_s: 2.0               # pose older than this = stale (s)
   stale_limit_mps: 0.3              # conservative limit when pose is stale (m/s)
+  slow_radius_m: 3.0                # slow within this distance of a forbidden zone (m)
+  feature_limit_mps: 0.5            # limit applied near a green/tee/water/etc. (m/s)
 
 # -----------------------------------------------------------------------------
 # Course Session (golfcart_navigation/course_session_node)
