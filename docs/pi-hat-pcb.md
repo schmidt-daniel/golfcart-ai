@@ -6,7 +6,7 @@
 >
 > **Scope:** a Raspberry Pi **HAT** that provides connectors for all sensors
 > that connect **directly** to the Pi (i.e. not over USB). USB-connected devices
-> (ODrive, Arduino joystick, ESP32 handle unit, RealSense camera) are **out of
+> (ODrive, ESP32 handle unit, USB GPS dongle, Coral USB Accelerator) are **out of
 > scope** — they plug into the Pi's USB ports directly.
 >
 > **Board form factor:** Raspberry Pi HAT (standard 58 × 49.5 mm footprint,
@@ -24,7 +24,7 @@
 | UART | **LiDAR** (FHL-LD19P) — the single hardware UART (GPIO 14/15) |
 | GPS | **USB GPS dongle** — NOT on the HAT (frees the hardware UART for the LiDAR) |
 | Power | 5 V from the Pi's GPIO (or a dedicated 5 V regulator input) for the sensors |
-| Out of scope | USB devices (ODrive, ESP32 handle, USB GPS dongle, RealSense) — plug into Pi USB directly |
+| Out of scope | USB devices (ODrive, ESP32 handle, USB GPS dongle, Coral USB Accelerator) — plug into Pi USB directly |
 
 ---
 

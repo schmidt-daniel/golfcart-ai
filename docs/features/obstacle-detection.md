@@ -31,14 +31,16 @@ STOP / LIMIT / ALLOW
 
 ## Negative Obstacles (ditches, lakes, streams)
 
-2D LiDAR cannot detect negative obstacles (drop-offs, water). A **depth camera**
-(Intel RealSense D435i) is used to detect these, feeding the costmap and safety
-layer.
+2D LiDAR cannot detect negative obstacles (drop-offs, water) from a single
+horizontal plane. A **second FHL-LD19P LiDAR tilted down** (~25°) is used to
+detect these — it scans a ground-plane ring and flags **breaks in the ground
+plane** (a ditch/stream = a gap or drop in the scan). This is sunlight-proof
+and measured (not a vision estimate). See `docs/features/camera-vision.md`.
 
 ```text
-Depth Camera (RealSense D435i)
+Tilted LiDAR (FHL-LD19P, ~25° down)
     ↓
-Negative Obstacle Detector
+Negative Obstacle Detector (ground-plane break)
     ↓
 Obstacle State
     ↓

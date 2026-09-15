@@ -52,8 +52,9 @@ This document covers the whole-system architecture. Individual features are docu
 - Raspberry Pi 5 — main onboard computer
 - ODrive 3.6 — motor controller
 - Two hoverboard-style DC motors with integrated encoders
-- FHL-LD19P LiDAR
-- Intel RealSense D435i (depth camera)
+- FHL-LD19P LiDAR (×2 — horizontal for follow-me/obstacles, tilted for ditches)
+- Raspberry Pi Camera Module 3 (RGB vision — detection/segmentation/gesture)
+- Coral USB Accelerator (NPU for vision models)
 - IMU
 - GPS
 - Force sensors in the handle

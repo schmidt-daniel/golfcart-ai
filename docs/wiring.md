@@ -54,12 +54,17 @@ graph LR
         GPS_USB[USB]
     end
 
+    subgraph Coral[Coral USB Accelerator]
+        CORAL_USB[USB]
+    end
+
     BAT -->|36V Power| ODRIVE_PWR
     RPI_USB1 <-->|USB Data| ODRIVE_USB
     ODRIVE_M0 -->|Motor + Encoder| M0
     ODRIVE_M1 -->|Motor + Encoder| M1
     RPI_USB2 <-->|USB Serial| HANDLE_USB
     RPI_USB3 <-->|USB Serial| GPS_USB
+    RPI_USB4 <-->|USB| CORAL_USB
 ```
 
 ---
@@ -192,6 +197,8 @@ hardware UART for the LiDAR (see `docs/pi-hat-pcb.md`).
 | --- | --- | --- |
 | ESP32 handle unit | RPi 5 USB port (USB-C) | HMI + joystick + load cell, serial |
 | USB GPS dongle | RPi 5 USB port | NMEA GPS, serial |
+| Coral USB Accelerator | RPi 5 USB port | NPU for vision models (detection/segmentation) |
+| Pi Camera Module 3 | RPi 5 CSI port | RGB vision (no USB) |
 
 ---
 
@@ -202,6 +209,8 @@ hardware UART for the LiDAR (see `docs/pi-hat-pcb.md`).
 | USB port | ODrive 3.6 (USB-C) | Motor control |
 | USB port | ESP32 handle unit (USB-C) | HMI + joystick + load cell |
 | USB port | USB GPS dongle | GPS (NMEA) |
+| USB port | Coral USB Accelerator | NPU for vision models (detection/segmentation) |
+| CSI | Pi Camera Module 3 | RGB vision (detection/segmentation/gesture) |
 | I2C (GPIO 2/3) | INA219 battery monitor | Battery voltage/current |
 | USB-C power | 5 V regulator (from battery) | Power |
 

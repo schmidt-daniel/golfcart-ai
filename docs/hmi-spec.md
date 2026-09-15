@@ -737,7 +737,7 @@ Mockup: [`docs/hmi/camera.svg`](hmi/camera.svg)
 
 #### Content details
 
-| Field | Source (`/camera/image` from RealSense D435i) | Details |
+| Field | Source (`/camera/image` from Pi Camera Module 3) | Details |
 | --- | --- | --- |
 | **Camera view** | `/camera/image` | Color image downscaled to 480×~320 and rendered. Refreshed at a low rate (~2–5 Hz) to save CPU. |
 | **Segmentation** | segmentation node (future) | Overlay mask on the camera view if available. Toggle with MOVE RIGHT/LEFT. |
@@ -904,6 +904,6 @@ serial link.
 
 - Exact assist settings list and value ranges.
 - Whether mode selection requires the cart to be stopped.
-- Camera segmentation source (RealSense D435i) and rendering.
+- Camera segmentation source (Pi Camera Module 3) and rendering.
 - LiDAR point-cloud rendering density / downsampling.
 - Touch calibration + the exact I2C input device path (`/dev/input/event*`).
