@@ -49,6 +49,7 @@ graph LR
     end
 
     subgraph Handle[ESP32 Handle Unit]
+        HANDLE_MCU[ESP32-S3 MCU]
         HANDLE_USB[USB-C]
         HANDLE_DISPLAY["Display (TFT)"]
         HANDLE_JOY[Joystick]
@@ -77,6 +78,10 @@ graph LR
     RPI_USB4 <-->|USB| CORAL_USB
     RPI_UART0 <-->|UART| LIDAR1
     RPI_UART2 <-->|UART| LIDAR2
+    HANDLE_MCU <-->|SPI + I2C| HANDLE_DISPLAY
+    HANDLE_MCU <-->|ADC| HANDLE_JOY
+    HANDLE_MCU <-->|HX711| HANDLE_LOAD
+    HANDLE_MCU <-->|USB| HANDLE_USB
 ```
 
 ---
