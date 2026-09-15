@@ -32,6 +32,8 @@ graph LR
         RPI_USB2[USB Port 2]
         RPI_USB3[USB Port 3]
         RPI_USB4[USB Port 4]
+        RPI_UART0[UART0]
+        RPI_UART2[UART2]
     end
 
     subgraph ODrive[ODrive 3.6]
