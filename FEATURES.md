@@ -121,6 +121,23 @@ features are added.
 - Pure math in `geofence_math.hpp` (point-in-polygon, distance-to-boundary) — unit-tested
 - `scripts/geofence_check.sh` + `scripts/gps_fix_pub.py` (headless smoke test)
 
+### GPS-Denied Dead-Reckoning Fallback
+- `localization_quality_node` (`golfcart_localization`) — now publishes
+  `OK` / `DEGRADED` / `LOST` on `/localization/quality` (LOST = no valid GPS fix
+  for `gps_timeout_s`)
+- `dead_reckoning_node` (`golfcart_localization`) — bounded dead-reckoning
+  policy: when GPS is lost, keep driving on the fused pose for
+  `max_dr_time_s` / `max_dr_distance_m`, then publish a priority-3 stop
+- Publishes `DeadReckoningStatus` on `/dead_reckoning/status` (state, budget
+  used/remaining) for the HMI/web badge
+- `geofence_node` — suppresses its `OUT_OF_FIX` stop while DR is driving within
+  budget (geofence remains the backstop if the DR node is absent)
+- `golfcart_msgs` — `DeadReckoningStatus.msg`
+- Pure math in `dead_reckoning_math.hpp` (budget integration, budget-exceeded
+  decision) — unit-tested
+- Config: `dead_reckoning_node` section + `gps_timeout_s` for the quality node
+  (`config/golfcart.yaml`)
+
 ### Gazebo Simulation (gz-sim)
 - `golfcart_gazebo` package
 - Course world (`worlds/course.sdf`) with obstacles, green, tee, water hazard, slope ramp, steep zone
@@ -177,8 +194,8 @@ features are added.
 ## Not yet implemented (documented only)
 
 See `docs/features/` for design docs, and `docs/roadmap.md` for the next
-planned batch (Remote E-Stop + Telemetry, Go to Hole N, GPS-Denied Fallback,
-Obstacle Steering Assist, Battery Range Estimator).
+planned batch (Remote E-Stop + Telemetry, Obstacle Steering Assist, Battery
+Range Estimator).
 
 - Voice Control
 - Push Assist (pedelec-style force sensing)
