@@ -37,6 +37,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/GeofenceStatus.msg"
   "msg/SpeedZoneStatus.msg"
   "msg/DeadReckoningStatus.msg"
+  "msg/RangeStatus.msg"
   "msg/HandleForce.msg"
   "msg/AssistConfig.msg"
   "msg/ModeState.msg"

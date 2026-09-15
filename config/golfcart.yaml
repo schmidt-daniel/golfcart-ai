@@ -229,6 +229,21 @@ course_session_node:
   auto_radius_m: 30.0               # auto-detect hole within this radius (m)
 
 # -----------------------------------------------------------------------------
+# Battery Range Estimator (golfcart_navigation/range_estimator_node)
+# Estimates remaining range from battery charge + terrain slope + remaining
+# hole distance. The energy model (Wh/m per slope bucket) LEARNS from measured
+# battery current over time (online EMA), so it improves with every round.
+# Informational only - never commands motion.
+# -----------------------------------------------------------------------------
+range_estimator_node:
+  battery_capacity_wh: 500.0        # usable pack capacity (Wh)
+  reserve_wh: 50.0                  # reserve kept for safety (Wh)
+  return_margin_m: 50.0             # extra distance margin for "can_finish" (m)
+  ema_alpha: 0.3                    # learning rate for the Wh/m model (0-1)
+  update_period_s: 5.0              # how often to update the model + publish (s)
+  default_wh_per_m: 0.02            # initial flat-ground consumption (Wh/m)
+
+# -----------------------------------------------------------------------------
 # Summon (golfcart_navigation/summon_node)
 # (origin_latitude_deg, origin_longitude_deg, origin_rotation_rad from common)
 # -----------------------------------------------------------------------------

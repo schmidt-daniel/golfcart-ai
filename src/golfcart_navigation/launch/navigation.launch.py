@@ -155,6 +155,15 @@ def generate_launch_description():
         output='screen',
     )
 
+    # Battery range estimator (self-learning energy model -> /range/status)
+    range_estimator_node = Node(
+        package='golfcart_navigation',
+        executable='range_estimator_node',
+        name='range_estimator_node',
+        parameters=[_node_params(cfg, 'range_estimator_node')],
+        output='screen',
+    )
+
     return LaunchDescription([
         use_sim_time_arg,
         planner,
@@ -168,4 +177,5 @@ def generate_launch_description():
         georeference_node,
         summon_node,
         speed_zone_node,
+        range_estimator_node,
     ])

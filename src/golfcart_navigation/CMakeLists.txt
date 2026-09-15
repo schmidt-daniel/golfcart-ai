@@ -61,7 +61,13 @@ target_include_directories(speed_zone_node PRIVATE
 )
 target_link_libraries(speed_zone_node rclcpp::rclcpp nav_msgs::nav_msgs geometry_msgs::geometry_msgs yaml-cpp::yaml-cpp golfcart_msgs::golfcart_msgs z)
 
-install(TARGETS navigation_node georeference_node summon_node course_loader_node course_registry_node course_session_node slope_node speed_zone_node
+add_executable(range_estimator_node src/range_estimator_node.cpp)
+target_include_directories(range_estimator_node PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(range_estimator_node rclcpp::rclcpp nav_msgs::nav_msgs golfcart_msgs::golfcart_msgs)
+
+install(TARGETS navigation_node georeference_node summon_node course_loader_node course_registry_node course_session_node slope_node speed_zone_node range_estimator_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY config
@@ -86,6 +92,12 @@ if(BUILD_TESTING)
   ament_add_gtest(test_speed_zone_math test/test_speed_zone_math.cpp)
   if(TARGET test_speed_zone_math)
     target_include_directories(test_speed_zone_math PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+  endif()
+  ament_add_gtest(test_range_estimator test/test_range_estimator.cpp)
+  if(TARGET test_range_estimator)
+    target_include_directories(test_range_estimator PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
   endif()
