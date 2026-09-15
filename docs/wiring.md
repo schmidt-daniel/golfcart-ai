@@ -9,14 +9,13 @@ The MVP consists of:
 - Raspberry Pi 5 (main computer)
 - ODrive 3.6 (motor controller)
 - Two hoverboard-style DC motors with integrated encoders
-- Arduino Uno R3 (joystick interface)
-- Analog 2-axis joystick with push button
+- ESP32 handle unit (HMI + joystick + load cell)
 - 36 V Li-Ion battery
 
 > **Note:** The ODrive communication interface is **USB** (permanent decision,
 > see `architecture.md` §35). The ODrive is powered from the 36 V battery and
-> communicates with the RPi 5 over USB. The joystick is read by an Arduino Uno
-> over USB serial.
+> communicates with the RPi 5 over USB. The joystick is read directly by the
+> **ESP32 handle unit** (ADC) — **no Arduino** (see `docs/handle-protocol.md`).
 
 ---
 
@@ -31,6 +30,8 @@ graph LR
     subgraph RPi[Raspberry Pi 5]
         RPI_USB1[USB Port 1]
         RPI_USB2[USB Port 2]
+        RPI_USB3[USB Port 3]
+        RPI_USB4[USB Port 4]
     end
 
     subgraph ODrive[ODrive 3.6]
@@ -45,27 +46,20 @@ graph LR
         M1[Right Motor + Encoder]
     end
 
-    subgraph Arduino[Arduino Uno R3]
-        ARD_USB[USB]
-        A0[A0]
-        A1[A1]
-        D2[D2]
+    subgraph Handle[ESP32 Handle Unit]
+        HANDLE_USB[USB-C]
     end
 
-    subgraph Joystick[Analog Joystick]
-        POT_X[X Pot]
-        POT_Y[Y Pot]
-        BTN[Push Button]
+    subgraph GPS[USB GPS Dongle]
+        GPS_USB[USB]
     end
 
     BAT -->|36V Power| ODRIVE_PWR
     RPI_USB1 <-->|USB Data| ODRIVE_USB
     ODRIVE_M0 -->|Motor + Encoder| M0
     ODRIVE_M1 -->|Motor + Encoder| M1
-    RPI_USB2 <-->|USB Serial| ARD_USB
-    POT_X -->|wiper| A0
-    POT_Y -->|wiper| A1
-    BTN --> D2
+    RPI_USB2 <-->|USB Serial| HANDLE_USB
+    RPI_USB3 <-->|USB Serial| GPS_USB
 ```
 
 ---
@@ -88,7 +82,7 @@ graph LR
 - The RPi 5 is powered from the ODrive's 5 V output (or a separate 5 V regulator).
 - A fuse/circuit breaker should be placed between the battery and the ODrive.
 - The RPi 5 needs ~5 V / 5 A under load — a separate 5 V/5 A regulator is recommended.
-- The Arduino Uno is powered via its USB connection to the RPi 5.
+- The ESP32 handle unit is powered via its USB connection to the RPi 5.
 
 ---
 
@@ -155,46 +149,20 @@ full-charge voltage, e.g. ~44–45 V for a 42 V pack).
 
 ---
 
-## 4. Arduino Uno Joystick Interface
+## 4. ESP32 Handle Unit + USB GPS Dongle
 
-The Arduino reads the analog joystick axes, the joystick button (for HMI), and
-the dedicated safety arm switch, and sends the values over USB serial to the
-RPi 5.
+The **ESP32 handle unit** reads the joystick (ADC), touch, and load cell
+directly, and talks to the Pi over a single USB serial link (see
+`docs/handle-protocol.md`). **No Arduino** — the ESP32 replaces the Pi-side
+joystick interface.
 
-| Arduino Pin | Connects To | Notes |
+The **GPS** is a **USB dongle** (NMEA over USB serial), which frees the Pi's
+hardware UART for the LiDAR (see `docs/pi-hat-pcb.md`).
+
+| Device | Connects To | Notes |
 | --- | --- | --- |
-| `A0` | Joystick X wiper | Analog X axis |
-| `A1` | Joystick Y wiper | Analog Y axis |
-| `D2` | Joystick button (other side to GND) | HMI navigation, internal pull-up |
-| `D3` | Safety arm switch (other side to GND) | Arm/disarm, internal pull-up |
-| `USB` | RPi 5 USB port | Serial communication |
-
-**Joystick potentiometer wiring (each axis):**
-- One end → 3.3 V (or 5 V)
-- Other end → GND
-- Wiper → Arduino analog pin
-
-**Button wiring:**
-- One side → Arduino `D2`
-- Other side → GND
-- Uses the Arduino's internal pull-up (active-low)
-
-**Safety arm switch wiring:**
-- One side → Arduino `D3`
-- Other side → GND
-- Uses the Arduino's internal pull-up (active-low)
-
-**Serial protocol** (from `arduino/joystick_interface/joystick_interface.ino`):
-```
-x:<0-1023>,y:<0-1023>,btn:<0|1>,safety:<0|1>
-```
-
-**Safety arm mapping** (in `arduino_joystick_node.py`):
-- Safety switch armed (1) → `safety/enable`
-- Safety switch disarmed (0) → `safety/stop`
-
-The joystick button is reserved for HMI navigation (short/double/long press),
-not for safety.
+| ESP32 handle unit | RPi 5 USB port (USB-C) | HMI + joystick + load cell, serial |
+| USB GPS dongle | RPi 5 USB port | NMEA GPS, serial |
 
 ---
 
@@ -203,7 +171,8 @@ not for safety.
 | RPi 5 Port | Connects To | Notes |
 | --- | --- | --- |
 | USB port | ODrive 3.6 (USB-C) | Motor control |
-| USB port | Arduino Uno (USB) | Joystick input |
+| USB port | ESP32 handle unit (USB-C) | HMI + joystick + load cell |
+| USB port | USB GPS dongle | GPS (NMEA) |
 | I2C (GPIO 2/3) | INA219 battery monitor | Battery voltage/current |
 | USB-C power | 5 V regulator (from battery) | Power |
 
@@ -255,9 +224,8 @@ Controller stops motion if the battery is critical.
 | Raspberry Pi 5 | 1 | Main computer |
 | ODrive 3.6 | 1 | Motor controller |
 | Hoverboard motor + encoder | 2 | Left/right |
-| Arduino Uno R3 | 1 | Joystick interface |
-| Analog 2-axis joystick + button | 1 | Input |
-| Safety arm switch | 1 | Arm/disarm |
+| ESP32 handle unit | 1 | HMI + joystick + load cell (replaces Arduino) |
+| USB GPS dongle | 1 | GPS (NMEA) |
 | 36 V Li-Ion battery | 1 | Main power |
 | INA219 battery monitor | 1 | Battery voltage/current |
 | 5 V regulator (5 A) | 1 | Powers RPi 5 |
