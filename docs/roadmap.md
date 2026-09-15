@@ -35,6 +35,7 @@ a material change in requirements or hardware.
 | **Go to Hole N (tee-to-green)** | Dropped as a roadmap item — the two-leg (tee → green) orchestration didn't make sense as a standalone feature at the time. (The underlying navigation stack it would reuse is implemented.) |
 | **Return-to-base** | No real use case — holes are played in sequence and the round ends at the clubhouse anyway, so there's no scenario where the trolley would need to return mid-round autonomously. |
 | **Range-aware route planning** | Useless — the course is played where the balls lie (not a fixed route), and there are no charging stops possible on the course, so there's no route to plan around range. |
+| **"Where's my cart?" locator** | Already implemented — the web app (`index.html`, `summon.html`) shows the trolley's position on a Leaflet map from `/gps/fix`, and `dashboard.html` shows lat/lon. |
 
 ---
 
