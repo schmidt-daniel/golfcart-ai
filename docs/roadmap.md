@@ -13,9 +13,14 @@ patterns.
 > - Obstacle Steering Assist (`docs/features/steering-assist.md`)
 > - Battery Range Estimator (`docs/features/range-estimator.md`)
 
-> **Not selected now:** Voice Control, camera person re-ID, weather sensing —
-> these require new hardware (mic, camera processing, sensors) and are
-> documented separately in `docs/features/`.
+> **Not selected now:** camera person re-ID, weather sensing — these require
+> new hardware (camera processing, sensors) and are documented separately in
+> `docs/features/`.
+
+> **Future idea:** **gesture control** — a camera-based gesture interface
+> (e.g. wave to summon, hand signals to stop/follow) instead of voice. More
+> appropriate than shouting commands across the course; requires a camera and
+> gesture-recognition processing.
 
 ---
 

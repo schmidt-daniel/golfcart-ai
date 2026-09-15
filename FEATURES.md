@@ -251,7 +251,6 @@ See `docs/features/` for design docs. The software-only roadmap batch is
 complete (Remote E-Stop + Telemetry, GPS-Denied Fallback, Obstacle Steering
 Assist, Battery Range Estimator).
 
-- Voice Control
 - Learning on-board flags (design doc `docs/features/learning.md` describes an
   on-board recorder; we instead derive flags off-board from rosbags — see the
   Learning section above)
