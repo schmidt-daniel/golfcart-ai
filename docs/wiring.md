@@ -86,6 +86,35 @@ graph LR
 
 ---
 
+## 2.1 Power Consumption (one round of golf)
+
+Estimated energy use for a typical 18-hole round (~7 km, ~4 h), using the
+range estimator's energy model (`default_wh_per_m = 0.02 Wh/m`) and a ~150 kg
+cart + operator:
+
+| Component | Energy |
+| --- | --- |
+| **Propulsion** (7 km × 0.02 Wh/m, slope-adjusted) | ~150–200 Wh |
+| **Electronics** (Pi 5 + ODrive idle + ESP32 + sensors, ~15 W × 4 h) | ~60 Wh |
+| **Total** | **~210–260 Wh** |
+
+| | Value |
+| --- | --- |
+| Battery capacity | 500 Wh usable |
+| Usage per round | ~42–52% of the pack |
+| Rounds per charge | ~2 (comfortably) |
+
+**Caveats:**
+- The 150 kg mass assumption drives the propulsion estimate.
+- A hilly course pushes propulsion toward 250 Wh; a flat course with good
+  regen (see §3.1) can pull it below 150 Wh.
+- The Pi 5 is the biggest fixed electronics cost. The energy-saver mode
+  (sleeps the Pi when idle) can cut this significantly → ~3 rounds per charge.
+- This is an estimate; the range estimator gives the **actual** number once it
+  learns the real `Wh/m` from measured battery current.
+
+---
+
 ## 3. ODrive 3.6 Connections
 
 | ODrive Terminal | Connects To | Notes |
