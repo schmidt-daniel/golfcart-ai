@@ -35,12 +35,13 @@ This document covers the whole-system architecture. Individual features are docu
 | Learning | [`features/learning.md`](features/learning.md) |
 | Geofencing / Stay-on-Course | [`features/geofencing.md`](features/geofencing.md) |
 | Speed Limiting by Zone | [`features/speed-zones.md`](features/speed-zones.md) |
-| Voice Control | [`features/voice-control.md`](features/voice-control.md) |
 | Summon | [`features/summon.md`](features/summon.md) |
+| Remote E-Stop + Telemetry | [`features/remote-estop-dashboard.md`](features/remote-estop-dashboard.md) |
+| GPS-Denied Dead-Reckoning | [`features/dead-reckoning.md`](features/dead-reckoning.md) |
+| Obstacle Steering Assist | [`features/steering-assist.md`](features/steering-assist.md) |
+| Battery Range Estimator | [`features/range-estimator.md`](features/range-estimator.md) |
 
-> **Next features:** see [`roadmap.md`](roadmap.md) for the planned batch
-> (Remote E-Stop + Telemetry, Go to Hole N, GPS-Denied Fallback, Obstacle
-> Steering Assist, Battery Range Estimator).
+> **Next features:** see [`roadmap.md`](roadmap.md).
 
 ---
 
