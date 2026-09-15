@@ -70,6 +70,11 @@ ST_TIME_HHMM = 0x18
 ST_BACKLIGHT = 0x19
 ST_STEERING_ASSIST = 0x1A
 
+# --- Energy dashboard state values (0x40-0x7F reserved) ---
+ST_RANGE_M = 0x40
+ST_RETURN_M = 0x41
+ST_RANGE_STATE = 0x42
+
 # --- Capabilities bitmask (uplink HELLO) ---
 CAP_JOYSTICK = 0x01
 CAP_TOUCH = 0x02
@@ -93,6 +98,7 @@ SCREEN_DEBUG_LIDAR = 0x0C
 SCREEN_DEBUG_CAMERA = 0x0D
 SCREEN_DEBUG_IMU = 0x0E
 SCREEN_DEBUG_NAV = 0x0F
+SCREEN_ENERGY = 0x10
 
 
 def _crc16(data: bytes) -> int:
@@ -217,7 +223,8 @@ def _encode_value(state_id: int, value: int) -> bytes:
                     ST_SPEED_ZONE_LIMIT, ST_SLOPE_DEG, ST_PUSH_FORCE_N):
         return struct.pack('<h', value)          # int16
     if state_id in (ST_GPS_SPEED, ST_OBSTACLE_NEAREST_M,
-                    ST_HOLE_DISTANCE_M, ST_HOLE_REMAINING_M, ST_TIME_HHMM):
+                    ST_HOLE_DISTANCE_M, ST_HOLE_REMAINING_M, ST_TIME_HHMM,
+                    ST_RANGE_M, ST_RETURN_M):
         return struct.pack('<H', value)          # uint16
     return bytes([value & 0xFF])                 # uint8 (default)
 

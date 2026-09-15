@@ -157,6 +157,12 @@ active screen when one it cares about changes.
 | `0x17` | `HILL_ASSIST_ENABLED` | uint8 | 0/1 |
 | `0x18` | `TIME_HHMM` | uint16 | 1234 → 12:34 |
 
+| ID | Name | Type | Example |
+| --- | --- | --- | --- |
+| `0x40` | `RANGE_M` | uint16 | 2500 → 2500 m |
+| `0x41` | `RETURN_M` | uint16 | 1200 → 1200 m |
+| `0x42` | `RANGE_STATE` | uint8 enum | 0=OK,1=CAUTION,2=CRITICAL |
+
 > **Extensible:** IDs 0x40–0x7F are reserved for future state values. Unknown
 > IDs are ignored (the ESP32 logs and continues).
 

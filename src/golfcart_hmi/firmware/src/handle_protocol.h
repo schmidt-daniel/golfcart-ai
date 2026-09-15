@@ -71,6 +71,11 @@ extern "C" {
 #define ST_BACKLIGHT          0x19
 #define ST_STEERING_ASSIST    0x1A
 
+// Energy dashboard state values (0x40-0x7F reserved).
+#define ST_RANGE_M            0x40
+#define ST_RETURN_M           0x41
+#define ST_RANGE_STATE        0x42
+
 // Capabilities.
 #define CAP_JOYSTICK 0x01
 #define CAP_TOUCH    0x02
@@ -94,6 +99,7 @@ extern "C" {
 #define SCREEN_DEBUG_CAMERA 0x0D
 #define SCREEN_DEBUG_IMU    0x0E
 #define SCREEN_DEBUG_NAV    0x0F
+#define SCREEN_ENERGY       0x10
 
 // Max payload length (fits in a uint8 LEN field).
 #define MAX_PAYLOAD 255

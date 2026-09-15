@@ -69,6 +69,12 @@ def test_state_value_encodings():
     assert p._encode_value(p.ST_BACKLIGHT, 200) == bytes([200])
     # steering assist is uint8
     assert p._encode_value(p.ST_STEERING_ASSIST, 1) == bytes([1])
+    # range is uint16
+    assert p._encode_value(p.ST_RANGE_M, 2500) == b'\xc4\x09'
+    # return is uint16
+    assert p._encode_value(p.ST_RETURN_M, 1200) == b'\xb0\x04'
+    # range state is uint8
+    assert p._encode_value(p.ST_RANGE_STATE, 2) == bytes([2])
 
 
 def test_uplink_parsers():

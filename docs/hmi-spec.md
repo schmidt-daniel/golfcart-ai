@@ -210,6 +210,7 @@ cursor.
 | MAP                |
 | MODE               |
 | ASSIST             |
+| ENERGY             |
 | CHANGE HOLE        |
 | SELECT COURSE      |
 | WIFI               |
@@ -223,6 +224,7 @@ cursor.
 | **MAP** | Go to the map view of the current hole. Only selectable when a course and teebox have been selected. |
 | **MODE** | Go to the mode selection view. |
 | **ASSIST** | Go to the assist configuration view. |
+| **ENERGY** | Go to the energy dashboard (range / remaining / return). |
 | **CHANGE HOLE** | Go to the hole selection view. Only selectable when a course and teebox have been selected. |
 | **SELECT COURSE** | Go to the course selection view. |
 | **WIFI** | Show WiFi credentials for the hotspot and a QR code to scan with a phone to connect to the network. |
@@ -464,7 +466,49 @@ Mockup: [`docs/hmi/change-hole.svg`](hmi/change-hole.svg)
 
 ---
 
-### 6.8 WiFi View
+### 6.8 Energy View
+
+Shows the battery range estimator's `/range/status`: remaining range, hole
+remaining distance, return distance, and the OK/CAUTION/CRITICAL state.
+
+```text
++--------------------+
+| Energy             |
++--------------------+
+| Range: 2500 m      |
+| State: OK          |
+| Remaining: 120 m   |
+| Return: 1200 m     |
+| Battery: 82%       |
+|                    |
+| [ Main Menu ]      |
+|                    |
+|                    |
+|                    |
++--------------------+
+```
+
+**Content**
+
+| Item | Description |
+| --- | --- |
+| **Range** | Estimated remaining range (m), colored by state (OK green / CAUTION amber / CRITICAL red). |
+| **State** | OK / CAUTION / CRITICAL from the range estimator. |
+| **Remaining** | Remaining hole distance (m). |
+| **Return** | Estimated return distance (m). |
+| **Battery** | State of charge (%). |
+| **Main Menu** | Back to the main menu. |
+
+**Actions**
+
+| Gesture | Action |
+| --- | --- |
+| PRESS **Main Menu** | Jump to the main menu. |
+| DOUBLE | Jump to the main menu. |
+
+---
+
+### 6.9 WiFi View
 
 Shows the WiFi hotspot credentials and a QR code the user can scan with their
 phone to connect to the network.

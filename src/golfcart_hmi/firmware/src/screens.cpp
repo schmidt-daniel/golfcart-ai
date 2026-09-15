@@ -50,6 +50,9 @@ typedef struct {
   uint8_t hill_assist_enabled;
   uint8_t steering_assist_enabled;
   uint16_t time_hhmm;
+  uint16_t range_m;           // estimated remaining range (m)
+  uint16_t return_m;          // estimated return distance (m)
+  uint8_t range_state;        // 0=OK, 1=CAUTION, 2=CRITICAL
 } HandleState;
 
 static HandleState g_state;
@@ -214,6 +217,9 @@ typedef struct {
 #define LABEL_SAFETY      15
 #define LABEL_MODE        16
 #define LABEL_STEERING_ASSIST 17
+#define LABEL_RANGE_M     18
+#define LABEL_RETURN_M    19
+#define LABEL_RANGE_STATE 20
 
 static LabelRef g_labels[MAX_LABELS];
 static int g_label_count = 0;
@@ -307,6 +313,18 @@ static void set_label_text(LabelRef *lr)
       snprintf(buf, sizeof(buf), "%s",
                g_state.steering_assist_enabled ? "ON" : "OFF");
       break;
+    case LABEL_RANGE_M:
+      snprintf(buf, sizeof(buf), "%d m", g_state.range_m);
+      break;
+    case LABEL_RETURN_M:
+      snprintf(buf, sizeof(buf), "%d m", g_state.return_m);
+      break;
+    case LABEL_RANGE_STATE: {
+      const char *names[] = {"OK", "CAUTION", "CRITICAL"};
+      uint8_t s = g_state.range_state;
+      snprintf(buf, sizeof(buf), "%s", s < 3 ? names[s] : "UNKNOWN");
+      break;
+    }
     default:
       return;
   }
@@ -322,10 +340,10 @@ static void build_menu(void)
 {
   scr = make_screen();
   make_header("Main Menu");
-  const char *items[] = {"MAP", "MODE", "ASSIST", "CHANGE HOLE",
+  const char *items[] = {"MAP", "MODE", "ASSIST", "ENERGY", "CHANGE HOLE",
                          "SELECT COURSE", "WIFI", "DEBUG", "SHUTDOWN"};
   int y = 40;
-  for (int i = 0; i < 8; ++i) {
+  for (int i = 0; i < 9; ++i) {
     make_button(scr, items[i], 20, y, 280, 40, C_SURFACE2);
     add_hit(20, y, 300, y + 40, i);  // item id = index
     y += 48;
@@ -413,6 +431,42 @@ static void build_assist(void)
   add_hit(20, 188, 300, 212, 3);
   make_button(scr, "Main Menu", 20, 236, 280, 40, C_SURFACE2);
   add_hit(20, 236, 300, 276, 4);
+}
+
+// Energy dashboard (SCR_ENERGY).
+// Shows the battery range estimator's /range/status: remaining range, hole
+// remaining, return distance, and the OK/CAUTION/CRITICAL state.
+static void build_energy(void)
+{
+  scr = make_screen();
+  make_header("Energy");
+
+  // Range (big, colored by state).
+  lv_obj_t *range = make_label(scr, "-- m", 20, 44, 280, 40, C_TEXT);
+  add_label(range, LABEL_RANGE_M);
+  lv_obj_set_style_text_font(range, &lv_font_montserrat_16, 0);
+
+  // State badge.
+  lv_obj_t *st = make_label(scr, "OK", 20, 92, 280, 24, C_OK);
+  add_label(st, LABEL_RANGE_STATE);
+
+  // Remaining hole distance.
+  make_label(scr, "Remaining", 20, 140, 180, 24, C_TEXT_DIM);
+  lv_obj_t *rem = make_label(scr, "-- m", 220, 140, 80, 24, C_TEXT);
+  add_label(rem, LABEL_HOLE_REM);
+
+  // Return distance.
+  make_label(scr, "Return", 20, 188, 180, 24, C_TEXT_DIM);
+  lv_obj_t *ret = make_label(scr, "-- m", 220, 188, 80, 24, C_TEXT);
+  add_label(ret, LABEL_RETURN_M);
+
+  // Battery.
+  make_label(scr, "Battery", 20, 236, 180, 24, C_TEXT_DIM);
+  lv_obj_t *bat = make_label(scr, "--%", 220, 236, 80, 24, C_TEXT);
+  add_label(bat, LABEL_BATTERY_PCT);
+
+  make_button(scr, "Main Menu", 20, 284, 280, 40, C_SURFACE2);
+  add_hit(20, 284, 300, 324, 0);
 }
 
 // Change Hole (SCR_CHANGE_HOLE).
@@ -594,7 +648,7 @@ static void build_splash(void)
 // ---------------------------------------------------------------------------
 typedef void (*ScreenBuilder)(void);
 
-static ScreenBuilder screen_builders[16] = {
+static ScreenBuilder screen_builders[17] = {
   build_splash,         // 0x00 SCR_SPLASH
   build_course,         // 0x01 SCR_COURSE
   build_tee,            // 0x02 SCR_TEE
@@ -611,6 +665,7 @@ static ScreenBuilder screen_builders[16] = {
   build_debug_camera,   // 0x0D SCR_DEBUG_CAMERA
   build_debug_imu,      // 0x0E SCR_DEBUG_IMU
   build_debug_nav,      // 0x0F SCR_DEBUG_NAV
+  build_energy,         // 0x10 SCR_ENERGY
 };
 
 // ---------------------------------------------------------------------------
@@ -643,7 +698,7 @@ void screens_init(void)
 void screens_show(uint8_t screen_id)
 {
   g_current_screen = screen_id;
-  if (screen_id < 16 && screen_builders[screen_id] != NULL) {
+  if (screen_id < 17 && screen_builders[screen_id] != NULL) {
     screen_builders[screen_id]();
   }
 }

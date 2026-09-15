@@ -27,7 +27,7 @@ from golfcart_msgs.srv import CourseSelect, HoleSelect
 from golfcart_msgs.msg import MotionRequest, BatteryState, GpsFix, ImuData
 from golfcart_msgs.msg import ObstacleState, GeofenceStatus, SpeedZoneStatus
 from golfcart_msgs.msg import SlopeStatus, NavigationStatus, HoleSession, CourseList, CourseMap
-from golfcart_msgs.msg import HandleForce, ModeState, AssistConfig
+from golfcart_msgs.msg import HandleForce, ModeState, AssistConfig, RangeStatus
 
 from golfcart_hmi import protocol as p
 
@@ -101,6 +101,8 @@ class HandleGatewayNode(Node):
             CourseList, 'course/list', self.on_course_list, 10)
         self.course_map_sub = self.create_subscription(
             CourseMap, 'course/map', self.on_course_map, 10)
+        self.range_sub = self.create_subscription(
+            RangeStatus, 'range/status', self.on_range, 10)
 
         # ---- Screen state (for MENU_SELECT interpretation) ----
         self.screen = p.SCREEN_SPLASH
@@ -226,23 +228,25 @@ class HandleGatewayNode(Node):
             self._nav(p.SCREEN_COURSE)
 
     def _menu_main(self, item):
-        # Main menu items: MAP, MODE, ASSIST, CHANGE HOLE, SELECT COURSE,
-        # WIFI, DEBUG, SHUTDOWN.
+        # Main menu items: MAP, MODE, ASSIST, ENERGY, CHANGE HOLE,
+        # SELECT COURSE, WIFI, DEBUG, SHUTDOWN.
         if item == 0:      # MAP
             self._nav(p.SCREEN_HOLE)
         elif item == 1:    # MODE
             self._nav(p.SCREEN_MODE)
         elif item == 2:    # ASSIST
             self._nav(p.SCREEN_ASSIST)
-        elif item == 3:    # CHANGE HOLE
+        elif item == 3:    # ENERGY
+            self._nav(p.SCREEN_ENERGY)
+        elif item == 4:    # CHANGE HOLE
             self._nav(p.SCREEN_CHANGE_HOLE)
-        elif item == 4:    # SELECT COURSE
+        elif item == 5:    # SELECT COURSE
             self._nav(p.SCREEN_COURSE)
-        elif item == 5:    # WIFI
+        elif item == 6:    # WIFI
             self._nav(p.SCREEN_WIFI)
-        elif item == 6:    # DEBUG
+        elif item == 7:    # DEBUG
             self._nav(p.SCREEN_DEBUG)
-        elif item == 7:    # SHUTDOWN
+        elif item == 8:    # SHUTDOWN
             self.get_logger().info('SHUTDOWN requested (not wired)')
 
     def _menu_mode(self, item):
@@ -386,6 +390,12 @@ class HandleGatewayNode(Node):
         self._send_state(p.ST_HOLE_NUMBER, int(msg.hole_number))
         self._send_state(p.ST_HOLE_DISTANCE_M, int(msg.distance_m))
         self._send_state(p.ST_HOLE_REMAINING_M, int(msg.remaining_m))
+
+    def on_range(self, msg):
+        self._send_state(p.ST_RANGE_M, int(msg.range_m))
+        self._send_state(p.ST_RETURN_M, int(msg.return_m))
+        state = {'OK': 0, 'CAUTION': 1, 'CRITICAL': 2}.get(msg.state, 0)
+        self._send_state(p.ST_RANGE_STATE, state)
 
     # ------------------------------------------------------------------
     # Serial send helpers
