@@ -23,6 +23,19 @@ patterns.
 
 ---
 
+## Rejected ideas
+
+These were considered and explicitly rejected. Do not re-suggest them without
+a material change in requirements or hardware.
+
+| Idea | Why rejected |
+| --- | --- |
+| **Voice Control** | Not appropriate for a golf course — shouting commands across the fairway is impractical and socially unacceptable. Superseded by the gesture-control idea. |
+| **Weather Sensing** | Redundant for a manually-driven cart — the operator is standing next to it and notices rain themselves. Only marginal value for autonomous operation (wet-grass traction), not worth the extra hardware. |
+| **Go to Hole N (tee-to-green)** | Dropped as a roadmap item — the two-leg (tee → green) orchestration didn't make sense as a standalone feature at the time. (The underlying navigation stack it would reuse is implemented.) |
+
+---
+
 Each feature should follow the existing pattern: a plan in `plans/`, a feature
 doc in `docs/features/`, unit tests for pure math, a headless e2e check script,
 and a `FEATURES.md` entry when implemented.
