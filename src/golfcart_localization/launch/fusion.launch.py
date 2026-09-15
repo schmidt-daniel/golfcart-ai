@@ -10,12 +10,33 @@ Usage:
 
 import os
 
+import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
 
+def _load_config():
+    """Load the central tuning config (config/golfcart.yaml)."""
+    path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), '..', '..', '..',
+        'config', 'golfcart.yaml')
+    path = os.path.abspath(path)
+    if not os.path.exists(path):
+        return {}
+    with open(path) as f:
+        return yaml.safe_load(f) or {}
+
+
+def _node_params(cfg, name):
+    """Return a node's params merged with the shared `common` section."""
+    params = dict(cfg.get('common', {}) or {})
+    params.update(cfg.get(name, {}) or {})
+    return params
+
+
 def generate_launch_description():
+    cfg = _load_config()
     pkg_share = get_package_share_directory('golfcart_localization')
     ekf_config = os.path.join(pkg_share, 'config', 'ekf.yaml')
 
@@ -38,6 +59,7 @@ def generate_launch_description():
         package='golfcart_localization',
         executable='localization_quality_node',
         name='localization_quality_node',
+        parameters=[_node_params(cfg, 'localization_quality_node')],
         output='screen',
     )
 
