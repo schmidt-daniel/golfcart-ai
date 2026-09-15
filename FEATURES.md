@@ -74,6 +74,9 @@ features are added.
 ### Hill Assist, Hill Descent Brake, Rollback Protection
 - `golfcart_behavior` package — `hill_rollback_node`
 - **Rollback Protection:** detects unintended backward movement on a slope (from wheel encoders) and requests a brake
+- **Brake-Hold:** proactive counterpart — holds the brake while stopped on a
+  slope (prevents creep); releases when the operator commands forward
+  (hill-start assist); `brake_hold_enabled` + `brake_hold_threshold_mps`
 - **Hill Descent Brake:** limits speed on downhill slopes to prevent uncontrolled acceleration
 - **Hill Assist:** provides propulsion assistance on uphill slopes
 - Publishes `MotionRequest` (higher priority than manual) and `behavior/status`
