@@ -12,6 +12,7 @@ patterns.
 > - GPS-Denied Dead-Reckoning Fallback (`docs/features/dead-reckoning.md`)
 > - Obstacle Steering Assist (`docs/features/steering-assist.md`)
 > - Battery Range Estimator (`docs/features/range-estimator.md`)
+> - Course-Aware Speed Governor (`docs/features/course-governor.md`)
 
 > **Not selected now:** camera person re-ID — requires new hardware (camera
 > processing) and is documented separately in `docs/features/`.
@@ -26,7 +27,6 @@ existing pattern (plan → feature doc → unit tests → e2e check → FEATURES
 | Idea | Theme | Reuses |
 | --- | --- | --- |
 | **Gesture control** | Operator UX | A camera-based gesture interface (e.g. wave to summon, hand signals to stop/follow) instead of voice. More appropriate than shouting across the course. Requires a camera + gesture-recognition processing. |
-| **Course-aware speed governor** | Safety / UX | Slow automatically near greens, tees, and water hazards (from the course map), not just in explicit speed-limit zones. Reuses `CourseMap` features + `speed_zone_node` pattern. |
 | **Energy dashboard on the HMI** | Operator UX | Surface the `/range/status` gauge on the ESP32 handle unit. Reuses the range estimator + existing HMI screens. |
 | **Wheel-slip / traction detection** | Safety / Robustness | Detect when the cart is spinning wheels (odometry says moving but position isn't changing, or current spike). Could trigger a gentle stop or warning. Reuses odometry + motor state. |
 | **Automatic brake-hold on slopes** | Safety | Keep the cart stationary on a slope when stopped, preventing creep. Reuses the hill/rollback node. |

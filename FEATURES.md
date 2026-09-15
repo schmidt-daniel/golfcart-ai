@@ -221,6 +221,19 @@ features are added.
 - Pure math in `speed_zone_math.hpp` (point-in-polygon) — unit-tested;
   `scripts/test_speed_zone_node.py` headless e2e
 
+### Course-Aware Speed Governor
+- Extends `speed_zone_node` (`golfcart_navigation`) — also slows the trolley
+  when it is **near** a forbidden zone (green, tee, water hazard, rough,
+  bunker), not just inside explicit `SPEED_ZONE` polygons
+- **Typed forbidden zones:** `CourseMap` gained `forbidden_zone_types` /
+  `forbidden_zone_labels` (parallel to `forbidden_zones`) so each polygon keeps
+  its type/label (previously lost in the parser)
+- **Proximity:** `distance_to_polygon` (0 if inside) — when within
+  `slow_radius_m` of a forbidden zone, applies `feature_limit_mps`;
+  most-restrictive limit wins; status label like `"near Green 5"`
+- Config: `slow_radius_m` + `feature_limit_mps` for `speed_zone_node`
+- Pure math in `speed_zone_math.hpp` (`distance_to_polygon`) — unit-tested
+
 ### Battery Range Estimator (self-learning)
 - `range_estimator_node` (`golfcart_navigation`) — estimates remaining range
   from battery charge + terrain slope + remaining hole distance; publishes
