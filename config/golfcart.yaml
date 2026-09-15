@@ -91,6 +91,8 @@ hill_rollback_node:
   descent_max_speed_mps: 0.3        # max forward speed on a downhill
   assist_speed_mps: 0.2             # propulsion assist speed on an uphill
   hysteresis_rad: 0.03              # prevents slope-state flapping
+  brake_hold_enabled: true          # hold the brake while stopped on a slope
+  brake_hold_threshold_mps: 0.02    # wheel speed below which the hold applies (m/s)
 
 # -----------------------------------------------------------------------------
 # Push Assist (golfcart_behavior/push_assist_node)

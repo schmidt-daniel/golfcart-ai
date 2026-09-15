@@ -12,7 +12,8 @@
 namespace golfcart
 {
 
-// Hill Assist, Hill Descent Brake, and Rollback Protection behavior node.
+// Hill Assist, Hill Descent Brake, Rollback Protection, and Brake-Hold
+// behavior node.
 //
 // Produces MotionRequest messages that flow through the Safety Controller.
 // These behaviors are safety-related and use a higher priority than manual
@@ -20,6 +21,8 @@ namespace golfcart
 //
 // - Rollback Protection: detects unintended backward movement (from wheel
 //   encoders) when no backward command is active, and requests a stop/brake.
+// - Brake-Hold: while stopped on a slope, holds the brake to prevent creep
+//   (proactive); releases when the operator commands forward (hill-start).
 // - Hill Descent Brake: detects downhill movement and limits speed.
 // - Hill Assist: detects uphill and provides propulsion assistance.
 class HillRollbackNode : public rclcpp::Node
@@ -34,6 +37,8 @@ public:
     descent_max_speed_mps_ = declare_parameter<double>("descent_max_speed_mps", 0.3);
     assist_speed_mps_ = declare_parameter<double>("assist_speed_mps", 0.2);
     hysteresis_rad_ = declare_parameter<double>("hysteresis_rad", 0.03);
+    brake_hold_enabled_ = declare_parameter<bool>("brake_hold_enabled", true);
+    brake_hold_threshold_mps_ = declare_parameter<double>("brake_hold_threshold_mps", 0.02);
 
     // Subscriptions.
     imu_sub_ = create_subscription<golfcart_msgs::msg::ImuData>(
@@ -96,6 +101,19 @@ private:
       return;
     }
 
+    // --- Brake-Hold (proactive) ---
+    // While stopped on a slope, hold the brake to prevent creep. This is the
+    // proactive counterpart to rollback protection: it keeps the cart from
+    // starting to roll back at all. Release when the operator commands forward
+    // (wheel velocity above the hold threshold) so the cart can drive off
+    // (hill-start assist).
+    if (brake_hold_enabled_ && slope != SlopeState::LEVEL &&
+        std::abs(wheel_velocity_) <= brake_hold_threshold_mps_) {
+      publish_request(0.0, 0.0, "brake_hold", 3);
+      publish_status("BRAKE_HOLD");
+      return;
+    }
+
     // --- Hill Descent Brake ---
     // On a downhill slope, limit forward speed to prevent uncontrolled
     // acceleration. If moving downhill too fast, request a brake.
@@ -146,6 +164,8 @@ private:
   double descent_max_speed_mps_ = 0.3;
   double assist_speed_mps_ = 0.2;
   double hysteresis_rad_ = 0.03;
+  bool brake_hold_enabled_ = true;
+  double brake_hold_threshold_mps_ = 0.02;
 
   double pitch_ = 0.0;
   double wheel_velocity_ = 0.0;
