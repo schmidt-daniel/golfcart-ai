@@ -5,7 +5,7 @@ being **software-only** (no new hardware) and building directly on the existing
 autonomous stack. Each feature reuses already-implemented nodes, messages, and
 patterns.
 
-**Status: the software-only batch is complete.**
+**Status: the software-only batch is complete.** The next batch is **camera-enabled** — the Pi Camera + Coral USB decision (see `docs/features/camera-vision.md`) unblocks features that previously required new hardware.
 
 > **Completed:**
 > - Remote E-Stop + Live Telemetry Dashboard (`docs/features/remote-estop-dashboard.md`)
@@ -22,6 +22,19 @@ patterns.
 
 ---
 
+## Active batch (camera-enabled)
+
+Selected next features, enabled by the Pi Camera + Coral USB decision. In
+priority order:
+
+| # | Feature | Theme | Reuses |
+| --- | --- | --- | --- |
+| 1 | **Gesture control** | Operator UX | Camera-based gesture interface (wave to summon, hand signals to stop/follow) instead of voice. Runs on the Coral NPU. |
+| 2 | **Live course segmentation** | Perception | Label fairway/rough/water/bunkers on unfamiliar courses (traveling-player case). Zero-shot SAM first, fine-tune only if needed. |
+| 3 | **Hazard camera view** | HMI | Wire the camera feed + segmentation overlay to the HMI's existing "Segmentation: OFF" placeholder. |
+
+---
+
 ## Candidate ideas
 
 Not yet selected — these are under consideration. Each would follow the
@@ -29,7 +42,10 @@ existing pattern (plan → feature doc → unit tests → e2e check → FEATURES
 
 | Idea | Theme | Reuses |
 | --- | --- | --- |
-| **Gesture control** | Operator UX | A camera-based gesture interface (e.g. wave to summon, hand signals to stop/follow) instead of voice. More appropriate than shouting across the course. Requires a camera + gesture-recognition processing. |
+| **Person re-ID** | Follow-me | Re-identify the operator if the follow-me target is lost. Now viable with the camera. |
+| **Multi-round battery learning** | Range | Persist the range estimator's learned `Wh/m` across rounds (currently in-memory). |
+| **Trip logging / round summary** | UX | Log each round (distance, energy, time) to the web app. |
+| **Predictive range on HMI** | Range | Show remaining holes vs. remaining range. |
 
 ---
 
