@@ -62,7 +62,7 @@ Published on `/gesture/command`.
 
 ```text
 # A recognized gesture from gesture_recognition_node.
-uint8 gesture    # 0=NONE, 1=WINDMILL, 2=STOP, 3=FOLLOW, 4=SLOW
+uint8 gesture    # 0=NONE, 1=SUMMON, 2=STOP, 3=FOLLOW, 4=SLOW
 float32 confidence
 builtin_interfaces/Time stamp
 ```

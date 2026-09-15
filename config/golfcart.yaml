@@ -283,4 +283,28 @@ summon_node:
 # (origin_latitude_deg, origin_longitude_deg, origin_rotation_rad from common)
 # -----------------------------------------------------------------------------
 georeference_node:
+
+# -----------------------------------------------------------------------------
+# Gesture Recognition (golfcart_vision/gesture_recognition_node)
+# Classifies arm gestures (windmill+hold=SUMMON, double palm=STOP, choo-choo=
+# FOLLOW, pat-down=SLOW) from body keypoints. MediaPipe Pose on the Coral NPU.
+# Publishes /gesture/command; advisory only (never bypasses the Safety
+# Controller).
+# -----------------------------------------------------------------------------
+gesture_recognition_node:
+  model: "mediapipe_pose"           # full-body keypoints on the Coral NPU
+  confidence_threshold: 0.7         # min confidence to accept a gesture
+  debounce_frames: 15               # frames a gesture must persist (~0.5 s)
+  publish_rate_hz: 10               # gesture publish rate (Hz)
+  summon_hold_s: 1.0                # hold time to confirm SUMMON (windmill + hold)
+
+# -----------------------------------------------------------------------------
+# Gesture Controller (golfcart_vision/gesture_controller_node)
+# Maps recognized gestures to actions (summon / stop / follow / slow).
+# -----------------------------------------------------------------------------
+gesture_controller_node:
+  enabled: true                     # master on/off (HMI toggle)
+  slow_speed_mps: 0.5               # speed cap for the SLOW gesture (m/s)
+  ignore_in_manual: true            # ignore gestures while joystick is active
+  summon_hold_s: 1.0                # hold time to confirm SUMMON (windmill + hold)
   # (uses common map origin)
