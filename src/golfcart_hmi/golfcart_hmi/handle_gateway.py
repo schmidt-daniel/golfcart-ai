@@ -27,7 +27,7 @@ from golfcart_msgs.srv import CourseSelect, HoleSelect
 from golfcart_msgs.msg import MotionRequest, BatteryState, GpsFix, ImuData
 from golfcart_msgs.msg import ObstacleState, GeofenceStatus, SpeedZoneStatus
 from golfcart_msgs.msg import SlopeStatus, NavigationStatus, HoleSession, CourseList, CourseMap
-from golfcart_msgs.msg import HandleForce, ModeState, AssistConfig, RangeStatus
+from golfcart_msgs.msg import HandleForce, ModeState, AssistConfig, RangeStatus, SlipStatus
 
 from golfcart_hmi import protocol as p
 
@@ -103,6 +103,8 @@ class HandleGatewayNode(Node):
             CourseMap, 'course/map', self.on_course_map, 10)
         self.range_sub = self.create_subscription(
             RangeStatus, 'range/status', self.on_range, 10)
+        self.slip_sub = self.create_subscription(
+            SlipStatus, 'slip/status', self.on_slip, 10)
 
         # ---- Screen state (for MENU_SELECT interpretation) ----
         self.screen = p.SCREEN_SPLASH
@@ -396,6 +398,10 @@ class HandleGatewayNode(Node):
         self._send_state(p.ST_RETURN_M, int(msg.return_m))
         state = {'OK': 0, 'CAUTION': 1, 'CRITICAL': 2}.get(msg.state, 0)
         self._send_state(p.ST_RANGE_STATE, state)
+
+    def on_slip(self, msg):
+        if msg.valid:
+            self._send_state(p.ST_SLIP, 1 if msg.slipping else 0)
 
     # ------------------------------------------------------------------
     # Serial send helpers

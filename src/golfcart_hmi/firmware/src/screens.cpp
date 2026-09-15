@@ -53,6 +53,7 @@ typedef struct {
   uint16_t range_m;           // estimated remaining range (m)
   uint16_t return_m;          // estimated return distance (m)
   uint8_t range_state;        // 0=OK, 1=CAUTION, 2=CRITICAL
+  uint8_t slip;               // 0=no slip, 1=wheels slipping
 } HandleState;
 
 static HandleState g_state;
@@ -220,6 +221,7 @@ typedef struct {
 #define LABEL_RANGE_M     18
 #define LABEL_RETURN_M    19
 #define LABEL_RANGE_STATE 20
+#define LABEL_SLIP        21
 
 static LabelRef g_labels[MAX_LABELS];
 static int g_label_count = 0;
@@ -325,6 +327,9 @@ static void set_label_text(LabelRef *lr)
       snprintf(buf, sizeof(buf), "%s", s < 3 ? names[s] : "UNKNOWN");
       break;
     }
+    case LABEL_SLIP:
+      snprintf(buf, sizeof(buf), "%s", g_state.slip ? "SLIP" : "OK");
+      break;
     default:
       return;
   }
@@ -523,12 +528,14 @@ static void build_debug_system(void)
   make_header("System");
   lv_obj_t *bat = make_label(scr, "Battery  --%", 20, 44, 280, 24, C_TEXT);
   add_label(bat, LABEL_BATTERY_PCT);
-  make_label(scr, "CPU      --%", 20, 76, 280, 24, C_TEXT);
-  make_label(scr, "Disk     --%", 20, 108, 280, 24, C_TEXT);
-  make_label(scr, "Uptime   --:--", 20, 140, 280, 24, C_TEXT);
-  make_label(scr, "Temp     -- C", 20, 172, 280, 24, C_TEXT);
-  make_button(scr, "Main Menu", 20, 220, 280, 40, C_SURFACE2);
-  add_hit(20, 220, 300, 260, 0);
+  lv_obj_t *slip = make_label(scr, "Slip     OK", 20, 76, 280, 24, C_OK);
+  add_label(slip, LABEL_SLIP);
+  make_label(scr, "CPU      --%", 20, 108, 280, 24, C_TEXT);
+  make_label(scr, "Disk     --%", 20, 140, 280, 24, C_TEXT);
+  make_label(scr, "Uptime   --:--", 20, 172, 280, 24, C_TEXT);
+  make_label(scr, "Temp     -- C", 20, 204, 280, 24, C_TEXT);
+  make_button(scr, "Main Menu", 20, 248, 280, 40, C_SURFACE2);
+  add_hit(20, 248, 300, 288, 0);
 }
 
 // GPS debug (SCR_DEBUG_GPS).
@@ -798,6 +805,10 @@ void screens_set_state(uint8_t id, int32_t value)
     case ST_HILL_ASSIST_ENABLED: g_state.hill_assist_enabled = (uint8_t)value; break;
     case ST_STEERING_ASSIST: g_state.steering_assist_enabled = (uint8_t)value; break;
     case ST_TIME_HHMM: g_state.time_hhmm = (uint16_t)value; break;
+    case ST_RANGE_M: g_state.range_m = (uint16_t)value; break;
+    case ST_RETURN_M: g_state.return_m = (uint16_t)value; break;
+    case ST_RANGE_STATE: g_state.range_state = (uint8_t)value; break;
+    case ST_SLIP: g_state.slip = (uint8_t)value; break;
     default: break;
   }
   screens_refresh();

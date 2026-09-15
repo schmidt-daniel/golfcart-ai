@@ -75,6 +75,9 @@ ST_RANGE_M = 0x40
 ST_RETURN_M = 0x41
 ST_RANGE_STATE = 0x42
 
+# --- Wheel-slip state value ---
+ST_SLIP = 0x43
+
 # --- Capabilities bitmask (uplink HELLO) ---
 CAP_JOYSTICK = 0x01
 CAP_TOUCH = 0x02

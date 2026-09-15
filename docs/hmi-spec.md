@@ -594,6 +594,7 @@ Mockup: [`docs/hmi/system.svg`](hmi/system.svg)
 | System             |
 +--------------------+
 | Battery   [█████   ] 82% |
+| Slip              OK |
 | CPU       [█...... ] 35% |
 | Disk      [███..... ] 61% |
 | Uptime               3:42 |
@@ -608,6 +609,7 @@ Mockup: [`docs/hmi/system.svg`](hmi/system.svg)
 | Field | Source | Format | Notes |
 | --- | --- | --- | --- |
 | **Battery charge** | `/battery/state` | `NN%` + bar | Color-coded: green ≥ 50%, amber 25–49%, red < 25%. |
+| **Slip** | `/slip/status` | `OK` / `SLIP` | Amber/red when the wheels are slipping (loss of traction). |
 | **CPU load** | `/proc/loadavg` | `NN%` | 1-minute load / core count. |
 | **Disk space** | `/` filesystem | `NN%` + bar | Root partition usage. |
 | **Uptime** | `/proc/uptime` | `H:MM` or `D:HH:MM` | — |
