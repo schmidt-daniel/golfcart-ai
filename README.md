@@ -264,6 +264,22 @@ Services: `golfcart-core` (control pipeline), `golfcart-teleop` (web),
 `golfcart-geofence` (stay-on-course). See `systemd/` and
 `docs/architecture.md` §34.1 for details.
 
+### Ethernet DHCP fallback (dev/maintenance over SSH)
+
+The Pi's Wi-Fi is used only for the phone hotspot, so SSH for development uses
+the Ethernet port. To make that robust whether the Pi is on a network with a
+DHCP server (router/laptop) or connected directly to a laptop with no DHCP:
+
+```bash
+./scripts/setup_eth_fallback_dhcp.sh            # install (run on the Pi, with sudo)
+./scripts/setup_eth_fallback_dhcp.sh --uninstall  # remove
+```
+
+Behavior: on cable-in, the Pi waits 15 s for an existing DHCP server; if none
+responds, it assigns itself a static IP and runs dnsmasq as a DHCP server so a
+directly-connected laptop gets an IP. On cable-out, the fallback server stops.
+See the script header for options (`--iface`, `--ip`, `--range`, `--timeout`).
+
 ### Boot-time optimization
 
 To reduce the Pi's boot-to-ready time (the ESP32 handle shows a splash screen
