@@ -3,9 +3,13 @@
 Autonomous golf push trolley built on ROS 2. Drives the motors through a full
 safety + motion pipeline, with incremental features: joystick/keyboard/web teleop,
 battery monitoring, IMU, GPS, LiDAR + obstacle detection, auto-shutdown,
-energy-saving mode (sleep when idle, IMU wake), hill/rollback behaviors, a URDF
-model of the trolley, and a full gz-sim simulation for validating the navigation
-stack without hardware.
+energy-saving mode (sleep when idle, IMU wake), hill/rollback behaviors, push
+assist, operating mode + obstacle steering assist, a URDF model of the trolley,
+and a full gz-sim simulation for validating the navigation stack without
+hardware. On top of the control stack: localization (EKF), course mapping
+(SLAM), autonomous navigation (Nav2), speed zones, geofencing, summon,
+follow-me, GPS-denied dead-reckoning fallback, a battery range estimator, and a
+remote E-Stop + telemetry dashboard.
 
 ## Stack
 
@@ -42,11 +46,13 @@ obstacle-in-zone, request-timeout) and outputs the approved `Twist`.
 | `golfcart_gps` | `GpsSensor` interface, mock, scaffold driver, `gps_node` |
 | `golfcart_lidar` | `LidarSensor` interface, mock, scaffold driver, `lidar_node`, `obstacle_detection_node` |
 | `golfcart_power` | `auto_shutdown_node` (watchdog, idle shutdown, roll-away suppression), `energy_saver_node` (sleep when idle, IMU wake) |
-| `golfcart_behavior` | `hill_rollback_node` (Hill Assist, Hill Descent Brake, Rollback Protection) |
+| `golfcart_behavior` | `hill_rollback_node` (Hill Assist, Hill Descent Brake, Rollback Protection), `push_assist_node` (pedelec-style force-proportional assist) |
 | `golfcart_description` | URDF/xacro model of the 3-wheeled trolley + sensor mounts (lidar, camera, imu, gps) |
-| `golfcart_localization` | `wheel_odometry_node`, `sensor_fusion_node`, `localization_quality_node` + robot_localization EKF |
+| `golfcart_localization` | `wheel_odometry_node`, `sensor_fusion_node`, `localization_quality_node`, `dead_reckoning_node` + robot_localization EKF |
 | `golfcart_mapping` | slam_toolbox online async mapping (`mapping.launch.py`) + offline map building (`offline_mapping.launch.py`) |
-| `golfcart_navigation` | `navigation_node`, `georeference_node`, `speed_zone_node`, Nav2 stack (planner, RPP controller, bt_navigator, costmaps) |
+| `golfcart_navigation` | `navigation_node`, `georeference_node`, `summon_node`, `course_*_node`, `slope_node`, `speed_zone_node`, `range_estimator_node`, Nav2 stack (planner, RPP controller, bt_navigator, costmaps) |
+| `golfcart_follow` | `follow_controller_node`, `obstacle_awareness_node`, `steering_assist_node` (Follow Me + obstacle steering assist) |
+| `golfcart_geofence` | `geofence_node` (stay-on-course boundary enforcement) |
 | `golfcart_hmi` | Handle-unit HMI: ESP32 firmware (LVGL screens, FT6336U touch, HX711) + Pi-side `handle_gateway` serial bridge |
 | `golfcart_gazebo` | gz-sim course world + cart model, `gz_ros2_control`, sensors, `cmd_vel_converter`, `sim.launch.py` |
 | `golfcart_bringup` | Launch files (`joystick_control`, `keyboard_control`, `web_teleop`) |
@@ -55,10 +61,12 @@ obstacle-in-zone, request-timeout) and outputs the approved `Twist`.
 
 See `FEATURES.md` for the full tracker. Implemented: joystick/keyboard/web teleop,
 battery monitoring, ODrive driver (pending hardware validation), IMU, GPS, LiDAR +
-obstacle detection, auto-shutdown, hill/rollback behaviors, URDF model, localization
-(robot_localization EKF), course mapping (slam_toolbox), autonomous navigation (Nav2),
-speed zones, the ESP32 handle-unit HMI, and a full gz-sim simulation. Planned:
-geofencing, voice control, summon.
+obstacle detection, auto-shutdown, energy-saving, hill/rollback behaviors, push
+assist, operating mode + obstacle steering assist, URDF model, localization
+(robot_localization EKF), course mapping (slam_toolbox), autonomous navigation
+(Nav2), speed zones, geofencing, summon, follow-me, GPS-denied dead-reckoning
+fallback, battery range estimator, remote E-Stop + telemetry dashboard, and the
+ESP32 handle-unit HMI. See `docs/roadmap.md` for candidate and rejected ideas.
 
 ## Build
 
@@ -251,8 +259,10 @@ On the Pi, the services are managed manually with:
 ```
 
 Services: `golfcart-core` (control pipeline), `golfcart-teleop` (web),
-`golfcart-localization` (EKF), `golfcart-mapping` (SLAM), `golfcart-navigation`
-(Nav2). See `systemd/` and `docs/architecture.md` §34.1 for details.
+`golfcart-localization` (EKF + dead-reckoning), `golfcart-mapping` (SLAM),
+`golfcart-navigation` (Nav2), `golfcart-follow` (Follow Me + steering assist),
+`golfcart-geofence` (stay-on-course). See `systemd/` and
+`docs/architecture.md` §34.1 for details.
 
 ### Boot-time optimization
 
