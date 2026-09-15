@@ -79,6 +79,21 @@ features are added.
 - Publishes `MotionRequest` (higher priority than manual) and `behavior/status`
 - Uses IMU pitch + wheel velocity with hysteresis
 
+### Push Assist (Pedelec-Style)
+- `push_assist_node` (`golfcart_behavior`) — detects how hard the user
+  pushes/brakes the handle (load cell in the handle unit) and requests
+  proportional motor assistance (pedelec principle)
+- **Slope compensation** — subtracts the gravity component (IMU pitch) so
+  assist is based on user force only, not the hill
+- **Dead zone + hysteresis** — activates above `deadzone_n + hysteresis_n`,
+  stays on until `deadzone_n - hysteresis_n` (no on/off flapping)
+- Proportional assist clamped to `max_assist_mps`; brake on negative force
+- Publishes `MotionRequest` (priority 2, above teleop, below safety)
+- `golfcart_msgs` — `HandleForce.msg` (calibrated push/brake force, N);
+  `handle_gateway` publishes it on `/handle/force`
+- Pure math in `test_push_assist.cpp` (effective force, dead zone/hysteresis,
+  assist clamp) — unit-tested
+
 ### Localization (sensor fusion)
 - `golfcart_localization` package
 - `wheel_odometry_node` — subscribes `/motor/state`, publishes `nav_msgs/Odometry` on `/wheel/odometry` + TF `odom→base_link`
@@ -237,7 +252,6 @@ complete (Remote E-Stop + Telemetry, GPS-Denied Fallback, Obstacle Steering
 Assist, Battery Range Estimator).
 
 - Voice Control
-- Push Assist (pedelec-style force sensing)
 - Learning on-board flags (design doc `docs/features/learning.md` describes an
   on-board recorder; we instead derive flags off-board from rosbags — see the
   Learning section above)

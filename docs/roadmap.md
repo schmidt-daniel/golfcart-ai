@@ -13,9 +13,9 @@ patterns.
 > - Obstacle Steering Assist (`docs/features/steering-assist.md`)
 > - Battery Range Estimator (`docs/features/range-estimator.md`)
 
-> **Not selected now:** Voice Control, Push Assist, camera person re-ID,
-> weather sensing — these require new hardware (mic, load cell, camera
-> processing, sensors) and are documented separately in `docs/features/`.
+> **Not selected now:** Voice Control, camera person re-ID, weather sensing —
+> these require new hardware (mic, camera processing, sensors) and are
+> documented separately in `docs/features/`.
 
 ---
 
