@@ -123,6 +123,20 @@ features are added.
 - `/follow` service + `/follow/status`; `golfcart_msgs` — `PersonTarget.msg`, `FollowStatus.msg`, `FollowTrigger.srv`; `Obstacle.msg` gained a `source` field
 - Gazebo: person model in course world; `scripts/follow_check.sh` (sim smoke test)
 
+### Operating Mode + Obstacle Steering Assist (Manual)
+- `mode_node` (`golfcart_control`) — publishes `/mode/state` (MANUAL/FOLLOW/
+  AUTONOMOUS/TELEOP); `/mode/set` service; gateway maps HMI mode selection
+- Safety Controller — obstacle hard-stop only when NOT in MANUAL mode (operator
+  has full control in manual); subscribes `/mode/state`
+- `steering_assist_node` (`golfcart_follow`) — in MANUAL mode, gently steers
+  away from nearby obstacles (priority-1 angular nudge) instead of hard-stopping;
+  subscribes `/obstacles/awareness` + `/mode/state`
+- HMI toggle: `AssistConfig.msg` + `/assist/config`; gateway `_menu_assist`
+  toggles steering assist; `steering_assist_node` only nudges when enabled; HMI
+  Assist screen reflects ON/OFF via `ST_STEERING_ASSIST`
+- `golfcart_msgs` — `ModeState.msg`, `AssistConfig.msg`
+- Pure nudge math in `test_steering_assist.cpp` — unit-tested
+
 ### Geofencing (Stay-on-Course)
 - `geofence_node` (`golfcart_geofence`) — /gps/fix → /geofence/status; keeps the trolley inside the outer course boundary polygon
 - **Per-hole boundary config** (`config/hole5.yaml`) as the single source of truth (lat/lon polygon, decoupled from CourseMap)
@@ -206,7 +220,7 @@ features are added.
 ## Not yet implemented (documented only)
 
 See `docs/features/` for design docs, and `docs/roadmap.md` for the next
-planned batch (Obstacle Steering Assist, Battery Range Estimator).
+planned batch (Battery Range Estimator).
 
 - Voice Control
 - Push Assist (pedelec-style force sensing)
