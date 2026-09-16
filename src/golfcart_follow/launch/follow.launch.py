@@ -81,9 +81,21 @@ def generate_launch_description():
         }],
     )
 
+    person_reid = Node(
+        package='golfcart_follow',
+        executable='person_reid_node',
+        name='person_reid_node',
+        output='screen',
+        parameters=[{
+            'use_sim_time': use_sim_time,
+            **_node_params(cfg, 'person_reid_node'),
+        }],
+    )
+
     return LaunchDescription([
         use_sim_time_arg,
         person_detection,
         obstacle_awareness,
         follow_controller,
+        person_reid,
     ])

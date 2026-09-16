@@ -121,6 +121,14 @@ follow_controller_node:
   target_timeout_s: 0.5             # drop target if not seen for this long (s)
 
 # -----------------------------------------------------------------------------
+# Person Re-ID (golfcart_follow/person_reid_node)
+# Re-acquires the follow-me operator after a target loss (continuity-based).
+# -----------------------------------------------------------------------------
+person_reid_node:
+  search_timeout_s: 30.0            # how long to search before giving up (s)
+  max_gap_m: 3.0                    # max distance from last-known position (m)
+
+# -----------------------------------------------------------------------------
 # Obstacle Awareness (golfcart_follow/obstacle_awareness_node)
 # Soft obstacle view for steering (distinct from the safety hard-stop).
 # (min_range_m, max_range_m, sector_half_angle_rad from common)
