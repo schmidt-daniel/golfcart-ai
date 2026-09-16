@@ -23,36 +23,28 @@ hardware-validation phase (real camera capture + Coral NPU inference).
 > - Gesture Control (`docs/features/gesture-control.md`)
 > - Live Course Segmentation (`docs/features/segmentation.md`)
 > - Hazard Camera View (`docs/features/hazard-camera-view.md`)
+> - HMI Map View (`docs/features/hmi-map-view.md`)
+> - HMI Alert / Notification Queue (`docs/features/hmi-alerts.md`)
+> - Follow-Me Speed Adaptation (`docs/features/follow-speed-adaptation.md`)
+> - LiDAR Blind-Spot Masking (`docs/features/lidar-blind-spot.md`)
 
 > **Not selected now:** camera person re-ID — requires new hardware (camera
 > processing) and is documented separately in `docs/features/`.
 
 ---
 
-## Active batch (camera-enabled)
+## Active batch (HMI + autonomy polish)
 
-Selected next features, enabled by the Pi Camera + Coral USB decision. In
-priority order:
+Selected next features, all software-only. In priority order:
 
-| # | Feature | Theme | Reuses | Status |
-| --- | --- | --- | --- | --- |
-| 1 | **Gesture control** | Operator UX | Camera-based gesture interface (wave to summon, hand signals to stop/follow) instead of voice. Runs on the Coral NPU. | ✅ |
-| 2 | **Live course segmentation** | Perception | Label fairway/rough/water/bunkers on unfamiliar courses (traveling-player case). Zero-shot SAM first, fine-tune only if needed. | ✅ |
-| 3 | **Hazard camera view** | HMI | Wire the camera feed + segmentation overlay to the HMI's existing "Segmentation: OFF" placeholder. | ✅ |
-
----
-
-## Candidate ideas
-
-Not yet selected — these are under consideration. Each would follow the
-existing pattern (plan → feature doc → unit tests → e2e check → FEATURES.md).
-
-| Idea | Theme | Reuses |
-| --- | --- | --- |
-| **Person re-ID** | Follow-me | Re-identify the operator if the follow-me target is lost. Now viable with the camera. |
-| **Multi-round battery learning** | Range | Persist the range estimator's learned `Wh/m` across rounds (currently in-memory). |
-| **Trip logging / round summary** | UX | Log each round (distance, energy, time) to the web app. |
-| **Predictive range on HMI** | Range | Show remaining holes vs. remaining range. |
+| # | Feature | Theme | Reuses |
+| --- | --- | --- | --- |
+| 1 | **HMI round summary screen** | UX | Show the just-finished round's stats (distance, energy, time, avg speed) on the handle unit after "End round". Reuses trip logging. |
+| 2 | **HMI speed bar** | UX | Speed selector for manual/push-assist mode (from hmi-spec §6.4). |
+| 3 | **HMI course/hole quick-select** | UX | Faster hole selection than the current change-hole list. |
+| 4 | **Obstacle-aware slowdown** | Autonomy | Slow down to safely maneuver around obstacles — in **all autonomous modes** (not just follow-me). |
+| 5 | **Sensor health logging** | Diagnostics | Record capability dropouts over time to a log (like trip logging) to diagnose intermittent sensor failures. |
+| 6 | **Map editor → ROS integration** | Mapping | Wire the standalone map editor to publish `CourseMap` to ROS / Nav2 `static_layer`. |
 
 ---
 
@@ -69,6 +61,10 @@ a material change in requirements or hardware.
 | **Return-to-base** | No real use case — holes are played in sequence and the round ends at the clubhouse anyway, so there's no scenario where the trolley would need to return mid-round autonomously. |
 | **Range-aware route planning** | Useless — the course is played where the balls lie (not a fixed route), and there are no charging stops possible on the course, so there's no route to plan around range. |
 | **"Where's my cart?" locator** | Already implemented — the web app (`index.html`, `summon.html`) shows the trolley's position on a Leaflet map from `/gps/fix`, and `dashboard.html` shows lat/lon. |
+| **"Last hole" range warning** | Not required — the operator can judge this from the existing range/holes display. |
+| **Energy usage breakdown on web** | Not required — the trip log already captures the data; a per-bucket breakdown adds little value. |
+| **Re-ID confidence display** | Not required — the re-ID tracker works without surfacing its confidence. |
+| **Boot self-test screen** | Not required — the capability/sensor info is already in the debug menu. |
 
 ---
 
