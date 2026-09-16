@@ -84,6 +84,9 @@ def test_state_value_encodings():
     assert p._encode_value(p.ST_MAP_HEADING, -450) == b'\x3e\xfe'
     # map available is uint8
     assert p._encode_value(p.ST_MAP_AVAILABLE, 1) == bytes([1])
+    # alert is uint8
+    assert p._encode_value(p.ST_ALERT, p.ALERT_OBSTACLE) == bytes([p.ALERT_OBSTACLE])
+    assert p._encode_value(p.ST_ALERT, p.ALERT_NONE) == bytes([0])
 
 
 def test_map_frame_build():

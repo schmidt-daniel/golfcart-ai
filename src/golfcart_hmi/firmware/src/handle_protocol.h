@@ -84,6 +84,19 @@ extern "C" {
 #define ST_MAP_Y              0x48
 #define ST_MAP_HEADING        0x49
 #define ST_MAP_AVAILABLE      0x4A
+#define ST_ALERT              0x4B
+
+// Alert codes (ST_ALERT values).
+#define ALERT_NONE            0
+#define ALERT_BATTERY_LOW     1
+#define ALERT_BATTERY_CRITICAL 2
+#define ALERT_GEOFENCE_NEAR   3
+#define ALERT_GEOFENCE_CROSSED 4
+#define ALERT_OBSTACLE        5
+#define ALERT_SLIP            6
+#define ALERT_RANGE_CAUTION   7
+#define ALERT_RANGE_CRITICAL  8
+#define ALERT_NAV_ERROR       9
 #define ST_HOLES_REMAINING    0x46
 
 // Capabilities.

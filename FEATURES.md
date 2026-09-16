@@ -330,6 +330,16 @@ features are added.
   the MAP main-menu item now opens the map screen
 - See `docs/features/hmi-map-view.md`
 
+### HMI Alert / Notification Queue
+- `ST_ALERT` (0x4B) downlink carries the highest-priority active alert
+  (0 = none); alert codes for battery low/critical, geofence near/crossed,
+  obstacle, slip, range caution/critical, nav error
+- `handle_gateway` caches fault states (battery, geofence, obstacle, slip,
+  range, nav) and computes the highest-priority alert via `_update_alert()`
+- Firmware draws a colored banner overlay on the current screen
+  (`screens_set_alert`); alert 0 clears it
+- See `docs/features/hmi-alerts.md`
+
 ### Multi-Round Battery Learning
 - `EnergyModel.serialize()/deserialize()` (Wh/m per slope bucket)
 - `range_estimator_node` loads at startup, saves each update

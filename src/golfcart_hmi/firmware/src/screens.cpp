@@ -61,6 +61,7 @@ typedef struct {
   uint16_t map_y;             // trolley map y (cm)
   int16_t map_heading;        // trolley heading (deg x10)
   uint8_t map_available;      // 1 when a course map is loaded
+  uint8_t alert;              // active alert code (ALERT_*)
 } HandleState;
 
 static HandleState g_state;
@@ -926,6 +927,46 @@ void screens_set_map_bitmap(const uint8_t *data, size_t len,
 }
 
 // ---------------------------------------------------------------------------
+// Alert banner (called from main.ino on_frame when a ST_ALERT arrives).
+// Draws a colored banner across the top of the current screen; alert 0 clears.
+// ---------------------------------------------------------------------------
+static lv_obj_t *g_alert_banner = NULL;
+
+void screens_set_alert(uint8_t alert)
+{
+  g_state.alert = alert;
+  if (g_alert_banner != NULL) {
+    lv_obj_del(g_alert_banner);
+    g_alert_banner = NULL;
+  }
+  if (alert == ALERT_NONE) {
+    return;
+  }
+  const char *text = "ALERT";
+  lv_color_t color = C_WARN;
+  switch (alert) {
+    case ALERT_BATTERY_LOW:      text = "BATTERY LOW"; color = C_WARN; break;
+    case ALERT_BATTERY_CRITICAL: text = "BATTERY CRITICAL"; color = C_DANGER; break;
+    case ALERT_GEOFENCE_NEAR:    text = "GEOFENCE NEAR"; color = C_WARN; break;
+    case ALERT_GEOFENCE_CROSSED: text = "GEOFENCE CROSSED"; color = C_DANGER; break;
+    case ALERT_OBSTACLE:         text = "OBSTACLE"; color = C_DANGER; break;
+    case ALERT_SLIP:             text = "WHEEL SLIP"; color = C_WARN; break;
+    case ALERT_RANGE_CAUTION:    text = "RANGE CAUTION"; color = C_WARN; break;
+    case ALERT_RANGE_CRITICAL:   text = "RANGE CRITICAL"; color = C_DANGER; break;
+    case ALERT_NAV_ERROR:        text = "NAV ERROR"; color = C_DANGER; break;
+    default: break;
+  }
+  g_alert_banner = lv_label_create(lv_scr_act());
+  lv_obj_set_pos(g_alert_banner, 0, 0);
+  lv_obj_set_size(g_alert_banner, 320, 24);
+  lv_obj_set_style_bg_color(g_alert_banner, color, 0);
+  lv_obj_set_style_text_color(g_alert_banner, C_BG, 0);
+  lv_obj_set_style_text_font(g_alert_banner, &lv_font_montserrat_16, 0);
+  lv_label_set_text(g_alert_banner, text);
+  lv_obj_align(g_alert_banner, LV_ALIGN_TOP_MID, 0, 0);
+}
+
+// ---------------------------------------------------------------------------
 // State setter (called from main.ino on_frame when a STATE_UPDATE arrives).
 // ---------------------------------------------------------------------------
 void screens_set_state(uint8_t id, int32_t value)
@@ -967,6 +1008,7 @@ void screens_set_state(uint8_t id, int32_t value)
     case ST_MAP_Y: g_state.map_y = (uint16_t)value; break;
     case ST_MAP_HEADING: g_state.map_heading = (int16_t)value; break;
     case ST_MAP_AVAILABLE: g_state.map_available = (uint8_t)value; break;
+    case ST_ALERT: screens_set_alert((uint8_t)value); break;
     default: break;
   }
   screens_refresh();

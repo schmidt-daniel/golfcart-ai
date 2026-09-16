@@ -94,6 +94,21 @@ ST_MAP_Y = 0x48          # trolley map y (int16, cm)
 ST_MAP_HEADING = 0x49    # trolley heading (int16, deg x10)
 ST_MAP_AVAILABLE = 0x4A  # 1 when a course map is loaded
 
+# --- Alert / notification (downlink) ---
+ST_ALERT = 0x4B          # active alert code (0 = none)
+
+# Alert codes (ST_ALERT values).
+ALERT_NONE = 0
+ALERT_BATTERY_LOW = 1
+ALERT_BATTERY_CRITICAL = 2
+ALERT_GEOFENCE_NEAR = 3
+ALERT_GEOFENCE_CROSSED = 4
+ALERT_OBSTACLE = 5
+ALERT_SLIP = 6
+ALERT_RANGE_CAUTION = 7
+ALERT_RANGE_CRITICAL = 8
+ALERT_NAV_ERROR = 9
+
 # --- Capabilities bitmask (uplink HELLO) ---
 CAP_JOYSTICK = 0x01
 CAP_TOUCH = 0x02

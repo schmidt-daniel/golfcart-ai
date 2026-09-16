@@ -54,6 +54,10 @@ void screens_set_state(uint8_t id, int32_t value);
 void screens_set_map_bitmap(const uint8_t *data, size_t len,
                             uint16_t map_w, uint16_t map_h);
 
+// Set the active alert (from a ST_ALERT state value). Draws a banner overlay
+// on the current screen; alert 0 clears it.
+void screens_set_alert(uint8_t alert);
+
 // Update the boot-status line shown on the splash screen (from a
 // DL_BOOT_STATUS frame). progress is 0-100; text is a short status string.
 void screens_set_boot_status(uint8_t progress, const char *text);

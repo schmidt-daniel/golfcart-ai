@@ -150,6 +150,14 @@ class HandleGatewayNode(Node):
         self.map_heading = 0.0     # trolley heading (rad)
         self._map_sent = False     # whether the current map bitmap was sent
 
+        # ---- Alert state (cached fault conditions -> highest-priority alert) ----
+        self._battery_pct = 100.0
+        self._geofence = 0         # 0=OK, 1=NEAR, 2=CROSSED, 3=OUT_OF_FIX
+        self._obstacle = False
+        self._slip = False
+        self._range_state = 0      # 0=OK, 1=CAUTION, 2=CRITICAL
+        self._nav_status = 0       # 0=IDLE..5=ERROR
+
         # ---- Timers ----
         self.read_timer = self.create_timer(0.02, self.read_serial)   # 50 Hz
         self.heartbeat_timer = self.create_timer(1.0, self.send_heartbeat)
@@ -542,7 +550,9 @@ class HandleGatewayNode(Node):
 
     def on_battery(self, msg):
         if msg.valid:
+            self._battery_pct = msg.charge_percent
             self._send_state(p.ST_BATTERY_PCT, int(msg.charge_percent))
+            self._update_alert()
 
     def on_gps(self, msg):
         if msg.valid:
@@ -557,11 +567,15 @@ class HandleGatewayNode(Node):
 
     def on_obstacle(self, msg):
         if msg.valid:
+            self._obstacle = msg.obstacle_in_zone
             self._send_state(p.ST_OBSTACLE, 1 if msg.obstacle_in_zone else 0)
+            self._update_alert()
 
     def on_geofence(self, msg):
         state = {'OK': 0, 'NEAR': 1, 'CROSSED': 2, 'OUT_OF_FIX': 3}.get(msg.state, 0)
+        self._geofence = state
         self._send_state(p.ST_GEOFENCE, state)
+        self._update_alert()
 
     def on_speed_zone(self, msg):
         if msg.valid:
@@ -574,7 +588,9 @@ class HandleGatewayNode(Node):
     def on_nav(self, msg):
         state = {'IDLE': 0, 'PLANNING': 1, 'DRIVING': 2, 'PAUSED': 3,
                  'ARRIVED': 4, 'ERROR': 5}.get(msg.state, 0)
+        self._nav_status = state
         self._send_state(p.ST_NAV_STATUS, state)
+        self._update_alert()
 
     def on_hole(self, msg):
         self._send_state(p.ST_HOLE_NUMBER, int(msg.hole_number))
@@ -585,12 +601,16 @@ class HandleGatewayNode(Node):
         self._send_state(p.ST_RANGE_M, int(msg.range_m))
         self._send_state(p.ST_RETURN_M, int(msg.return_m))
         state = {'OK': 0, 'CAUTION': 1, 'CRITICAL': 2}.get(msg.state, 0)
+        self._range_state = state
         self._send_state(p.ST_RANGE_STATE, state)
         self._send_state(p.ST_HOLES_REMAINING, int(msg.holes_remaining))
+        self._update_alert()
 
     def on_slip(self, msg):
         if msg.valid:
+            self._slip = msg.slipping
             self._send_state(p.ST_SLIP, 1 if msg.slipping else 0)
+            self._update_alert()
 
     def on_capability(self, msg):
         # Pack the capability bitmask (must match the ESP32 CAP_* bit order:
@@ -614,6 +634,35 @@ class HandleGatewayNode(Node):
     # ------------------------------------------------------------------
     # Serial send helpers
     # ------------------------------------------------------------------
+
+    def _update_alert(self):
+        """Compute the highest-priority active alert and downlink it.
+
+        Priority (highest first): battery critical, geofence crossed, obstacle,
+        battery low, range critical, slip, geofence near, range caution, nav
+        error. Sends ST_ALERT (0 = none).
+        """
+        if self._battery_pct <= 10.0:
+            alert = p.ALERT_BATTERY_CRITICAL
+        elif self._geofence == 2:
+            alert = p.ALERT_GEOFENCE_CROSSED
+        elif self._obstacle:
+            alert = p.ALERT_OBSTACLE
+        elif self._battery_pct <= 20.0:
+            alert = p.ALERT_BATTERY_LOW
+        elif self._range_state == 2:
+            alert = p.ALERT_RANGE_CRITICAL
+        elif self._slip:
+            alert = p.ALERT_SLIP
+        elif self._geofence == 1:
+            alert = p.ALERT_GEOFENCE_NEAR
+        elif self._range_state == 1:
+            alert = p.ALERT_RANGE_CAUTION
+        elif self._nav_status == 5:
+            alert = p.ALERT_NAV_ERROR
+        else:
+            alert = p.ALERT_NONE
+        self._send_state(p.ST_ALERT, alert)
 
     def _send_state(self, state_id, value):
         self._send(p.DL_STATE_UPDATE, p.build_state_update(state_id, value))
