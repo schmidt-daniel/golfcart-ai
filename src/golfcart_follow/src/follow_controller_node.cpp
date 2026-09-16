@@ -7,6 +7,7 @@
 #include "golfcart_msgs/msg/obstacle.hpp"
 #include "golfcart_msgs/msg/person_target.hpp"
 #include "golfcart_msgs/srv/follow_trigger.hpp"
+#include "golfcart_follow/follow_math.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 namespace golfcart
@@ -29,6 +30,8 @@ public:
     // ---- Parameters ----
     follow_distance_m_ = declare_parameter<double>("follow_distance_m", 1.5);
     max_speed_mps_ = declare_parameter<double>("max_speed_mps", 0.8);
+    min_speed_mps_ = declare_parameter<double>("min_speed_mps", 0.2);
+    full_speed_distance_m_ = declare_parameter<double>("full_speed_distance_m", 3.0);
     kp_ = declare_parameter<double>("kp", 0.5);
     kt_ = declare_parameter<double>("kt", 0.8);  // turn gain
     confidence_threshold_ = declare_parameter<double>("confidence_threshold", 0.4);
@@ -157,10 +160,15 @@ private:
     // Person is moving away -> follow.
     state_ = "FOLLOWING";
 
+    // Speed adaptation: slow when close, faster when the person pulls away.
+    const double speed_cap = follow_speed(
+      last_target_.distance_m, follow_distance_m_, min_speed_mps_,
+      max_speed_mps_, full_speed_distance_m_);
+
     // Distance error (P-controller).
     const double err = last_target_.distance_m - follow_distance_m_;
     double linear = kp_ * err;
-    linear = std::clamp(linear, -max_speed_mps_, max_speed_mps_);
+    linear = std::clamp(linear, -speed_cap, speed_cap);
 
     // Lateral centering (turn to keep the person centered).
     double angular = kt_ * last_target_.lateral_offset_m;
@@ -214,7 +222,8 @@ private:
   }
 
   // ---- Params ----
-  double follow_distance_m_, max_speed_mps_, kp_, kt_;
+  double follow_distance_m_, max_speed_mps_, min_speed_mps_, full_speed_distance_m_;
+  double kp_, kt_;
   double confidence_threshold_, resume_timeout_s_;
   double obstacle_repulsion_gain_, obstacle_repulsion_radius_m_, target_timeout_s_;
 

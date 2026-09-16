@@ -141,6 +141,15 @@ features are added.
 - `/follow` service + `/follow/status`; `golfcart_msgs` — `PersonTarget.msg`, `FollowStatus.msg`, `FollowTrigger.srv`; `Obstacle.msg` gained a `source` field
 - Gazebo: person model in course world; `scripts/follow_check.sh` (sim smoke test)
 
+### Follow-Me Speed Adaptation
+- `follow_math.hpp` — `follow_speed()` ramps the follow speed with target
+  distance: slow when close (don't crowd), faster as the person pulls away
+- `follow_controller_node` caps the P-controller output at the adapted speed
+  (`min_speed_mps` at the follow distance → `max_speed_mps` at
+  `full_speed_distance_m`)
+- Config: `min_speed_mps`, `full_speed_distance_m`; unit tests
+- See `docs/features/follow-speed-adaptation.md`
+
 ### Operating Mode + Obstacle Steering Assist (Manual)
 - `mode_node` (`golfcart_control`) — publishes `/mode/state` (MANUAL/FOLLOW/
   AUTONOMOUS/TELEOP); `/mode/set` service; gateway maps HMI mode selection

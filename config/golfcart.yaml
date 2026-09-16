@@ -112,6 +112,8 @@ push_assist_node:
 follow_controller_node:
   follow_distance_m: 1.5            # desired distance behind the person (m)
   max_speed_mps: 0.8                # max follow speed (m/s)
+  min_speed_mps: 0.2                # speed when at the follow distance (m/s)
+  full_speed_distance_m: 3.0        # distance at which max speed is reached (m)
   kp: 0.5                           # proportional speed gain
   kt: 0.8                           # turn gain
   confidence_threshold: 0.4         # min person-detection confidence
