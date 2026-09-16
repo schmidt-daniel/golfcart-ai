@@ -5,7 +5,11 @@ being **software-only** (no new hardware) and building directly on the existing
 autonomous stack. Each feature reuses already-implemented nodes, messages, and
 patterns.
 
-**Status: the software-only batch is complete.** The next batch is **camera-enabled** — the Pi Camera + Coral USB decision (see `docs/features/camera-vision.md`) unblocks features that previously required new hardware.
+**Status: the software-only batch is complete.** The **camera-enabled batch is
+also complete** — gesture control, live course segmentation, and the hazard
+camera view are all implemented. The Pi Camera + Coral USB decision (see
+`docs/features/camera-vision.md`) unblocks these; the remaining work is the
+hardware-validation phase (real camera capture + Coral NPU inference).
 
 > **Completed:**
 > - Remote E-Stop + Live Telemetry Dashboard (`docs/features/remote-estop-dashboard.md`)
@@ -16,6 +20,9 @@ patterns.
 > - Energy Dashboard (HMI) (`docs/features/energy-dashboard.md`)
 > - Wheel-Slip / Traction Detection (`docs/features/wheel-slip.md`)
 > - Automatic Brake-Hold on Slopes (`docs/features/brake-hold.md`)
+> - Gesture Control (`docs/features/gesture-control.md`)
+> - Live Course Segmentation (`docs/features/segmentation.md`)
+> - Hazard Camera View (`docs/features/hazard-camera-view.md`)
 
 > **Not selected now:** camera person re-ID — requires new hardware (camera
 > processing) and is documented separately in `docs/features/`.
@@ -27,11 +34,11 @@ patterns.
 Selected next features, enabled by the Pi Camera + Coral USB decision. In
 priority order:
 
-| # | Feature | Theme | Reuses |
-| --- | --- | --- | --- |
-| 1 | **Gesture control** | Operator UX | Camera-based gesture interface (wave to summon, hand signals to stop/follow) instead of voice. Runs on the Coral NPU. |
-| 2 | **Live course segmentation** | Perception | Label fairway/rough/water/bunkers on unfamiliar courses (traveling-player case). Zero-shot SAM first, fine-tune only if needed. |
-| 3 | **Hazard camera view** | HMI | Wire the camera feed + segmentation overlay to the HMI's existing "Segmentation: OFF" placeholder. |
+| # | Feature | Theme | Reuses | Status |
+| --- | --- | --- | --- | --- |
+| 1 | **Gesture control** | Operator UX | Camera-based gesture interface (wave to summon, hand signals to stop/follow) instead of voice. Runs on the Coral NPU. | ✅ |
+| 2 | **Live course segmentation** | Perception | Label fairway/rough/water/bunkers on unfamiliar courses (traveling-player case). Zero-shot SAM first, fine-tune only if needed. | ✅ |
+| 3 | **Hazard camera view** | HMI | Wire the camera feed + segmentation overlay to the HMI's existing "Segmentation: OFF" placeholder. | ✅ |
 
 ---
 

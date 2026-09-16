@@ -17,6 +17,9 @@ target_include_directories(golfcart_vision INTERFACE
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(golfcart_vision INTERFACE rclcpp::rclcpp golfcart_msgs::golfcart_msgs)
 
+add_executable(camera_node src/camera_node.cpp)
+target_link_libraries(camera_node golfcart_vision rclcpp::rclcpp sensor_msgs::sensor_msgs)
+
 add_executable(gesture_recognition_node src/gesture_recognition_node.cpp)
 target_link_libraries(gesture_recognition_node golfcart_vision rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
 
@@ -26,7 +29,7 @@ target_link_libraries(gesture_controller_node golfcart_vision rclcpp::rclcpp std
 add_executable(segmentation_node src/segmentation_node.cpp)
 target_link_libraries(segmentation_node golfcart_vision rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
 
-install(TARGETS gesture_recognition_node gesture_controller_node segmentation_node
+install(TARGETS camera_node gesture_recognition_node gesture_controller_node segmentation_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY include/

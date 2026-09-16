@@ -308,6 +308,17 @@ features are added.
 - Model inference (zero-shot SAM / fine-tuned) abstracted for hardware phase
 - See `docs/features/segmentation.md`
 
+### Hazard Camera View
+- `camera_node` (golfcart_vision) publishes `/camera/image` (RGB) from the Pi
+  Camera Module 3 — fills the gap where nothing published the camera feed
+- `capability_node` now auto-detects the camera via `/camera/image` heartbeat
+- Web `hazard.html` — live MJPEG camera feed (`/camera.mjpeg`) + segmentation
+  status (active/classes/confidence) from `/segmentation/status`
+- `web_teleop_server` subscribes `/camera/image`, converts to JPEG, serves the
+  MJPEG stream; degrades gracefully when the camera is absent
+- Linked from `index.html` + `dashboard.html`; added to `setup.py` data_files
+- See `docs/features/hazard-camera-view.md`
+
 ### Multi-Round Battery Learning
 - `EnergyModel.serialize()/deserialize()` (Wh/m per slope bucket)
 - `range_estimator_node` loads at startup, saves each update

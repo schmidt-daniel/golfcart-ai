@@ -21,3 +21,4 @@ def test_web_files_present():
     web_dir = os.path.join(pkg_dir, 'web')
     assert os.path.isfile(os.path.join(web_dir, 'index.html'))
     assert os.path.isfile(os.path.join(web_dir, 'summon.html'))
+    assert os.path.isfile(os.path.join(web_dir, 'hazard.html'))

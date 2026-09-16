@@ -294,6 +294,17 @@ summon_node:
 georeference_node:
 
 # -----------------------------------------------------------------------------
+# Camera (golfcart_vision/camera_node)
+# Publishes the RGB camera feed on /camera/image (sensor_msgs/Image) from the
+# Pi Camera Module 3. Downscaled + low rate to save CPU. Downstream consumers:
+# segmentation_node, gesture recognition, web hazard view.
+# -----------------------------------------------------------------------------
+camera_node:
+  publish_rate_hz: 5.0              # camera publish rate (Hz)
+  width: 640                        # capture width (px)
+  height: 480                       # capture height (px)
+
+# -----------------------------------------------------------------------------
 # Gesture Recognition (golfcart_vision/gesture_recognition_node)
 # Classifies arm gestures (windmill+hold=SUMMON, double palm=STOP, choo-choo=
 # FOLLOW, pat-down=SLOW) from body keypoints. MediaPipe Pose on the Coral NPU.

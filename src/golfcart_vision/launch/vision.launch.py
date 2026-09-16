@@ -35,6 +35,14 @@ def _node_params(cfg, name):
 def generate_launch_description():
     cfg = _load_config()
 
+    camera = Node(
+        package='golfcart_vision',
+        executable='camera_node',
+        name='camera_node',
+        parameters=[_node_params(cfg, 'camera_node')],
+        output='screen',
+    )
+
     gesture_recognition = Node(
         package='golfcart_vision',
         executable='gesture_recognition_node',
@@ -60,6 +68,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        camera,
         gesture_recognition,
         gesture_controller,
         segmentation,

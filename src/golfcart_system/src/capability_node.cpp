@@ -7,6 +7,7 @@
 #include "golfcart_msgs/msg/motor_state.hpp"
 #include "golfcart_system/capability_math.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 
 namespace golfcart
@@ -82,9 +83,16 @@ public:
         odrive_.update(now_sec(), true);
       });
 
-    // Camera and Coral have no direct sensor topic in the base stack; they are
-    // driven by config override (or a future /camera/image subscription).
-    // For now, camera/coral default to their override (or absent if auto).
+    // Camera: presence of /camera/image frames = heartbeat (no valid flag).
+    camera_sub_ = create_subscription<sensor_msgs::msg::Image>(
+      "camera/image", rclcpp::SensorDataQoS(),
+      [this](const sensor_msgs::msg::Image::SharedPtr) {
+        camera_.update(now_sec(), true);
+      });
+
+    // Coral has no direct sensor topic in the base stack; it is driven by
+    // config override (or a future NPU status topic). For now, coral defaults
+    // to its override (or absent if auto).
 
     status_pub_ = create_publisher<golfcart_msgs::msg::CapabilityStatus>(
       "capability/status", rclcpp::SensorDataQoS());
@@ -151,6 +159,7 @@ private:
   rclcpp::Subscription<golfcart_msgs::msg::BatteryState>::SharedPtr battery_sub_;
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::MotorState>::SharedPtr odrive_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr camera_sub_;
   rclcpp::Publisher<golfcart_msgs::msg::CapabilityStatus>::SharedPtr status_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 };

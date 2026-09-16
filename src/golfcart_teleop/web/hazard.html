@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golf Cart — Hazard Camera</title>
+  <!-- ROS 2 web client (for segmentation status) -->
+  <script src="https://static.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: sans-serif; margin: 0; background: #0F172A; color: #F8FAFC; }
+    h1 { margin: 8px; font-size: 1.2em; }
+    a { color: #38BDF8; }
+    #conn { color: #888; font-size: 0.9em; }
+
+    /* ---- Camera view ---- */
+    #camWrap { max-width: 640px; margin: 12px auto; background: #1E293B; border-radius: 10px; padding: 12px; }
+    #cam { width: 100%; display: block; background: #0B1220; }
+    #camStatus { text-align: center; color: #94A3B8; font-size: 0.9em; margin: 4px; }
+
+    /* ---- Segmentation status ---- */
+    .panel { max-width: 640px; margin: 12px auto; background: #1E293B; border-radius: 10px; padding: 12px; }
+    .panel h2 { font-size: 1em; margin: 4px 0; color: #94A3B8; }
+    .row { display: flex; justify-content: space-between; padding: 4px 8px; }
+    .row .k { color: #94A3B8; }
+    .row .v { font-weight: bold; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; }
+    .badge.ok { background: #1E293B; color: #34D399; }
+    .badge.off { background: #334155; color: #94A3B8; }
+  </style>
+</head>
+<body>
+  <h1>📷 Golf Cart — Hazard Camera</h1>
+  <p id="conn">Connecting...</p>
+  <p><a href="index.html">← Web Teleop</a> · <a href="dashboard.html">Dashboard</a></p>
+
+  <!-- Live camera feed (MJPEG stream from the web teleop server) -->
+  <div id="camWrap">
+    <img id="cam" src="/camera.mjpeg" alt="Camera feed">
+    <p id="camStatus">Waiting for camera feed...</p>
+  </div>
+
+  <!-- Segmentation status -->
+  <div class="panel">
+    <h2>Segmentation</h2>
+    <div class="row"><span class="k">Status</span><span class="v" id="segStatus">--</span></div>
+    <div class="row"><span class="k">Classes</span><span class="v" id="segClasses">--</span></div>
+    <div class="row"><span class="k">Confidence</span><span class="v" id="segConf">--</span></div>
+  </div>
+
+  <script>
+    // ---- ROS connection (for segmentation status) ----
+    var ros = new ROSLIB.Ros({ url: 'ws://' + location.hostname + ':9090' });
+    ros.on('connection', function () {
+      document.getElementById('conn').textContent = 'Connected';
+      document.getElementById('conn').style.color = '#34D399';
+    });
+    ros.on('error', function (e) {
+      document.getElementById('conn').textContent = 'Error: ' + e;
+      document.getElementById('conn').style.color = '#F87171';
+    });
+    ros.on('close', function () {
+      document.getElementById('conn').textContent = 'Disconnected';
+      document.getElementById('conn').style.color = '#888';
+    });
+
+    // ---- Camera feed liveness ----
+    var cam = document.getElementById('cam');
+    cam.onload = function () {
+      document.getElementById('camStatus').textContent = 'Live';
+      document.getElementById('camStatus').style.color = '#34D399';
+    };
+    cam.onerror = function () {
+      document.getElementById('camStatus').textContent = 'No camera feed';
+      document.getElementById('camStatus').style.color = '#F87171';
+    };
+
+    // ---- Segmentation status ----
+    var segSub = new ROSLIB.Topic({ ros: ros, name: '/segmentation/status', messageType: 'golfcart_msgs/msg/SegmentationStatus' });
+    segSub.subscribe(function (msg) {
+      document.getElementById('segStatus').textContent = msg.active ? 'ACTIVE' : 'OFF';
+      document.getElementById('segClasses').textContent = msg.class_count;
+      document.getElementById('segConf').textContent = (msg.confidence * 100).toFixed(0) + '%';
+    });
+  </script>
+</body>
+</html>
