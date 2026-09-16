@@ -69,6 +69,7 @@
     <div class="row"><span class="k">Range</span><span class="v" id="range">--</span></div>
     <div class="row"><span class="k">Remaining</span><span class="v" id="remaining">--</span></div>
     <div class="row"><span class="k">Return</span><span class="v" id="return">--</span></div>
+    <div class="row"><span class="k">Holes left</span><span class="v" id="holes">--</span></div>
   </div>
 
   <!-- Fault badges -->
@@ -223,6 +224,7 @@
       document.getElementById('range').textContent = msg.range_m.toFixed(0) + ' m';
       document.getElementById('remaining').textContent = msg.remaining_m.toFixed(0) + ' m';
       document.getElementById('return').textContent = msg.return_m.toFixed(0) + ' m';
+      document.getElementById('holes').textContent = msg.holes_remaining < 0 ? '--' : msg.holes_remaining.toFixed(0);
       var badge = document.getElementById('badgeRange');
       if (msg.state === 'CRITICAL') {
         badge.textContent = 'Range CRITICAL'; badge.className = 'badge fault';

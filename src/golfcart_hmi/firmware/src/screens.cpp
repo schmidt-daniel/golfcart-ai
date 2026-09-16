@@ -53,6 +53,7 @@ typedef struct {
   uint16_t range_m;           // estimated remaining range (m)
   uint16_t return_m;          // estimated return distance (m)
   uint8_t range_state;        // 0=OK, 1=CAUTION, 2=CRITICAL
+  int16_t holes_remaining;    // estimated holes left, -1 = unknown
   uint8_t slip;               // 0=no slip, 1=wheels slipping
   uint16_t capability;        // bitmask of present sensors (see CAP_*)
   uint8_t segmentation;       // 0=off, 1=active
@@ -227,6 +228,7 @@ typedef struct {
 #define LABEL_SLIP        21
 #define LABEL_CAPABILITY  22
 #define LABEL_SEGMENTATION 23
+#define LABEL_HOLES_REMAINING 24
 
 static LabelRef g_labels[MAX_LABELS];
 static int g_label_count = 0;
@@ -355,6 +357,12 @@ static void set_label_text(LabelRef *lr)
     case LABEL_SEGMENTATION:
       snprintf(buf, sizeof(buf), "Segmentation: %s",
                g_state.segmentation ? "ON" : "OFF");
+      break;
+    case LABEL_HOLES_REMAINING:
+      if (g_state.holes_remaining < 0)
+        snprintf(buf, sizeof(buf), "--");
+      else
+        snprintf(buf, sizeof(buf), "%d", g_state.holes_remaining);
       break;
     default:
       return;
@@ -497,8 +505,13 @@ static void build_energy(void)
   lv_obj_t *bat = make_label(scr, "--%", 220, 236, 80, 24, C_TEXT);
   add_label(bat, LABEL_BATTERY_PCT);
 
-  make_button(scr, "Main Menu", 20, 284, 280, 40, C_SURFACE2);
-  add_hit(20, 284, 300, 324, 0);
+  // Holes left (predictive range).
+  make_label(scr, "Holes Left", 20, 284, 180, 24, C_TEXT_DIM);
+  lv_obj_t *holes = make_label(scr, "--", 220, 284, 80, 24, C_TEXT);
+  add_label(holes, LABEL_HOLES_REMAINING);
+
+  make_button(scr, "Main Menu", 20, 332, 280, 40, C_SURFACE2);
+  add_hit(20, 332, 300, 372, 0);
 }
 
 // Sensor status (SCR_SENSORS).
@@ -883,6 +896,7 @@ void screens_set_state(uint8_t id, int32_t value)
     case ST_SLIP: g_state.slip = (uint8_t)value; break;
     case ST_CAPABILITY: g_state.capability = (uint16_t)value; break;
     case ST_SEGMENTATION: g_state.segmentation = (uint8_t)value; break;
+    case ST_HOLES_REMAINING: g_state.holes_remaining = (int16_t)value; break;
     default: break;
   }
   screens_refresh();

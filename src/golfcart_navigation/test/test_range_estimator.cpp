@@ -113,4 +113,34 @@ TEST(RangeEstimator, DeserializeClamps)
   EXPECT_NEAR(m.flat_wh_per_m(), 0.5, 1e-9);
 }
 
+TEST(RangeEstimator, HolesRemainingUnknown)
+{
+  // Range available but no hole data -> unknown (-1).
+  EXPECT_EQ(estimate_holes_remaining(100.0, 0.0, {}), -1);
+}
+
+TEST(RangeEstimator, HolesRemainingZeroRange)
+{
+  // Zero range -> 0 holes.
+  EXPECT_EQ(estimate_holes_remaining(0.0, 100.0, {200.0}), 0);
+}
+
+TEST(RangeEstimator, HolesRemainingCurrentOnly)
+{
+  // Range covers the current hole but not the next.
+  EXPECT_EQ(estimate_holes_remaining(150.0, 100.0, {200.0}), 1);
+}
+
+TEST(RangeEstimator, HolesRemainingMultiple)
+{
+  // Range covers current (100) + 2 more holes (200 each).
+  EXPECT_EQ(estimate_holes_remaining(600.0, 100.0, {200.0, 200.0, 200.0}), 3);
+}
+
+TEST(RangeEstimator, HolesRemainingStopsWhenShort)
+{
+  // Range covers current (100) + 1 hole (200), not the 3rd (200).
+  EXPECT_EQ(estimate_holes_remaining(350.0, 100.0, {200.0, 200.0}), 2);
+}
+
 }  // namespace golfcart

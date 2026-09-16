@@ -2,6 +2,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "golfcart_msgs/msg/battery_state.hpp"
 #include "golfcart_msgs/msg/hole_session.hpp"
@@ -154,6 +155,9 @@ private:
     msg.return_m = return_m;
     msg.can_finish = range_m >= remaining_m_ + return_m;
     msg.wh_per_m = model_.flat_wh_per_m();
+    // Estimate holes remaining: current hole uses the distance to the pin;
+    // remaining holes use the current hole distance as an approximation.
+    msg.holes_remaining = estimate_holes_remaining(range_m, remaining_m_, hole_distances_);
     msg.state = range_state(range_m, remaining_m_, return_m, return_margin_m_);
 
     status_pub_->publish(msg);
@@ -207,6 +211,7 @@ private:
   double update_period_s_ = 5.0;
   double default_wh_per_m_ = 0.02;
   std::string model_file_ = "/var/lib/golfcart/range_model.txt";
+  std::vector<double> hole_distances_;
 
   EnergyModel model_;
 

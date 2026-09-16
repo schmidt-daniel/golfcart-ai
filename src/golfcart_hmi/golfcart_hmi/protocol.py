@@ -84,6 +84,9 @@ ST_CAPABILITY = 0x44
 # --- Course segmentation status (downlink) ---
 ST_SEGMENTATION = 0x45
 
+# --- Predictive range: holes remaining (downlink) ---
+ST_HOLES_REMAINING = 0x46
+
 # --- Capabilities bitmask (uplink HELLO) ---
 CAP_JOYSTICK = 0x01
 CAP_TOUCH = 0x02

@@ -446,6 +446,7 @@ class HandleGatewayNode(Node):
         self._send_state(p.ST_RETURN_M, int(msg.return_m))
         state = {'OK': 0, 'CAUTION': 1, 'CRITICAL': 2}.get(msg.state, 0)
         self._send_state(p.ST_RANGE_STATE, state)
+        self._send_state(p.ST_HOLES_REMAINING, int(msg.holes_remaining))
 
     def on_slip(self, msg):
         if msg.valid:

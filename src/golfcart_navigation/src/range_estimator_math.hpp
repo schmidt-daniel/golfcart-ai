@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 namespace golfcart
 {
@@ -169,6 +170,44 @@ inline std::string range_state(double range_m, double remaining_m,
     return "CAUTION";
   }
   return "CRITICAL";
+}
+
+// Estimate how many holes the trolley can still play on the remaining range.
+//   range_m        - remaining range (m)
+//   current_rem_m  - distance from the current position to the pin (m)
+//   hole_distances - distances of the remaining holes (m), from the course map
+// Returns the number of holes completable, or -1 if unknown (no data).
+inline int estimate_holes_remaining(double range_m, double current_rem_m,
+                                    const std::vector<double> & hole_distances)
+{
+  if (range_m <= 0.0) {
+    return 0;
+  }
+  if (hole_distances.empty() && current_rem_m <= 0.0) {
+    return -1;  // unknown
+  }
+  double remaining = range_m;
+  int holes = 0;
+  // Current hole: distance from current position to the pin.
+  if (current_rem_m > 0.0) {
+    if (remaining < current_rem_m) {
+      return 0;
+    }
+    remaining -= current_rem_m;
+    ++holes;
+  }
+  // Remaining holes: use the course-map distances.
+  for (const double d : hole_distances) {
+    if (d <= 0.0) {
+      continue;
+    }
+    if (remaining < d) {
+      break;
+    }
+    remaining -= d;
+    ++holes;
+  }
+  return holes;
 }
 
 }  // namespace golfcart
