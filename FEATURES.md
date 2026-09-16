@@ -320,6 +320,15 @@ features are added.
 - Continuity-based (spatial gate + time window); gated on follow
 - See `docs/features/person-reid.md`
 
+### Trip Logging / Round Summary
+- `TripSummary.msg` + `EndRound.srv` + `trip_logger_node` (tracks distance/
+  energy/duration per round, writes JSON Lines log, publishes /trip/summary)
+- Round starts on course/tee selection (/course/hole), ends via /end_round
+- HMI: END ROUND item in the main menu; gateway calls /end_round
+- Web: trips.html history page (reads /trips endpoint), linked from dashboard
+- `trip_math.hpp` + unit tests
+- See `docs/features/trip-logging.md`
+
 ### Deployment (Option D, Hybrid)
 - `systemd/` — systemd units per service, auto-start on boot + restart on crash:
   `golfcart-core`, `golfcart-teleop`, `golfcart-localization`, `golfcart-mapping`,
