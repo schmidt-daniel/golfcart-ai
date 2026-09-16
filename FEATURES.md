@@ -385,6 +385,14 @@ features are added.
   (`active=false`) it navigates to the summary screen with the final stats
 - See `docs/features/hmi-round-summary.md`
 
+### HMI Speed Bar
+- New `SCR_SPEED` screen — select the max speed in manual/push-assist mode
+  (- / + / Slow / Med / Fast presets)
+- `ST_SPEED_LIMIT` (0x51) downlink; `handle_gateway` caps the joystick linear
+  speed at the selected limit
+- SPEED item added to the main menu
+- See `docs/features/hmi-speed-bar.md`
+
 ### Deployment (Option D, Hybrid)
 - `systemd/` — systemd units per service, auto-start on boot + restart on crash:
   `golfcart-core`, `golfcart-teleop`, `golfcart-localization`, `golfcart-mapping`,

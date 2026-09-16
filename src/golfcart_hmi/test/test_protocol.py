@@ -94,6 +94,8 @@ def test_state_value_encodings():
     assert p._encode_value(p.ST_ROUND_AVG_SPEED, 80) == b'\x50\x00'
     # round active is uint8
     assert p._encode_value(p.ST_ROUND_ACTIVE, 1) == bytes([1])
+    # speed limit is uint16 (cm/s)
+    assert p._encode_value(p.ST_SPEED_LIMIT, 60) == b'\x3c\x00'
 
 
 def test_map_frame_build():

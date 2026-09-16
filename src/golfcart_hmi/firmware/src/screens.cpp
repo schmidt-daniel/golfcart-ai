@@ -67,6 +67,7 @@ typedef struct {
   uint16_t round_energy;      // round energy (Wh x10)
   uint16_t round_duration;    // round duration (s)
   uint16_t round_avg_speed;   // round avg speed (cm/s)
+  uint16_t speed_limit;       // selected max speed (cm/s)
 } HandleState;
 
 static HandleState g_state;
@@ -245,6 +246,7 @@ typedef struct {
 #define LABEL_ROUND_ENERGY 28
 #define LABEL_ROUND_TIME  29
 #define LABEL_ROUND_AVG   30
+#define LABEL_SPEED_LIMIT 31
 
 static LabelRef g_labels[MAX_LABELS];
 static int g_label_count = 0;
@@ -400,6 +402,9 @@ static void set_label_text(LabelRef *lr)
     case LABEL_ROUND_AVG:
       snprintf(buf, sizeof(buf), "%.2f m/s", g_state.round_avg_speed / 100.0);
       break;
+    case LABEL_SPEED_LIMIT:
+      snprintf(buf, sizeof(buf), "%.1f m/s", g_state.speed_limit / 100.0);
+      break;
     default:
       return;
   }
@@ -415,11 +420,11 @@ static void build_menu(void)
 {
   scr = make_screen();
   make_header("Main Menu");
-  const char *items[] = {"MAP", "DRIVE DIST", "MODE", "ASSIST", "ENERGY",
-                         "CHANGE HOLE", "SELECT COURSE", "WIFI", "END ROUND",
-                         "DEBUG", "SHUTDOWN"};
+  const char *items[] = {"MAP", "DRIVE DIST", "MODE", "ASSIST", "SPEED",
+                         "ENERGY", "CHANGE HOLE", "SELECT COURSE", "WIFI",
+                         "END ROUND", "DEBUG", "SHUTDOWN"};
   int y = 40;
-  for (int i = 0; i < 11; ++i) {
+  for (int i = 0; i < 12; ++i) {
     make_button(scr, items[i], 20, y, 280, 40, C_SURFACE2);
     add_hit(20, y, 300, y + 40, i);  // item id = index
     y += 48;
@@ -518,6 +523,33 @@ static void build_round_summary(void)
   add_label(avg, LABEL_ROUND_AVG);
   make_button(scr, "Main Menu", 20, 260, 280, 40, C_SURFACE2);
   add_hit(20, 260, 300, 300, 0);
+}
+
+// Speed bar (SCR_SPEED).
+// Lets the operator select the max speed in manual/push-assist mode. The
+// current selection is shown; +/- buttons adjust it. The Pi applies the cap.
+static void build_speed(void)
+{
+  scr = make_screen();
+  make_header("Speed");
+  // Current speed limit (big).
+  lv_obj_t *lim = make_label(scr, "-- m/s", 20, 60, 280, 48, C_TEXT);
+  add_label(lim, LABEL_SPEED_LIMIT);
+  lv_obj_set_style_text_font(lim, &lv_font_montserrat_16, 0);
+  // Minus / Plus buttons.
+  make_button(scr, "-", 20, 140, 120, 60, C_SURFACE2);
+  add_hit(20, 140, 140, 200, 0);
+  make_button(scr, "+", 180, 140, 120, 60, C_SURFACE2);
+  add_hit(180, 140, 300, 200, 1);
+  // Preset buttons.
+  make_button(scr, "Slow", 20, 220, 80, 40, C_SURFACE2);
+  add_hit(20, 220, 100, 260, 2);
+  make_button(scr, "Med", 110, 220, 80, 40, C_SURFACE2);
+  add_hit(110, 220, 190, 260, 3);
+  make_button(scr, "Fast", 200, 220, 80, 40, C_SURFACE2);
+  add_hit(200, 220, 280, 260, 4);
+  make_button(scr, "Main Menu", 20, 280, 280, 40, C_SURFACE2);
+  add_hit(20, 280, 300, 320, 5);
 }
 
 // Mode selection (SCR_MODE).
@@ -822,7 +854,7 @@ static void build_splash(void)
 // ---------------------------------------------------------------------------
 typedef void (*ScreenBuilder)(void);
 
-static ScreenBuilder screen_builders[21] = {
+static ScreenBuilder screen_builders[22] = {
   build_splash,         // 0x00 SCR_SPLASH
   build_course,         // 0x01 SCR_COURSE
   build_tee,            // 0x02 SCR_TEE
@@ -844,6 +876,7 @@ static ScreenBuilder screen_builders[21] = {
   build_drive_dist,     // 0x12 SCR_DRIVE_DIST
   build_map,            // 0x13 SCR_MAP
   build_round_summary,  // 0x14 SCR_ROUND_SUMMARY
+  build_speed,          // 0x15 SCR_SPEED
 };
 
 // ---------------------------------------------------------------------------
@@ -876,7 +909,7 @@ void screens_init(void)
 void screens_show(uint8_t screen_id)
 {
   g_current_screen = screen_id;
-  if (screen_id < 21 && screen_builders[screen_id] != NULL) {
+  if (screen_id < 22 && screen_builders[screen_id] != NULL) {
     screen_builders[screen_id]();
   }
 }
@@ -1061,6 +1094,7 @@ void screens_set_state(uint8_t id, int32_t value)
     case ST_ROUND_ENERGY: g_state.round_energy = (uint16_t)value; break;
     case ST_ROUND_DURATION: g_state.round_duration = (uint16_t)value; break;
     case ST_ROUND_AVG_SPEED: g_state.round_avg_speed = (uint16_t)value; break;
+    case ST_SPEED_LIMIT: g_state.speed_limit = (uint16_t)value; break;
     default: break;
   }
   screens_refresh();

@@ -160,6 +160,10 @@ class HandleGatewayNode(Node):
         self._range_state = 0      # 0=OK, 1=CAUTION, 2=CRITICAL
         self._nav_status = 0       # 0=IDLE..5=ERROR
 
+        # ---- Speed bar (manual/push-assist max speed) ----
+        self.speed_limit = self.max_linear   # m/s
+        self._send_state(p.ST_SPEED_LIMIT, int(self.speed_limit * 100))
+
         # ---- Timers ----
         self.read_timer = self.create_timer(0.02, self.read_serial)   # 50 Hz
         self.heartbeat_timer = self.create_timer(1.0, self.send_heartbeat)
@@ -217,7 +221,8 @@ class HandleGatewayNode(Node):
             linear = 0.0
         if abs(angular) < self.deadzone:
             angular = 0.0
-        linear *= self.max_linear
+        # Apply the speed-bar cap (manual/push-assist max speed).
+        linear *= min(self.max_linear, self.speed_limit)
         angular *= self.max_angular
         self._publish_motion(linear, angular, 'handle_joystick')
 
@@ -258,6 +263,8 @@ class HandleGatewayNode(Node):
             self._menu_assist(item)
         elif self.screen == p.SCREEN_DRIVE_DIST:
             self._menu_drive_dist(item)
+        elif self.screen == p.SCREEN_SPEED:
+            self._menu_speed(item)
         elif self.screen == p.SCREEN_DEBUG:
             self._menu_debug(item)
         else:
@@ -281,8 +288,8 @@ class HandleGatewayNode(Node):
             self._nav(p.SCREEN_COURSE)
 
     def _menu_main(self, item):
-        # Main menu items: MAP, DRIVE DIST, MODE, ASSIST, ENERGY, CHANGE HOLE,
-        # SELECT COURSE, WIFI, END ROUND, DEBUG, SHUTDOWN.
+        # Main menu items: MAP, DRIVE DIST, MODE, ASSIST, SPEED, ENERGY,
+        # CHANGE HOLE, SELECT COURSE, WIFI, END ROUND, DEBUG, SHUTDOWN.
         if item == 0:      # MAP
             self._nav(p.SCREEN_MAP)
         elif item == 1:    # DRIVE DIST
@@ -291,19 +298,21 @@ class HandleGatewayNode(Node):
             self._nav(p.SCREEN_MODE)
         elif item == 3:    # ASSIST
             self._nav(p.SCREEN_ASSIST)
-        elif item == 4:    # ENERGY
+        elif item == 4:    # SPEED
+            self._nav(p.SCREEN_SPEED)
+        elif item == 5:    # ENERGY
             self._nav(p.SCREEN_ENERGY)
-        elif item == 5:    # CHANGE HOLE
+        elif item == 6:    # CHANGE HOLE
             self._nav(p.SCREEN_CHANGE_HOLE)
-        elif item == 6:    # SELECT COURSE
+        elif item == 7:    # SELECT COURSE
             self._nav(p.SCREEN_COURSE)
-        elif item == 7:    # WIFI
+        elif item == 8:    # WIFI
             self._nav(p.SCREEN_WIFI)
-        elif item == 8:    # END ROUND
+        elif item == 9:    # END ROUND
             self._call_end_round()
-        elif item == 9:    # DEBUG
+        elif item == 10:   # DEBUG
             self._nav(p.SCREEN_DEBUG)
-        elif item == 10:   # SHUTDOWN
+        elif item == 11:   # SHUTDOWN
             self.get_logger().info('SHUTDOWN requested (not wired)')
 
     def _menu_drive_dist(self, item):
@@ -317,6 +326,22 @@ class HandleGatewayNode(Node):
         dists = [10, 20, 30, 40, 50]
         if 0 <= item < len(dists):
             self._call_drive_distance(float(dists[item]), cancel=False)
+
+    def _menu_speed(self, item):
+        # Speed bar items: 0=-, 1=+, 2=Slow, 3=Med, 4=Fast, 5=Main Menu.
+        if item == 5:
+            self._nav(p.SCREEN_MENU)
+            return
+        step = 0.1
+        presets = {2: 0.3, 3: 0.6, 4: self.max_linear}
+        if item == 0:      # -
+            self.speed_limit = max(0.1, self.speed_limit - step)
+        elif item == 1:    # +
+            self.speed_limit = min(self.max_linear, self.speed_limit + step)
+        elif item in presets:
+            self.speed_limit = presets[item]
+        self._send_state(p.ST_SPEED_LIMIT, int(self.speed_limit * 100))
+        self.get_logger().info(f'Speed limit set to {self.speed_limit:.1f} m/s')
 
     def _menu_mode(self, item):
         # item 0..2 = mode; 3 = Main Menu.

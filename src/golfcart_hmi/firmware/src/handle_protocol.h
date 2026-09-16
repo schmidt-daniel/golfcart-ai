@@ -90,6 +90,7 @@ extern "C" {
 #define ST_ROUND_ENERGY       0x4E
 #define ST_ROUND_DURATION     0x4F
 #define ST_ROUND_AVG_SPEED    0x50
+#define ST_SPEED_LIMIT        0x51
 
 // Alert codes (ST_ALERT values).
 #define ALERT_NONE            0
@@ -132,6 +133,7 @@ extern "C" {
 #define SCREEN_DRIVE_DIST   0x12
 #define SCREEN_MAP          0x13
 #define SCREEN_ROUND_SUMMARY 0x14
+#define SCREEN_SPEED        0x15
 
 // Max payload length (fits in a uint8 LEN field).
 #define MAX_PAYLOAD 255

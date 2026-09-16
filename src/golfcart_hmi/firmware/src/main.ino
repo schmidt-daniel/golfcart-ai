@@ -159,6 +159,7 @@ static void on_frame(uint8_t type, const uint8_t *payload, size_t len, uint8_t s
           case ST_ROUND_ENERGY: screens_set_state(id, (uint16_t)(payload[1] | (payload[2] << 8))); break;
           case ST_ROUND_DURATION: screens_set_state(id, (uint16_t)(payload[1] | (payload[2] << 8))); break;
           case ST_ROUND_AVG_SPEED: screens_set_state(id, (uint16_t)(payload[1] | (payload[2] << 8))); break;
+          case ST_SPEED_LIMIT: screens_set_state(id, (uint16_t)(payload[1] | (payload[2] << 8))); break;
           default: break;  // unknown id: ignore
         }
       }
