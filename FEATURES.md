@@ -171,6 +171,16 @@ features are added.
 - `golfcart_msgs` — `ModeState.msg`, `AssistConfig.msg`
 - Pure nudge math in `test_steering_assist.cpp` — unit-tested
 
+### Obstacle-Aware Slowdown (Autonomous Modes)
+- Safety Controller scales the max linear speed down as the nearest obstacle
+  approaches, so the trolley slows to maneuver around it — in **all autonomous
+  modes** (follow-me, summon, drive-distance, Nav2)
+- `safety_math.hpp` — `obstacle_slowdown_factor()` (linear ramp from a min
+  factor at distance 0 to 1.0 at the start distance) + unit tests
+- Config: `obstacle_slowdown_start_m` (2.0) + `obstacle_slowdown_min_factor`
+  (0.3); disabled in MANUAL mode (operator keeps full control)
+- See `docs/features/obstacle-slowdown.md`
+
 ### Wheel-Slip / Traction Detection
 - `wheel_slip_node` (`golfcart_control`) — detects when the wheels spin faster
   than the trolley actually moves (loss of traction on wet grass / steep

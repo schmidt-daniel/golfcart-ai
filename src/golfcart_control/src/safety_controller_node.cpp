@@ -11,6 +11,7 @@
 #include "golfcart_msgs/msg/obstacle_state.hpp"
 #include "golfcart_msgs/msg/slope_status.hpp"
 #include "golfcart_msgs/msg/speed_zone_status.hpp"
+#include "golfcart_control/safety_math.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_srvs/srv/trigger.hpp"
@@ -53,6 +54,8 @@ public:
   {
     max_linear_ = declare_parameter<double>("max_linear_velocity_mps", 1.0);
     max_angular_ = declare_parameter<double>("max_angular_velocity_radps", 1.0);
+    obstacle_slowdown_start_m_ = declare_parameter<double>("obstacle_slowdown_start_m", 2.0);
+    obstacle_slowdown_min_factor_ = declare_parameter<double>("obstacle_slowdown_min_factor", 0.3);
 
     req_sub_ = create_subscription<golfcart_msgs::msg::MotionRequest>(
       "motion/request", rclcpp::SensorDataQoS(),
@@ -94,6 +97,7 @@ public:
       [this](const golfcart_msgs::msg::ObstacleState::SharedPtr msg) {
         if (msg->valid) {
           obstacle_in_zone_ = msg->obstacle_in_zone;
+          nearest_obstacle_m_ = msg->nearest_distance_m;
         }
       });
 
@@ -224,6 +228,8 @@ private:
   SafetyState state_ = SafetyState::SAFE_STOPPED;
   double max_linear_ = 1.0;
   double max_angular_ = 1.0;
+  double obstacle_slowdown_start_m_ = 2.0;
+  double obstacle_slowdown_min_factor_ = 0.3;
   double request_timeout_s_ = 0.5;
   double max_roll_rad_ = 0.6;
   double max_pitch_rad_ = 0.6;
@@ -233,6 +239,7 @@ private:
   float predicted_roll_ = 0.0f;
   float predicted_pitch_ = 0.0f;
   bool obstacle_in_zone_ = false;
+  float nearest_obstacle_m_ = 0.0f;
   bool manual_mode_ = true;  // default MANUAL: operator has full control
   bool odrive_available_ = false;
   double speed_zone_limit_ = -1.0;  // active speed-zone limit (m/s); -1 = none
@@ -253,6 +260,16 @@ private:
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr fault_srv_;
   rclcpp::TimerBase::SharedPtr timer_;
+
+  // Obstacle-aware speed cap: scale max_linear_ down as the nearest obstacle
+  // approaches. Returns a speed (m/s) in [min_factor*max, max].
+  double obstacle_speed_cap() const
+  {
+    const double factor = obstacle_slowdown_factor(
+      nearest_obstacle_m_, obstacle_slowdown_start_m_,
+      obstacle_slowdown_min_factor_);
+    return max_linear_ * factor;
+  }
 
   void handle_request(const golfcart_msgs::msg::MotionRequest::SharedPtr msg)
   {
@@ -288,6 +305,12 @@ private:
     // Speed-zone limit caps the max linear velocity (most restrictive wins).
     if (speed_zone_limit_ >= 0.0) {
       max_lin = std::min(max_lin, speed_zone_limit_);
+    }
+    // Obstacle-aware slowdown (autonomous modes only): scale the max linear
+    // speed down as the nearest obstacle approaches, so the trolley can slow
+    // to maneuver around it. Manual mode keeps full operator control.
+    if (!manual_mode_) {
+      max_lin = std::min(max_lin, obstacle_speed_cap());
     }
     linear = std::clamp(linear, -max_lin, max_lin);
     angular = std::clamp(angular, -max_angular_, max_angular_);

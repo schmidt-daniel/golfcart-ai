@@ -70,6 +70,11 @@ safety_controller:
   request_timeout_s: 0.5            # stop if no motion request for this long (s)
   max_roll_rad: 0.6                 # tip-over roll threshold (~34 deg)
   max_pitch_rad: 0.6                # tip-over pitch threshold (~34 deg)
+  # Obstacle-aware slowdown (autonomous modes only): scale the max linear
+  # speed down as the nearest obstacle approaches. slowdown_start_m is the
+  # distance at which slowing begins; slowdown_min_factor is the floor.
+  obstacle_slowdown_start_m: 2.0    # begin slowing when obstacle within this (m)
+  obstacle_slowdown_min_factor: 0.3 # slowest speed factor (0-1)
 
 # -----------------------------------------------------------------------------
 # Motion Controller (golfcart_control/motion_controller_node)
