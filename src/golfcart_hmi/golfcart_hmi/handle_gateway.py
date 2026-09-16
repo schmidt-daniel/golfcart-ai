@@ -18,6 +18,7 @@ state. All data handling/control logic lives here (the ESP32 only renders and
 samples).
 """
 
+import math
 import serial
 
 import rclpy
@@ -29,8 +30,30 @@ from golfcart_msgs.msg import ObstacleState, GeofenceStatus, SpeedZoneStatus
 from golfcart_msgs.msg import SlopeStatus, NavigationStatus, HoleSession, CourseList, CourseMap
 from golfcart_msgs.msg import HandleForce, ModeState, AssistConfig, RangeStatus, SlipStatus
 from golfcart_msgs.msg import CapabilityStatus, SegmentationStatus
+from nav_msgs.msg import Odometry
 
 from golfcart_hmi import protocol as p
+
+
+def _draw_line(px, x0, y0, x1, y1, color, w, h):
+    """Bresenham line on a PIL pixel map, clipped to (w, h)."""
+    dx = abs(x1 - x0)
+    dy = -abs(y1 - y0)
+    sx = 1 if x0 < x1 else -1
+    sy = 1 if y0 < y1 else -1
+    err = dx + dy
+    while True:
+        if 0 <= x0 < w and 0 <= y0 < h:
+            px[x0, y0] = color
+        if x0 == x1 and y0 == y1:
+            break
+        e2 = 2 * err
+        if e2 >= dy:
+            err += dy
+            x0 += sx
+        if e2 <= dx:
+            err += dx
+            y0 += sy
 
 
 class HandleGatewayNode(Node):
@@ -112,11 +135,20 @@ class HandleGatewayNode(Node):
             CapabilityStatus, 'capability/status', self.on_capability, 10)
         self.seg_sub = self.create_subscription(
             SegmentationStatus, 'segmentation/status', self.on_segmentation, 10)
+        self.odom_sub = self.create_subscription(
+            Odometry, 'odometry/filtered', self.on_odometry, 10)
 
         # ---- Screen state (for MENU_SELECT interpretation) ----
         self.screen = p.SCREEN_SPLASH
         self.courses = []          # [(id, name)]
         self.tees = []             # [(id, name)]
+
+        # ---- Map view state ----
+        self.map_available = False
+        self.map_x = 0.0           # trolley map x (m)
+        self.map_y = 0.0           # trolley map y (m)
+        self.map_heading = 0.0     # trolley heading (rad)
+        self._map_sent = False     # whether the current map bitmap was sent
 
         # ---- Timers ----
         self.read_timer = self.create_timer(0.02, self.read_serial)   # 50 Hz
@@ -242,7 +274,7 @@ class HandleGatewayNode(Node):
         # Main menu items: MAP, DRIVE DIST, MODE, ASSIST, ENERGY, CHANGE HOLE,
         # SELECT COURSE, WIFI, END ROUND, DEBUG, SHUTDOWN.
         if item == 0:      # MAP
-            self._nav(p.SCREEN_HOLE)
+            self._nav(p.SCREEN_MAP)
         elif item == 1:    # DRIVE DIST
             self._nav(p.SCREEN_DRIVE_DIST)
         elif item == 2:    # MODE
@@ -395,6 +427,114 @@ class HandleGatewayNode(Node):
         self.tees = list(zip(msg.tee_ids, msg.tee_names))
         self.get_logger().info(f'Course "{msg.course_name}" tees: '
                                f'{[n for _, n in self.tees]}')
+        self._render_map(msg)
+
+    def on_odometry(self, msg):
+        # Trolley position/heading in the map frame -> downlink to the map view.
+        self.map_x = msg.pose.pose.position.x
+        self.map_y = msg.pose.pose.position.y
+        # Yaw from the quaternion.
+        q = msg.pose.pose.orientation
+        self.map_heading = math.atan2(
+            2.0 * (q.w * q.z + q.x * q.y),
+            1.0 - 2.0 * (q.y * q.y + q.z * q.z))
+        self._send_state(p.ST_MAP_X, int(self.map_x * 100))
+        self._send_state(p.ST_MAP_Y, int(self.map_y * 100))
+        self._send_state(p.ST_MAP_HEADING, int(math.degrees(self.map_heading) * 10))
+
+    def _render_map(self, msg):
+        """Downsample the course map to a small RGB565 bitmap for the ESP32.
+
+        The ESP32's 320x480 screen + limited RAM can't hold a full occupancy
+        grid, so the Pi renders a compact top-down bitmap (forbidden zones +
+        features) and sends it once per map load via DL_MAP_FRAME.
+        """
+        try:
+            from PIL import Image as PILImage
+            import struct as _struct
+        except ImportError:
+            self.get_logger().warn('Pillow not available; map view disabled')
+            self.map_available = False
+            self._send_state(p.ST_MAP_AVAILABLE, 0)
+            return
+
+        # Map area on the ESP32 is 296x380; use a compact render size.
+        MAP_W, MAP_H = 148, 190
+        img = PILImage.new('RGB', (MAP_W, MAP_H), (18, 27, 42))  # C_SURFACE
+        px = img.load()
+
+        # Compute the map bounds from all forbidden-zone points (fallback to
+        # feature points if there are no zones).
+        all_pts = []
+        for zone in msg.forbidden_zones:
+            all_pts.extend((pt.x, pt.y) for pt in zone.points)
+        if not all_pts:
+            all_pts = [(f.x, f.y) for f in msg.features]
+        if not all_pts:
+            self.map_available = False
+            self._send_state(p.ST_MAP_AVAILABLE, 0)
+            return
+        xs = [pt[0] for pt in all_pts]
+        ys = [pt[1] for pt in all_pts]
+        minx, maxx = min(xs), max(xs)
+        miny, maxy = min(ys), max(ys)
+        if maxx - minx < 1e-6 or maxy - miny < 1e-6:
+            self.map_available = False
+            self._send_state(p.ST_MAP_AVAILABLE, 0)
+            return
+
+        def to_px(x, y):
+            sx = int((x - minx) / (maxx - minx) * (MAP_W - 1))
+            sy = int((1.0 - (y - miny) / (maxy - miny)) * (MAP_H - 1))
+            return sx, sy
+
+        # Draw forbidden zones as red polygons (fill + outline).
+        for zone in msg.forbidden_zones:
+            pts = [(pt.x, pt.y) for pt in zone.points]
+            if len(pts) < 3:
+                continue
+            for yy in range(MAP_H):
+                for xx in range(MAP_W):
+                    wx = minx + (xx / (MAP_W - 1)) * (maxx - minx)
+                    wy = maxy - (yy / (MAP_H - 1)) * (maxy - miny)
+                    inside = False
+                    j = len(pts) - 1
+                    for i in range(len(pts)):
+                        xi, yi = pts[i]
+                        xj, yj = pts[j]
+                        if ((yi > wy) != (yj > wy)) and \
+                           (wx < (xj - xi) * (wy - yi) / (yj - yi) + xi):
+                            inside = not inside
+                        j = i
+                    if inside:
+                        px[xx, yy] = (248, 113, 113)  # red hazard
+            for i in range(len(pts)):
+                x0, y0 = to_px(*pts[i])
+                x1, y1 = to_px(*pts[(i + 1) % len(pts)])
+                _draw_line(px, x0, y0, x1, y1, (248, 113, 113), MAP_W, MAP_H)
+
+        # Draw course features (holes/tees) as small cyan markers.
+        for f in msg.features:
+            sx, sy = to_px(f.x, f.y)
+            for dy in range(-2, 3):
+                for dx in range(-2, 3):
+                    if 0 <= sx + dx < MAP_W and 0 <= sy + dy < MAP_H:
+                        px[sx + dx, sy + dy] = (56, 189, 248)  # cyan
+
+        # Convert to RGB565 (little-endian) for the ESP32.
+        rgb565 = bytearray()
+        for yy in range(MAP_H):
+            for xx in range(MAP_W):
+                r, g, b = px[xx, yy]
+                val = ((r >> 3) << 11) | ((g >> 2) << 5) | (b >> 3)
+                rgb565.append(val & 0xFF)
+                rgb565.append((val >> 8) & 0xFF)
+
+        self.map_available = True
+        self._send_state(p.ST_MAP_AVAILABLE, 1)
+        self._send(p.DL_MAP_FRAME, p.build_map_frame(MAP_W, MAP_H, bytes(rgb565)))
+        self._map_sent = True
+        self.get_logger().info(f'Map rendered {MAP_W}x{MAP_H} -> ESP32')
 
     # ------------------------------------------------------------------
     # Downlink: ROS state -> serial

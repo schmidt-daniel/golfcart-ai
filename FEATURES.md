@@ -319,6 +319,17 @@ features are added.
 - Linked from `index.html` + `dashboard.html`; added to `setup.py` data_files
 - See `docs/features/hazard-camera-view.md`
 
+### HMI Map View
+- New `SCR_MAP` screen on the handle unit — top-down course map with the
+  trolley position
+- `DL_MAP_FRAME` downlink: the Pi downsamples `CourseMap` (forbidden zones +
+  features) to a compact RGB565 bitmap and blits it to the ESP32
+- `ST_MAP_X/Y/HEADING/AVAILABLE` state values carry the trolley pose
+  (`/odometry/filtered`) to the map view
+- `handle_gateway` renders the map (Pillow) + subscribes `/odometry/filtered`;
+  the MAP main-menu item now opens the map screen
+- See `docs/features/hmi-map-view.md`
+
 ### Multi-Round Battery Learning
 - `EnergyModel.serialize()/deserialize()` (Wh/m per slope bucket)
 - `range_estimator_node` loads at startup, saves each update

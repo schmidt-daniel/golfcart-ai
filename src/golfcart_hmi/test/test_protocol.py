@@ -77,6 +77,28 @@ def test_state_value_encodings():
     assert p._encode_value(p.ST_RANGE_STATE, 2) == bytes([2])
     # capability bitmask is uint8 (max 8 bits)
     assert p._encode_value(p.ST_CAPABILITY, 0b10100101) == bytes([0b10100101])
+    # map x/y are uint16 (cm)
+    assert p._encode_value(p.ST_MAP_X, 1234) == b'\xd2\x04'
+    assert p._encode_value(p.ST_MAP_Y, 5678) == b'\x2e\x16'
+    # map heading is int16 (deg x10)
+    assert p._encode_value(p.ST_MAP_HEADING, -450) == b'\x3e\xfe'
+    # map available is uint8
+    assert p._encode_value(p.ST_MAP_AVAILABLE, 1) == bytes([1])
+
+
+def test_map_frame_build():
+    """DL_MAP_FRAME payload carries width/height + RGB565 bitmap."""
+    # 2x2 bitmap: 4 pixels * 2 bytes = 8 bytes.
+    rgb565 = bytes([0x00, 0xF8, 0xE0, 0x07, 0x1F, 0x00, 0xFF, 0xFF])
+    payload = p.build_map_frame(2, 2, rgb565)
+    assert payload == b'\x02\x00\x02\x00' + rgb565
+    # Round-trips through the encoder/decoder.
+    frame = p.encode(p.DL_MAP_FRAME, payload, seq=9)
+    dec = p.Decoder()
+    frames = dec.feed(frame)
+    assert len(frames) == 1
+    assert frames[0][0] == p.DL_MAP_FRAME
+    assert frames[0][1] == payload
 
 
 def test_uplink_parsers():

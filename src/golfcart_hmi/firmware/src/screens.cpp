@@ -57,6 +57,10 @@ typedef struct {
   uint8_t slip;               // 0=no slip, 1=wheels slipping
   uint16_t capability;        // bitmask of present sensors (see CAP_*)
   uint8_t segmentation;       // 0=off, 1=active
+  uint16_t map_x;             // trolley map x (cm)
+  uint16_t map_y;             // trolley map y (cm)
+  int16_t map_heading;        // trolley heading (deg x10)
+  uint8_t map_available;      // 1 when a course map is loaded
 } HandleState;
 
 static HandleState g_state;
@@ -229,6 +233,8 @@ typedef struct {
 #define LABEL_CAPABILITY  22
 #define LABEL_SEGMENTATION 23
 #define LABEL_HOLES_REMAINING 24
+#define LABEL_MAP_POS     25
+#define LABEL_MAP_AVAIL   26
 
 static LabelRef g_labels[MAX_LABELS];
 static int g_label_count = 0;
@@ -364,6 +370,12 @@ static void set_label_text(LabelRef *lr)
       else
         snprintf(buf, sizeof(buf), "%d", g_state.holes_remaining);
       break;
+    case LABEL_MAP_POS:
+      snprintf(buf, sizeof(buf), "x: %d  y: %d", g_state.map_x, g_state.map_y);
+      break;
+    case LABEL_MAP_AVAIL:
+      snprintf(buf, sizeof(buf), "%s", g_state.map_available ? "MAP" : "No map");
+      break;
     default:
       return;
   }
@@ -434,6 +446,31 @@ static void build_hole(void)
   lv_obj_set_style_bg_color(map, C_SURFACE, 0);
   lv_obj_set_style_border_width(map, 2, 0);
   lv_obj_set_style_border_color(map, C_TEXT, 0);
+}
+
+// Map view (SCR_MAP).
+// Shows a top-down course map with the trolley position. The Pi renders the
+// map bitmap (downsampled from CourseMap) and sends it via DL_MAP_FRAME; the
+// trolley position/heading arrive as ST_MAP_* state values. When no map is
+// loaded, show a "No map" placeholder.
+static void build_map(void)
+{
+  scr = make_screen();
+  make_header("Map");
+  // Map area (the Pi blits the bitmap here via DL_MAP_FRAME).
+  lv_obj_t *map = lv_obj_create(scr);
+  lv_obj_set_pos(map, 12, 40);
+  lv_obj_set_size(map, 296, 380);
+  lv_obj_set_style_bg_color(map, C_SURFACE, 0);
+  lv_obj_set_style_border_width(map, 2, 0);
+  lv_obj_set_style_border_color(map, C_TEXT, 0);
+  // Trolley position label (bottom).
+  lv_obj_t *pos = make_label(scr, "x: --  y: --", 12, 428, 200, 24, C_TEXT);
+  add_label(pos, LABEL_MAP_POS);
+  lv_obj_t *avail = make_label(scr, "No map", 220, 428, 88, 24, C_TEXT_DIM);
+  add_label(avail, LABEL_MAP_AVAIL);
+  make_button(scr, "Main Menu", 12, 460, 296, 20, C_SURFACE2);
+  add_hit(12, 460, 308, 480, 0);
 }
 
 // Mode selection (SCR_MODE).
@@ -738,7 +775,7 @@ static void build_splash(void)
 // ---------------------------------------------------------------------------
 typedef void (*ScreenBuilder)(void);
 
-static ScreenBuilder screen_builders[19] = {
+static ScreenBuilder screen_builders[20] = {
   build_splash,         // 0x00 SCR_SPLASH
   build_course,         // 0x01 SCR_COURSE
   build_tee,            // 0x02 SCR_TEE
@@ -758,6 +795,7 @@ static ScreenBuilder screen_builders[19] = {
   build_energy,         // 0x10 SCR_ENERGY
   build_sensors,        // 0x11 SCR_SENSORS
   build_drive_dist,     // 0x12 SCR_DRIVE_DIST
+  build_map,            // 0x13 SCR_MAP
 };
 
 // ---------------------------------------------------------------------------
@@ -790,7 +828,7 @@ void screens_init(void)
 void screens_show(uint8_t screen_id)
 {
   g_current_screen = screen_id;
-  if (screen_id < 17 && screen_builders[screen_id] != NULL) {
+  if (screen_id < 20 && screen_builders[screen_id] != NULL) {
     screen_builders[screen_id]();
   }
 }
@@ -860,6 +898,34 @@ void screens_set_backlight(uint8_t brightness)
 }
 
 // ---------------------------------------------------------------------------
+// Map bitmap (called from main.ino on_frame when a DL_MAP_FRAME arrives).
+// Blits a packed RGB565 bitmap into the map area of the map screen.
+// ---------------------------------------------------------------------------
+void screens_set_map_bitmap(const uint8_t *data, size_t len,
+                            uint16_t map_w, uint16_t map_h)
+{
+  if (g_current_screen != SCR_MAP) {
+    return;  // only render when the map screen is visible
+  }
+  if (data == NULL || len < (size_t)map_w * map_h * 2) {
+    return;
+  }
+  // The map area is at (12, 40) sized 296x380. Center the bitmap in it.
+  int x0 = 12 + (296 - (int)map_w) / 2;
+  int y0 = 40 + (380 - (int)map_h) / 2;
+  if (x0 < 0) x0 = 0;
+  if (y0 < 0) y0 = 0;
+  // Push each pixel as RGB565 (little-endian) to the TFT.
+  for (uint16_t y = 0; y < map_h; ++y) {
+    for (uint16_t x = 0; x < map_w; ++x) {
+      size_t i = ((size_t)y * map_w + x) * 2;
+      uint16_t rgb565 = (uint16_t)(data[i] | (data[i + 1] << 8));
+      tft.drawPixel(x0 + (int)x, y0 + (int)y, rgb565);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // State setter (called from main.ino on_frame when a STATE_UPDATE arrives).
 // ---------------------------------------------------------------------------
 void screens_set_state(uint8_t id, int32_t value)
@@ -897,6 +963,10 @@ void screens_set_state(uint8_t id, int32_t value)
     case ST_CAPABILITY: g_state.capability = (uint16_t)value; break;
     case ST_SEGMENTATION: g_state.segmentation = (uint8_t)value; break;
     case ST_HOLES_REMAINING: g_state.holes_remaining = (int16_t)value; break;
+    case ST_MAP_X: g_state.map_x = (uint16_t)value; break;
+    case ST_MAP_Y: g_state.map_y = (uint16_t)value; break;
+    case ST_MAP_HEADING: g_state.map_heading = (int16_t)value; break;
+    case ST_MAP_AVAILABLE: g_state.map_available = (uint8_t)value; break;
     default: break;
   }
   screens_refresh();

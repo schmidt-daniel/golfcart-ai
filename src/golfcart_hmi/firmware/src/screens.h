@@ -11,6 +11,7 @@
 #define HANDLE_SCREENS_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 // Screen IDs (must match handle_protocol.h SCREEN_*).
 #define SCR_SPLASH       0x00
@@ -32,6 +33,7 @@
 #define SCR_ENERGY       0x10
 #define SCR_SENSORS      0x11
 #define SCR_DRIVE_DIST   0x12
+#define SCR_MAP          0x13
 
 // Initialize the LVGL screen system (called once from setup()).
 void screens_init(void);
@@ -45,6 +47,12 @@ void screens_refresh(void);
 // Update a cached state value (from a STATE_UPDATE frame). id is a ST_* id
 // from handle_protocol.h; value is the decoded payload value.
 void screens_set_state(uint8_t id, int32_t value);
+
+// Set the map bitmap (from a DL_MAP_FRAME frame). data is a packed RGB565
+// bitmap of map_w x map_h pixels (little-endian). The Pi downsamples the
+// course map to this size; the ESP32 blits it into the map area.
+void screens_set_map_bitmap(const uint8_t *data, size_t len,
+                            uint16_t map_w, uint16_t map_h);
 
 // Update the boot-status line shown on the splash screen (from a
 // DL_BOOT_STATUS frame). progress is 0-100; text is a short status string.

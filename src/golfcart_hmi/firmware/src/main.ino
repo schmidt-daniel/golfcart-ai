@@ -149,8 +149,20 @@ static void on_frame(uint8_t type, const uint8_t *payload, size_t len, uint8_t s
           case ST_SLIP: screens_set_state(id, payload[1]); break;
           case ST_CAPABILITY: screens_set_state(id, (uint16_t)(payload[1] | (payload[2] << 8))); break;
           case ST_SEGMENTATION: screens_set_state(id, payload[1]); break;
+          case ST_MAP_X: screens_set_state(id, (uint16_t)(payload[1] | (payload[2] << 8))); break;
+          case ST_MAP_Y: screens_set_state(id, (uint16_t)(payload[1] | (payload[2] << 8))); break;
+          case ST_MAP_HEADING: screens_set_state(id, (int16_t)(payload[1] | (payload[2] << 8))); break;
+          case ST_MAP_AVAILABLE: screens_set_state(id, payload[1]); break;
           default: break;  // unknown id: ignore
         }
+      }
+      break;
+    case DL_MAP_FRAME:
+      // Payload: map_w (u16 LE) + map_h (u16 LE) + packed RGB565 bitmap.
+      if (len >= 4) {
+        uint16_t map_w = (uint16_t)(payload[0] | (payload[1] << 8));
+        uint16_t map_h = (uint16_t)(payload[2] | (payload[3] << 8));
+        screens_set_map_bitmap(payload + 4, len - 4, map_w, map_h);
       }
       break;
     case DL_DEBUG_SUMMARY:

@@ -33,6 +33,7 @@ DL_DEBUG_SUMMARY = 0x04
 DL_CONFIG = 0x05
 DL_ACK = 0x06
 DL_BOOT_STATUS = 0x07
+DL_MAP_FRAME = 0x08
 
 # --- Message types (uplink: ESP32 -> Pi) ---
 UL_HELLO = 0x81
@@ -87,6 +88,12 @@ ST_SEGMENTATION = 0x45
 # --- Predictive range: holes remaining (downlink) ---
 ST_HOLES_REMAINING = 0x46
 
+# --- Map view state (downlink) ---
+ST_MAP_X = 0x47          # trolley map x (int16, cm)
+ST_MAP_Y = 0x48          # trolley map y (int16, cm)
+ST_MAP_HEADING = 0x49    # trolley heading (int16, deg x10)
+ST_MAP_AVAILABLE = 0x4A  # 1 when a course map is loaded
+
 # --- Capabilities bitmask (uplink HELLO) ---
 CAP_JOYSTICK = 0x01
 CAP_TOUCH = 0x02
@@ -113,6 +120,7 @@ SCREEN_DEBUG_NAV = 0x0F
 SCREEN_ENERGY = 0x10
 SCREEN_SENSORS = 0x11
 SCREEN_DRIVE_DIST = 0x12
+SCREEN_MAP = 0x13
 
 
 def _crc16(data: bytes) -> int:
@@ -238,8 +246,10 @@ def _encode_value(state_id: int, value: int) -> bytes:
         return struct.pack('<h', value)          # int16
     if state_id in (ST_GPS_SPEED, ST_OBSTACLE_NEAREST_M,
                     ST_HOLE_DISTANCE_M, ST_HOLE_REMAINING_M, ST_TIME_HHMM,
-                    ST_RANGE_M, ST_RETURN_M):
+                    ST_RANGE_M, ST_RETURN_M, ST_MAP_X, ST_MAP_Y):
         return struct.pack('<H', value)          # uint16
+    if state_id in (ST_MAP_HEADING,):
+        return struct.pack('<h', value)          # int16
     return bytes([value & 0xFF])                 # uint8 (default)
 
 
@@ -259,6 +269,14 @@ def build_boot_status(text: str, progress: int = 0) -> bytes:
 
 def build_ack(acked_seq: int, status: int = 0) -> bytes:
     return bytes([acked_seq & 0xFF, status & 0xFF])
+
+
+def build_map_frame(map_w: int, map_h: int, rgb565: bytes) -> bytes:
+    """Build a DL_MAP_FRAME payload: map_w (u16 LE) + map_h (u16 LE) + bitmap.
+
+    rgb565 is a packed little-endian RGB565 bitmap of map_w x map_h pixels.
+    """
+    return struct.pack('<HH', map_w, map_h) + rgb565
 
 
 # --- Payload parsers (uplink) ---

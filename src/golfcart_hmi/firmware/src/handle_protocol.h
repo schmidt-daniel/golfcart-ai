@@ -34,6 +34,7 @@ extern "C" {
 #define DL_CONFIG        0x05
 #define DL_ACK           0x06
 #define DL_BOOT_STATUS   0x07
+#define DL_MAP_FRAME     0x08
 
 // Uplink (ESP32 -> Pi).
 #define UL_HELLO       0x81
@@ -79,6 +80,11 @@ extern "C" {
 #define ST_CAPABILITY         0x44
 #define ST_SEGMENTATION       0x45
 #define ST_HOLES_REMAINING    0x46
+#define ST_MAP_X              0x47
+#define ST_MAP_Y              0x48
+#define ST_MAP_HEADING        0x49
+#define ST_MAP_AVAILABLE      0x4A
+#define ST_HOLES_REMAINING    0x46
 
 // Capabilities.
 #define CAP_JOYSTICK 0x01
@@ -104,6 +110,9 @@ extern "C" {
 #define SCREEN_DEBUG_IMU    0x0E
 #define SCREEN_DEBUG_NAV    0x0F
 #define SCREEN_ENERGY       0x10
+#define SCREEN_SENSORS      0x11
+#define SCREEN_DRIVE_DIST   0x12
+#define SCREEN_MAP          0x13
 
 // Max payload length (fits in a uint8 LEN field).
 #define MAX_PAYLOAD 255

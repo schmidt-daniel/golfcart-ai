@@ -336,6 +336,13 @@ is at the bottom, the green at the top.
 
 Mockup: [`docs/hmi/map.svg`](hmi/map.svg)
 
+> **Implementation note (HMI Map View):** the shipped `SCR_MAP` screen renders
+> a simplified top-down course map (forbidden zones + features) that the Pi
+> downsamples from `CourseMap` to a compact RGB565 bitmap and blits to the
+> ESP32 via `DL_MAP_FRAME`; the trolley pose comes from `/odometry/filtered`
+> (`ST_MAP_X/Y/HEADING`). See `docs/features/hmi-map-view.md`. The full
+> per-hole colorful render + speed bar above remain a future enhancement.
+
 **Speed bar:** lets the user select the speed in manual/push-assist mode. The
 bar is hidden when the user is not in manual/push-assist mode.
 
