@@ -1,4 +1,5 @@
 #include <cmath>
+#include <fstream>
 #include <memory>
 #include <string>
 
@@ -37,8 +38,10 @@ public:
     ema_alpha_ = declare_parameter<double>("ema_alpha", 0.3);
     update_period_s_ = declare_parameter<double>("update_period_s", 5.0);
     default_wh_per_m_ = declare_parameter<double>("default_wh_per_m", 0.02);
+    model_file_ = declare_parameter<std::string>("model_file", "/var/lib/golfcart/range_model.txt");
 
     model_ = EnergyModel(default_wh_per_m_, ema_alpha_);
+    load_model();
 
     battery_sub_ = create_subscription<golfcart_msgs::msg::BatteryState>(
       "battery/state", rclcpp::SensorDataQoS(),
@@ -119,6 +122,9 @@ private:
     window_energy_wh_ = 0.0;
     window_distance_m_ = 0.0;
 
+    // Persist the learned model so it survives reboots (multi-round learning).
+    save_model();
+
     golfcart_msgs::msg::RangeStatus msg;
     msg.timestamp = now();
 
@@ -153,12 +159,54 @@ private:
     status_pub_->publish(msg);
   }
 
+  // Load the learned model from disk (multi-round persistence). On failure,
+  // the model keeps its default values.
+  void load_model()
+  {
+    std::ifstream f(model_file_);
+    if (!f.is_open()) {
+      RCLCPP_INFO(get_logger(), "No saved range model at %s (using defaults)",
+                  model_file_.c_str());
+      return;
+    }
+    std::string line;
+    std::getline(f, line);
+    if (model_.deserialize(line)) {
+      RCLCPP_INFO(get_logger(), "Loaded range model: %s", line.c_str());
+    } else {
+      RCLCPP_WARN(get_logger(), "Failed to parse saved range model");
+    }
+  }
+
+  // Save the learned model to disk.
+  void save_model()
+  {
+    // Ensure the directory exists.
+    const std::size_t slash = model_file_.rfind('/');
+    if (slash != std::string::npos) {
+      const std::string dir = model_file_.substr(0, slash);
+      std::string cmd = "mkdir -p " + dir;
+      if (system(cmd.c_str()) != 0) {
+        RCLCPP_WARN(get_logger(), "Could not create model dir %s", dir.c_str());
+      }
+    }
+    std::ofstream f(model_file_);
+    if (!f.is_open()) {
+      RCLCPP_WARN(get_logger(), "Could not write range model to %s",
+                  model_file_.c_str());
+      return;
+    }
+    f << model_.serialize() << "\n";
+    f.close();
+  }
+
   double battery_capacity_wh_ = 500.0;
   double reserve_wh_ = 50.0;
   double return_margin_m_ = 50.0;
   double ema_alpha_ = 0.3;
   double update_period_s_ = 5.0;
   double default_wh_per_m_ = 0.02;
+  std::string model_file_ = "/var/lib/golfcart/range_model.txt";
 
   EnergyModel model_;
 

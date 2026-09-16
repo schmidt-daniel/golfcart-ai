@@ -80,4 +80,37 @@ TEST(RangeEstimator, WarningStates)
   EXPECT_EQ(range_state(100.0, 50.0, 50.0, 50.0), "CAUTION");
 }
 
+TEST(RangeEstimator, SerializeRoundTrip)
+{
+  EnergyModel m(0.02, 0.3);
+  m.learn(0.0, 0.1, 10.0);  // flat -> 0.017
+  const std::string s = m.serialize();
+  // 3 comma-separated values.
+  EXPECT_EQ(std::count(s.begin(), s.end(), ','), 2);
+
+  EnergyModel m2(0.02, 0.3);
+  EXPECT_TRUE(m2.deserialize(s));
+  EXPECT_NEAR(m2.flat_wh_per_m(), m.flat_wh_per_m(), 1e-9);
+  EXPECT_NEAR(m2.wh_per_m(5.0), m.wh_per_m(5.0), 1e-9);
+  EXPECT_NEAR(m2.wh_per_m(-5.0), m.wh_per_m(-5.0), 1e-9);
+}
+
+TEST(RangeEstimator, DeserializeRejectsBadInput)
+{
+  EnergyModel m(0.02, 0.3);
+  EXPECT_FALSE(m.deserialize("not-a-number"));
+  EXPECT_FALSE(m.deserialize("0.02,0.02"));  // only 2 values
+  EXPECT_FALSE(m.deserialize(""));
+  // Model unchanged after a failed deserialize.
+  EXPECT_NEAR(m.flat_wh_per_m(), 0.02, 1e-9);
+}
+
+TEST(RangeEstimator, DeserializeClamps)
+{
+  EnergyModel m(0.02, 0.3);
+  // Absurdly high value is clamped to 0.5.
+  EXPECT_TRUE(m.deserialize("0.02,99.0,0.02"));
+  EXPECT_NEAR(m.flat_wh_per_m(), 0.5, 1e-9);
+}
+
 }  // namespace golfcart

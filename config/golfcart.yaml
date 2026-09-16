@@ -259,6 +259,7 @@ range_estimator_node:
   ema_alpha: 0.3                    # learning rate for the Wh/m model (0-1)
   update_period_s: 5.0              # how often to update the model + publish (s)
   default_wh_per_m: 0.02            # initial flat-ground consumption (Wh/m)
+  model_file: /var/lib/golfcart/range_model.txt  # persisted model (multi-round)
 
 # -----------------------------------------------------------------------------
 # Summon (golfcart_navigation/summon_node)

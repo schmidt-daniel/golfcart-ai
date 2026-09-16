@@ -89,6 +89,55 @@ public:
   // Current flat-ground Wh/m (for reporting).
   double flat_wh_per_m() const { return wh_per_m_[BUCKET_FLAT]; }
 
+  // Serialize the learned Wh/m values (for persistence across reboots).
+  // Returns a comma-separated string of BUCKET_COUNT values.
+  std::string serialize() const
+  {
+    std::string out;
+    for (int i = 0; i < BUCKET_COUNT; ++i) {
+      if (i > 0) {
+        out += ",";
+      }
+      out += std::to_string(wh_per_m_[i]);
+    }
+    return out;
+  }
+
+  // Deserialize Wh/m values from a comma-separated string (from serialize()).
+  // Returns true on success; on failure the model is left unchanged.
+  bool deserialize(const std::string & s)
+  {
+    double vals[BUCKET_COUNT];
+    int count = 0;
+    std::size_t start = 0;
+    while (count < BUCKET_COUNT) {
+      const std::size_t comma = s.find(',', start);
+      const std::string tok =
+        comma == std::string::npos ? s.substr(start) : s.substr(start, comma - start);
+      if (tok.empty()) {
+        break;
+      }
+      try {
+        vals[count] = std::stod(tok);
+      } catch (...) {
+        return false;
+      }
+      ++count;
+      if (comma == std::string::npos) {
+        break;
+      }
+      start = comma + 1;
+    }
+    if (count != BUCKET_COUNT) {
+      return false;
+    }
+    for (int i = 0; i < BUCKET_COUNT; ++i) {
+      // Clamp to a sane range.
+      wh_per_m_[i] = std::clamp(vals[i], 0.001, 0.5);
+    }
+    return true;
+  }
+
 private:
   double wh_per_m_[BUCKET_COUNT];
   double ema_alpha_;
