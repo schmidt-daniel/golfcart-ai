@@ -319,6 +319,13 @@ features are added.
 - Manual driving always works; HMI Sensors screen shows OK/MISSING
 - See `docs/features/capability-gating.md`
 
+### Sensor Health Logging
+- `sensor_health_logger_node` (`golfcart_system`) — subscribes `/capability/status`
+  and logs present→absent (and absent→present) transitions to a JSON Lines file
+- Config: `log_file` (default `/var/lib/golfcart/sensor_health.jsonl`)
+- Wired into `core.launch.py`; helps diagnose intermittent sensor failures
+- See `docs/features/sensor-health-logging.md`
+
 ### Drive Distance
 - `DriveDistance.srv` + `drive_distance_node` (subscribes `/odometry/filtered`
   for pose+yaw, computes goal N m ahead, forwards to `/set_goal`)

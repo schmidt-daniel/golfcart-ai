@@ -19,7 +19,10 @@ target_link_libraries(golfcart_system INTERFACE rclcpp::rclcpp golfcart_msgs::go
 add_executable(capability_node src/capability_node.cpp)
 target_link_libraries(capability_node golfcart_system rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
 
-install(TARGETS capability_node
+add_executable(sensor_health_logger_node src/sensor_health_logger_node.cpp)
+target_link_libraries(sensor_health_logger_node golfcart_system rclcpp::rclcpp golfcart_msgs::golfcart_msgs)
+
+install(TARGETS capability_node sensor_health_logger_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

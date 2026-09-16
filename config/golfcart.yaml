@@ -369,6 +369,14 @@ capability_node:
   override_odrive: -1               # -1 auto, 0 absent, 1 present
 
 # -----------------------------------------------------------------------------
+# Sensor Health Logger (golfcart_system/sensor_health_logger_node)
+# Logs capability dropouts (present -> absent) to a JSON Lines file so
+# intermittent sensor failures can be diagnosed.
+# -----------------------------------------------------------------------------
+sensor_health_logger:
+  log_file: /var/lib/golfcart/sensor_health.jsonl
+
+# -----------------------------------------------------------------------------
 # Drive Distance (golfcart_navigation/drive_distance_node)
 # Drive a fixed distance (10/20/30/40/50 m) in the current heading direction.
 # Uses the navigation stack (Nav2), so obstacle avoidance applies. GPS required.

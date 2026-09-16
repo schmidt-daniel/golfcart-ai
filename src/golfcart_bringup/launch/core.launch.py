@@ -68,6 +68,14 @@ def generate_launch_description():
         output='screen',
     )
 
+    sensor_health_logger = Node(
+        package='golfcart_system',
+        executable='sensor_health_logger_node',
+        name='sensor_health_logger',
+        parameters=[_node_params(cfg, 'sensor_health_logger')],
+        output='screen',
+    )
+
     motion_controller = Node(
         package='golfcart_control',
         executable='motion_controller_node',
@@ -182,6 +190,7 @@ def generate_launch_description():
         impl_arg,
         odrive_node,
         capability_node,
+        sensor_health_logger,
         motion_controller,
         safety_controller,
         battery_node,
