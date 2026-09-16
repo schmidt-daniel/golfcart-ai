@@ -62,6 +62,9 @@ This document covers the whole-system architecture. Individual features are docu
 - Game-controller joystick
 - 36 V Li-Ion battery
 
+> **Physical mounting:** the sensors and compute unit are housed in a 3D-printed
+> tower — see [`cases_mounts/SENSOR_STACK.md`](../cases_mounts/SENSOR_STACK.md).
+
 ## Software
 
 - Ubuntu 26.04
