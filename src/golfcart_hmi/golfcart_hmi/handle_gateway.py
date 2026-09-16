@@ -23,7 +23,7 @@ import serial
 import rclpy
 from rclpy.node import Node
 from std_srvs.srv import Trigger
-from golfcart_msgs.srv import CourseSelect, HoleSelect, DriveDistance
+from golfcart_msgs.srv import CourseSelect, HoleSelect, DriveDistance, EndRound
 from golfcart_msgs.msg import MotionRequest, BatteryState, GpsFix, ImuData
 from golfcart_msgs.msg import ObstacleState, GeofenceStatus, SpeedZoneStatus
 from golfcart_msgs.msg import SlopeStatus, NavigationStatus, HoleSession, CourseList, CourseMap
@@ -79,6 +79,7 @@ class HandleGatewayNode(Node):
         self.course_select_client = self.create_client(CourseSelect, 'course/select')
         self.hole_select_client = self.create_client(HoleSelect, 'course/hole')
         self.drive_distance_client = self.create_client(DriveDistance, 'drive_distance')
+        self.end_round_client = self.create_client(EndRound, 'end_round')
 
         # ---- Subscriptions (ROS -> downlink) ----
         self.battery_sub = self.create_subscription(
@@ -239,7 +240,7 @@ class HandleGatewayNode(Node):
 
     def _menu_main(self, item):
         # Main menu items: MAP, DRIVE DIST, MODE, ASSIST, ENERGY, CHANGE HOLE,
-        # SELECT COURSE, WIFI, DEBUG, SHUTDOWN.
+        # SELECT COURSE, WIFI, END ROUND, DEBUG, SHUTDOWN.
         if item == 0:      # MAP
             self._nav(p.SCREEN_HOLE)
         elif item == 1:    # DRIVE DIST
@@ -256,9 +257,11 @@ class HandleGatewayNode(Node):
             self._nav(p.SCREEN_COURSE)
         elif item == 7:    # WIFI
             self._nav(p.SCREEN_WIFI)
-        elif item == 8:    # DEBUG
+        elif item == 8:    # END ROUND
+            self._call_end_round()
+        elif item == 9:    # DEBUG
             self._nav(p.SCREEN_DEBUG)
-        elif item == 9:    # SHUTDOWN
+        elif item == 10:   # SHUTDOWN
             self.get_logger().info('SHUTDOWN requested (not wired)')
 
     def _menu_drive_dist(self, item):
@@ -373,6 +376,16 @@ class HandleGatewayNode(Node):
         future.add_done_callback(
             lambda f: self.get_logger().info(
                 f'drive_distance: {f.result().message if f.result() else "failed"}'))
+
+    def _call_end_round(self):
+        if not self.end_round_client.wait_for_service(timeout_sec=2.0):
+            self.get_logger().warn('end_round service not available')
+            return
+        req = EndRound.Request()
+        future = self.end_round_client.call_async(req)
+        future.add_done_callback(
+            lambda f: self.get_logger().info(
+                f'end_round: {f.result().message if f.result() else "failed"}'))
 
     def on_course_list(self, msg):
         self.courses = [(c.id, c.name) for c in msg.courses]

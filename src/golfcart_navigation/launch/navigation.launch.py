@@ -173,6 +173,15 @@ def generate_launch_description():
         output='screen',
     )
 
+    # Trip logger (round summary -> JSON log + /trip/summary)
+    trip_logger_node = Node(
+        package='golfcart_navigation',
+        executable='trip_logger_node',
+        name='trip_logger_node',
+        parameters=[_node_params(cfg, 'trip_logger_node')],
+        output='screen',
+    )
+
     return LaunchDescription([
         use_sim_time_arg,
         planner,
@@ -188,4 +197,5 @@ def generate_launch_description():
         speed_zone_node,
         range_estimator_node,
         drive_distance_node,
+        trip_logger_node,
     ])

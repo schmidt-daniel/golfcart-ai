@@ -352,3 +352,12 @@ drive_distance_node:
 # -----------------------------------------------------------------------------
 segmentation_node:
   publish_rate_hz: 5.0              # segmentation status publish rate (Hz)
+
+# -----------------------------------------------------------------------------
+# Trip Logger (golfcart_navigation/trip_logger_node)
+# Logs each round (course + tee selection -> "End round") to a JSON file and
+# publishes /trip/summary. Round starts on course/tee selection, ends via the
+# /end_round service (HMI "End round" button).
+# -----------------------------------------------------------------------------
+trip_logger_node:
+  log_file: /var/lib/golfcart/trips.json   # round history log (JSON Lines)

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golf Cart — Trip History</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: sans-serif; margin: 0; background: #0F172A; color: #F8FAFC; }
+    h1 { margin: 8px; font-size: 1.2em; }
+    a { color: #38BDF8; }
+    .panel { max-width: 480px; margin: 12px auto; background: #1E293B; border-radius: 10px; padding: 12px; }
+    .panel h2 { font-size: 1em; margin: 4px 0; color: #94A3B8; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+    th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #334155; }
+    th { color: #94A3B8; }
+    #empty { text-align: center; color: #94A3B8; padding: 24px; }
+  </style>
+</head>
+<body>
+  <h1>⛳ Golf Cart — Trip History</h1>
+  <p><a href="index.html">← Web Teleop</a> · <a href="dashboard.html">Dashboard</a></p>
+
+  <div class="panel">
+    <h2>Rounds</h2>
+    <table id="trips">
+      <thead>
+        <tr><th>Course</th><th>Tee</th><th>Distance</th><th>Energy</th><th>Time</th><th>Avg</th></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <p id="empty" style="display:none;">No rounds logged yet.</p>
+  </div>
+
+  <script>
+    function fmtDist(m) { return m >= 1000 ? (m/1000).toFixed(2) + ' km' : Math.round(m) + ' m'; }
+    function fmtTime(s) {
+      var m = Math.floor(s / 60), h = Math.floor(m / 60);
+      return (h > 0 ? h + 'h ' : '') + (m % 60) + 'm';
+    }
+
+    fetch('/trips')
+      .then(function (r) { return r.json(); })
+      .then(function (entries) {
+        var tbody = document.getElementById('tbody');
+        if (!entries || entries.length === 0) {
+          document.getElementById('empty').style.display = '';
+          return;
+        }
+        entries.reverse();  // newest first
+        entries.forEach(function (e) {
+          var tr = document.createElement('tr');
+          var cells = [
+            e.course || '-', e.tee || '-',
+            fmtDist(e.distance_m || 0),
+            (e.energy_wh || 0).toFixed(1) + ' Wh',
+            fmtTime(e.duration_s || 0),
+            (e.avg_speed_mps || 0).toFixed(2) + ' m/s'
+          ];
+          cells.forEach(function (c) {
+            var td = document.createElement('td');
+            td.textContent = c;
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      })
+      .catch(function () {
+        document.getElementById('empty').style.display = '';
+        document.getElementById('empty').textContent = 'Could not load trip history.';
+      });
+  </script>
+</body>
+</html>

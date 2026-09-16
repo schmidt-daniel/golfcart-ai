@@ -372,9 +372,10 @@ static void build_menu(void)
   scr = make_screen();
   make_header("Main Menu");
   const char *items[] = {"MAP", "DRIVE DIST", "MODE", "ASSIST", "ENERGY",
-                         "CHANGE HOLE", "SELECT COURSE", "WIFI", "DEBUG", "SHUTDOWN"};
+                         "CHANGE HOLE", "SELECT COURSE", "WIFI", "END ROUND",
+                         "DEBUG", "SHUTDOWN"};
   int y = 40;
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 11; ++i) {
     make_button(scr, items[i], 20, y, 280, 40, C_SURFACE2);
     add_hit(20, y, 300, y + 40, i);  // item id = index
     y += 48;

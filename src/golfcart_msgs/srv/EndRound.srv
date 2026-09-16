@@ -1,0 +1,6 @@
+# End the current round (trip_logger_node).
+# Ends the active round, writes it to the round history log, and publishes the
+# final summary.
+---
+bool success
+string message

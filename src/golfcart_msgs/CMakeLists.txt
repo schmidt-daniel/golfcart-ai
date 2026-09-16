@@ -46,6 +46,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/CapabilityStatus.msg"
   "msg/SegmentationStatus.msg"
   "msg/ReIdStatus.msg"
+  "msg/TripSummary.msg"
   "srv/SetGoal.srv"
   "srv/SummonTrigger.srv"
   "srv/FollowTrigger.srv"
@@ -53,6 +54,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/CourseSelect.srv"
   "srv/HoleSelect.srv"
   "srv/DriveDistance.srv"
+  "srv/EndRound.srv"
   DEPENDENCIES builtin_interfaces nav_msgs geometry_msgs
 )
 

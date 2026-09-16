@@ -73,7 +73,13 @@ target_include_directories(drive_distance_node PRIVATE
 )
 target_link_libraries(drive_distance_node rclcpp::rclcpp nav_msgs::nav_msgs tf2::tf2 golfcart_msgs::golfcart_msgs)
 
-install(TARGETS navigation_node georeference_node summon_node course_loader_node course_registry_node course_session_node slope_node speed_zone_node range_estimator_node drive_distance_node
+add_executable(trip_logger_node src/trip_logger_node.cpp)
+target_include_directories(trip_logger_node PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(trip_logger_node rclcpp::rclcpp nav_msgs::nav_msgs golfcart_msgs::golfcart_msgs)
+
+install(TARGETS navigation_node georeference_node summon_node course_loader_node course_registry_node course_session_node slope_node speed_zone_node range_estimator_node drive_distance_node trip_logger_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY config
@@ -110,6 +116,12 @@ if(BUILD_TESTING)
   ament_add_gtest(test_drive_distance_math test/test_drive_distance_math.cpp)
   if(TARGET test_drive_distance_math)
     target_include_directories(test_drive_distance_math PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+  endif()
+  ament_add_gtest(test_trip_math test/test_trip_math.cpp)
+  if(TARGET test_trip_math)
+    target_include_directories(test_trip_math PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
   endif()
