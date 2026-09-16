@@ -81,6 +81,9 @@ ST_SLIP = 0x43
 # --- Hardware capability bitmask (downlink) ---
 ST_CAPABILITY = 0x44
 
+# --- Course segmentation status (downlink) ---
+ST_SEGMENTATION = 0x45
+
 # --- Capabilities bitmask (uplink HELLO) ---
 CAP_JOYSTICK = 0x01
 CAP_TOUCH = 0x02

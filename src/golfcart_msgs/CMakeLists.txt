@@ -44,6 +44,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ModeState.msg"
   "msg/GestureCommand.msg"
   "msg/CapabilityStatus.msg"
+  "msg/SegmentationStatus.msg"
   "srv/SetGoal.srv"
   "srv/SummonTrigger.srv"
   "srv/FollowTrigger.srv"

@@ -1,5 +1,6 @@
 #include <memory>
 
+#include "golfcart_msgs/msg/capability_status.hpp"
 #include "golfcart_msgs/msg/gesture_command.hpp"
 #include "golfcart_msgs/msg/mode_state.hpp"
 #include "golfcart_msgs/srv/summon_trigger.hpp"
@@ -50,6 +51,13 @@ public:
         mode_ = msg->mode;
       });
 
+    // Track camera capability: gesture control requires the camera.
+    cap_sub_ = create_subscription<golfcart_msgs::msg::CapabilityStatus>(
+      "capability/status", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::CapabilityStatus::SharedPtr msg) {
+        camera_available_ = msg->camera;
+      });
+
     summon_client_ = create_client<golfcart_msgs::srv::SummonTrigger>("summon");
     safety_stop_client_ = create_client<std_srvs::srv::Trigger>("safety/stop");
 
@@ -63,6 +71,10 @@ private:
   void on_gesture(const golfcart_msgs::msg::GestureCommand::SharedPtr msg)
   {
     if (!enabled_) {
+      return;
+    }
+    // Gesture control requires the camera.
+    if (!camera_available_) {
       return;
     }
     // Ignore while the operator is actively driving in MANUAL mode.
@@ -147,6 +159,7 @@ private:
   }
 
   bool enabled_ = true;
+  bool camera_available_ = false;
   double slow_speed_mps_ = 0.5;
   bool ignore_in_manual_ = true;
   double summon_hold_s_ = 1.0;
@@ -155,6 +168,7 @@ private:
 
   rclcpp::Subscription<golfcart_msgs::msg::GestureCommand>::SharedPtr gesture_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::ModeState>::SharedPtr mode_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::CapabilityStatus>::SharedPtr cap_sub_;
   rclcpp::Client<golfcart_msgs::srv::SummonTrigger>::SharedPtr summon_client_;
   rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr safety_stop_client_;
   rclcpp::Publisher<golfcart_msgs::msg::ModeState>::SharedPtr mode_pub_;

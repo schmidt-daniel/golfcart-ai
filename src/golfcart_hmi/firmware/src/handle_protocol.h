@@ -77,6 +77,7 @@ extern "C" {
 #define ST_RANGE_STATE        0x42
 #define ST_SLIP               0x43
 #define ST_CAPABILITY         0x44
+#define ST_SEGMENTATION       0x45
 
 // Capabilities.
 #define CAP_JOYSTICK 0x01

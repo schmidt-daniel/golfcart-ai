@@ -23,11 +23,18 @@ target_link_libraries(gesture_recognition_node golfcart_vision rclcpp::rclcpp se
 add_executable(gesture_controller_node src/gesture_controller_node.cpp)
 target_link_libraries(gesture_controller_node golfcart_vision rclcpp::rclcpp std_srvs::std_srvs golfcart_msgs::golfcart_msgs)
 
-install(TARGETS gesture_recognition_node gesture_controller_node
+add_executable(segmentation_node src/segmentation_node.cpp)
+target_link_libraries(segmentation_node golfcart_vision rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
+
+install(TARGETS gesture_recognition_node gesture_controller_node segmentation_node
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY include/
   DESTINATION include
+)
+
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)

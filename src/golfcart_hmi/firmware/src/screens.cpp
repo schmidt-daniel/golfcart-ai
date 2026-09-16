@@ -55,6 +55,7 @@ typedef struct {
   uint8_t range_state;        // 0=OK, 1=CAUTION, 2=CRITICAL
   uint8_t slip;               // 0=no slip, 1=wheels slipping
   uint16_t capability;        // bitmask of present sensors (see CAP_*)
+  uint8_t segmentation;       // 0=off, 1=active
 } HandleState;
 
 static HandleState g_state;
@@ -225,6 +226,7 @@ typedef struct {
 #define LABEL_RANGE_STATE 20
 #define LABEL_SLIP        21
 #define LABEL_CAPABILITY  22
+#define LABEL_SEGMENTATION 23
 
 static LabelRef g_labels[MAX_LABELS];
 static int g_label_count = 0;
@@ -350,6 +352,10 @@ static void set_label_text(LabelRef *lr)
                present ? "OK" : "MISSING");
       break;
     }
+    case LABEL_SEGMENTATION:
+      snprintf(buf, sizeof(buf), "Segmentation: %s",
+               g_state.segmentation ? "ON" : "OFF");
+      break;
     default:
       return;
   }
@@ -641,7 +647,10 @@ static void build_debug_camera(void)
   lv_obj_set_pos(cam, 20, 44);
   lv_obj_set_size(cam, 280, 200);
   lv_obj_set_style_bg_color(cam, C_SURFACE, 0);
-  make_label(scr, "Segmentation: OFF", 20, 260, 280, 24, C_TEXT_DIM);
+  lv_obj_t *cap = make_label(scr, "Camera   --", 20, 256, 280, 24, C_TEXT);
+  add_label_bit(cap, LABEL_CAPABILITY, 5);  // bit 5 = Camera
+  lv_obj_t *seg = make_label(scr, "Segmentation: OFF", 20, 292, 280, 24, C_TEXT_DIM);
+  add_label(seg, LABEL_SEGMENTATION);
   make_button(scr, "Main Menu", 20, 340, 280, 40, C_SURFACE2);
   add_hit(20, 340, 300, 380, 0);
 }
@@ -872,6 +881,7 @@ void screens_set_state(uint8_t id, int32_t value)
     case ST_RANGE_STATE: g_state.range_state = (uint8_t)value; break;
     case ST_SLIP: g_state.slip = (uint8_t)value; break;
     case ST_CAPABILITY: g_state.capability = (uint16_t)value; break;
+    case ST_SEGMENTATION: g_state.segmentation = (uint8_t)value; break;
     default: break;
   }
   screens_refresh();
