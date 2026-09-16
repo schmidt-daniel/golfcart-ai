@@ -265,6 +265,8 @@ class HandleGatewayNode(Node):
             self._menu_drive_dist(item)
         elif self.screen == p.SCREEN_SPEED:
             self._menu_speed(item)
+        elif self.screen == p.SCREEN_QUICK_SELECT:
+            self._menu_quick_select(item)
         elif self.screen == p.SCREEN_DEBUG:
             self._menu_debug(item)
         else:
@@ -288,8 +290,8 @@ class HandleGatewayNode(Node):
             self._nav(p.SCREEN_COURSE)
 
     def _menu_main(self, item):
-        # Main menu items: MAP, DRIVE DIST, MODE, ASSIST, SPEED, ENERGY,
-        # CHANGE HOLE, SELECT COURSE, WIFI, END ROUND, DEBUG, SHUTDOWN.
+        # Main menu items: MAP, DRIVE DIST, MODE, ASSIST, SPEED, QUICK SEL,
+        # ENERGY, CHANGE HOLE, SELECT COURSE, WIFI, END ROUND, DEBUG, SHUTDOWN.
         if item == 0:      # MAP
             self._nav(p.SCREEN_MAP)
         elif item == 1:    # DRIVE DIST
@@ -300,19 +302,21 @@ class HandleGatewayNode(Node):
             self._nav(p.SCREEN_ASSIST)
         elif item == 4:    # SPEED
             self._nav(p.SCREEN_SPEED)
-        elif item == 5:    # ENERGY
+        elif item == 5:    # QUICK SEL
+            self._nav(p.SCREEN_QUICK_SELECT)
+        elif item == 6:    # ENERGY
             self._nav(p.SCREEN_ENERGY)
-        elif item == 6:    # CHANGE HOLE
+        elif item == 7:    # CHANGE HOLE
             self._nav(p.SCREEN_CHANGE_HOLE)
-        elif item == 7:    # SELECT COURSE
+        elif item == 8:    # SELECT COURSE
             self._nav(p.SCREEN_COURSE)
-        elif item == 8:    # WIFI
+        elif item == 9:    # WIFI
             self._nav(p.SCREEN_WIFI)
-        elif item == 9:    # END ROUND
+        elif item == 10:   # END ROUND
             self._call_end_round()
-        elif item == 10:   # DEBUG
+        elif item == 11:   # DEBUG
             self._nav(p.SCREEN_DEBUG)
-        elif item == 11:   # SHUTDOWN
+        elif item == 12:   # SHUTDOWN
             self.get_logger().info('SHUTDOWN requested (not wired)')
 
     def _menu_drive_dist(self, item):
@@ -342,6 +346,16 @@ class HandleGatewayNode(Node):
             self.speed_limit = presets[item]
         self._send_state(p.ST_SPEED_LIMIT, int(self.speed_limit * 100))
         self.get_logger().info(f'Speed limit set to {self.speed_limit:.1f} m/s')
+
+    def _menu_quick_select(self, item):
+        # Quick-select items: 0..17 = hole 1..18; 18 = Main Menu.
+        if item == 18:
+            self._nav(p.SCREEN_MENU)
+            return
+        if 0 <= item < 18:
+            hole = item + 1
+            self._call_hole_select_number(hole)
+            self.get_logger().info(f'Quick select hole {hole}')
 
     def _menu_mode(self, item):
         # item 0..2 = mode; 3 = Main Menu.
@@ -427,6 +441,19 @@ class HandleGatewayNode(Node):
         req = HoleSelect.Request()
         req.hole_number = 0  # auto-detect
         req.tee_id = tee_id
+        future = self.hole_select_client.call_async(req)
+        future.add_done_callback(
+            lambda f: self.get_logger().info(
+                f'course/hole: {f.result().message if f.result() else "failed"}'))
+
+    def _call_hole_select_number(self, hole_number):
+        """Select a hole directly by number (quick-select)."""
+        if not self.hole_select_client.wait_for_service(timeout_sec=2.0):
+            self.get_logger().warn('course/hole service not available')
+            return
+        req = HoleSelect.Request()
+        req.hole_number = int(hole_number)
+        req.tee_id = ''
         future = self.hole_select_client.call_async(req)
         future.add_done_callback(
             lambda f: self.get_logger().info(

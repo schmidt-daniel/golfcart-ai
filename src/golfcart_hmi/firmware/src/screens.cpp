@@ -421,10 +421,10 @@ static void build_menu(void)
   scr = make_screen();
   make_header("Main Menu");
   const char *items[] = {"MAP", "DRIVE DIST", "MODE", "ASSIST", "SPEED",
-                         "ENERGY", "CHANGE HOLE", "SELECT COURSE", "WIFI",
-                         "END ROUND", "DEBUG", "SHUTDOWN"};
+                         "QUICK SEL", "ENERGY", "CHANGE HOLE", "SELECT COURSE",
+                         "WIFI", "END ROUND", "DEBUG", "SHUTDOWN"};
   int y = 40;
-  for (int i = 0; i < 12; ++i) {
+  for (int i = 0; i < 13; ++i) {
     make_button(scr, items[i], 20, y, 280, 40, C_SURFACE2);
     add_hit(20, y, 300, y + 40, i);  // item id = index
     y += 48;
@@ -550,6 +550,34 @@ static void build_speed(void)
   add_hit(200, 220, 280, 260, 4);
   make_button(scr, "Main Menu", 20, 280, 280, 40, C_SURFACE2);
   add_hit(20, 280, 300, 320, 5);
+}
+
+// Quick select (SCR_QUICK_SELECT).
+// A grid of hole numbers (1-18) to jump directly to a hole, plus a Main Menu
+// button. The Pi calls /course/hole with the chosen hole number.
+static void build_quick_select(void)
+{
+  scr = make_screen();
+  make_header("Quick Select");
+  // 6 columns x 3 rows of hole buttons.
+  const int cols = 6;
+  const int bw = 44, bh = 44, gap = 6;
+  const int x0 = 12, y0 = 44;
+  int idx = 0;
+  for (int row = 0; row < 3; ++row) {
+    for (int col = 0; col < cols; ++col) {
+      int hole = idx + 1;
+      int x = x0 + col * (bw + gap);
+      int y = y0 + row * (bh + gap);
+      char label[4];
+      snprintf(label, sizeof(label), "%d", hole);
+      make_button(scr, label, x, y, bw, bh, C_SURFACE2);
+      add_hit(x, y, x + bw, y + bh, idx);
+      ++idx;
+    }
+  }
+  make_button(scr, "Main Menu", 12, 200, 296, 40, C_SURFACE2);
+  add_hit(12, 200, 308, 240, 18);
 }
 
 // Mode selection (SCR_MODE).
@@ -854,7 +882,7 @@ static void build_splash(void)
 // ---------------------------------------------------------------------------
 typedef void (*ScreenBuilder)(void);
 
-static ScreenBuilder screen_builders[22] = {
+static ScreenBuilder screen_builders[23] = {
   build_splash,         // 0x00 SCR_SPLASH
   build_course,         // 0x01 SCR_COURSE
   build_tee,            // 0x02 SCR_TEE
@@ -877,6 +905,7 @@ static ScreenBuilder screen_builders[22] = {
   build_map,            // 0x13 SCR_MAP
   build_round_summary,  // 0x14 SCR_ROUND_SUMMARY
   build_speed,          // 0x15 SCR_SPEED
+  build_quick_select,   // 0x16 SCR_QUICK_SELECT
 };
 
 // ---------------------------------------------------------------------------
@@ -909,7 +938,7 @@ void screens_init(void)
 void screens_show(uint8_t screen_id)
 {
   g_current_screen = screen_id;
-  if (screen_id < 22 && screen_builders[screen_id] != NULL) {
+  if (screen_id < 23 && screen_builders[screen_id] != NULL) {
     screen_builders[screen_id]();
   }
 }

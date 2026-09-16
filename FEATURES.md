@@ -393,6 +393,14 @@ features are added.
 - SPEED item added to the main menu
 - See `docs/features/hmi-speed-bar.md`
 
+### HMI Course/Hole Quick-Select
+- New `SCR_QUICK_SELECT` screen — a 6×3 grid of hole numbers (1-18) to jump
+  directly to a hole
+- `handle_gateway` `_menu_quick_select()` calls `/course/hole` with the chosen
+  hole number (reuses `HoleSelect` service)
+- QUICK SEL item added to the main menu
+- See `docs/features/hmi-quick-select.md`
+
 ### Deployment (Option D, Hybrid)
 - `systemd/` — systemd units per service, auto-start on boot + restart on crash:
   `golfcart-core`, `golfcart-teleop`, `golfcart-localization`, `golfcart-mapping`,

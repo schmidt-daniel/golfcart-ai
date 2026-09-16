@@ -21,6 +21,19 @@ def test_encode_decode_roundtrip():
     assert seq == 7
 
 
+def test_screen_ids_unique():
+    """Screen IDs are unique and the quick-select screen is defined."""
+    ids = [p.SCREEN_SPLASH, p.SCREEN_COURSE, p.SCREEN_TEE, p.SCREEN_HOLE,
+           p.SCREEN_MENU, p.SCREEN_MODE, p.SCREEN_ASSIST, p.SCREEN_CHANGE_HOLE,
+           p.SCREEN_WIFI, p.SCREEN_DEBUG, p.SCREEN_DEBUG_SYSTEM,
+           p.SCREEN_DEBUG_GPS, p.SCREEN_DEBUG_LIDAR, p.SCREEN_DEBUG_CAMERA,
+           p.SCREEN_DEBUG_IMU, p.SCREEN_DEBUG_NAV, p.SCREEN_ENERGY,
+           p.SCREEN_SENSORS, p.SCREEN_DRIVE_DIST, p.SCREEN_MAP,
+           p.SCREEN_ROUND_SUMMARY, p.SCREEN_SPEED, p.SCREEN_QUICK_SELECT]
+    assert len(ids) == len(set(ids))
+    assert p.SCREEN_QUICK_SELECT == 0x16
+
+
 def test_byte_stuffing():
     """0xAA / 0x55 / 0xDB in the payload are escaped and recovered."""
     payload = bytes([0xAA, 0x55, 0xDB, 0x01])

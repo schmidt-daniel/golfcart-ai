@@ -36,6 +36,7 @@
 #define SCR_MAP          0x13
 #define SCR_ROUND_SUMMARY 0x14
 #define SCR_SPEED        0x15
+#define SCR_QUICK_SELECT 0x16
 
 // Initialize the LVGL screen system (called once from setup()).
 void screens_init(void);
