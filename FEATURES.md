@@ -272,6 +272,54 @@ features are added.
 - Informational only — never commands motion
 - `test_protocol.py` encode tests; firmware builds (RAM 29.7%, Flash 15.5%)
 
+### Gesture Control
+- `golfcart_vision` package — `gesture_recognition_node` (MediaPipe Pose
+  classification + debounce) and `gesture_controller_node` (maps gestures to
+  summon/mode/safety, windmill+hold confirmation)
+- `GestureCommand.msg` (NONE/SUMMON/STOP/FOLLOW/SLOW)
+- Gesture set: windmill+hold (SUMMON), double palm up (STOP), choo-choo
+  (FOLLOW), repeated pat-down (SLOW); all sustained/repetitive
+- `gesture_math.hpp` + unit tests; gated on camera capability
+- See `docs/features/gesture-control.md`
+
+### Hardware Capability Detection + Feature Gating
+- `golfcart_system` package — `capability_node` (heartbeat + valid-flag
+  detection, config overrides for testing)
+- `CapabilityStatus.msg` (lidar_horizontal, lidar_tilted, gps, imu, battery,
+  camera, coral, odrive)
+- Gates: mode (FOLLOW needs LiDAR, AUTONOMOUS needs GPS), summon (GPS),
+  follow (LiDAR), safety enable (ODrive), gesture (camera), segmentation
+  (camera + Coral)
+- Manual driving always works; HMI Sensors screen shows OK/MISSING
+- See `docs/features/capability-gating.md`
+
+### Drive Distance
+- `DriveDistance.srv` + `drive_distance_node` (subscribes `/odometry/filtered`
+  for pose+yaw, computes goal N m ahead, forwards to `/set_goal`)
+- HMI Drive Distance screen (2nd in main menu) with 10/20/30/40/50 m + Cancel
+- Reuses Nav2 (obstacle avoidance applies); gated on GPS
+- `drive_distance_math.hpp` + unit tests
+- See `docs/features/drive-distance.md`
+
+### Live Course Segmentation
+- `SegmentationStatus.msg` + `segmentation_node` (subscribes `/camera/image`,
+  gated on camera + Coral capability)
+- HMI Camera debug screen shows Camera OK/MISSING + Segmentation ON/OFF
+- Model inference (zero-shot SAM / fine-tuned) abstracted for hardware phase
+- See `docs/features/segmentation.md`
+
+### Multi-Round Battery Learning
+- `EnergyModel.serialize()/deserialize()` (Wh/m per slope bucket)
+- `range_estimator_node` loads at startup, saves each update
+- `model_file` config param (default `/var/lib/golfcart/range_model.txt`)
+- See `docs/features/multi-round-learning.md`
+
+### Person Re-ID
+- `ReIdStatus.msg` + `person_reid_node` (re-acquires follow target after loss)
+- `reid_math.hpp` (ReIdTracker state machine) + unit tests
+- Continuity-based (spatial gate + time window); gated on follow
+- See `docs/features/person-reid.md`
+
 ### Deployment (Option D, Hybrid)
 - `systemd/` — systemd units per service, auto-start on boot + restart on crash:
   `golfcart-core`, `golfcart-teleop`, `golfcart-localization`, `golfcart-mapping`,
@@ -285,9 +333,9 @@ features are added.
 
 ## Not yet implemented (documented only)
 
-See `docs/features/` for design docs. The software-only roadmap batch is
-complete (Remote E-Stop + Telemetry, GPS-Denied Fallback, Obstacle Steering
-Assist, Battery Range Estimator).
+See `docs/features/` for design docs. The software roadmap is complete —
+including the camera-enabled batch (gesture control, live course segmentation)
+and the candidates (multi-round battery learning, person re-ID).
 
 - Learning on-board flags (design doc `docs/features/learning.md` describes an
   on-board recorder; we instead derive flags off-board from rosbags — see the
