@@ -85,6 +85,11 @@ extern "C" {
 #define ST_MAP_HEADING        0x49
 #define ST_MAP_AVAILABLE      0x4A
 #define ST_ALERT              0x4B
+#define ST_ROUND_ACTIVE       0x4C
+#define ST_ROUND_DISTANCE     0x4D
+#define ST_ROUND_ENERGY       0x4E
+#define ST_ROUND_DURATION     0x4F
+#define ST_ROUND_AVG_SPEED    0x50
 
 // Alert codes (ST_ALERT values).
 #define ALERT_NONE            0
@@ -126,6 +131,7 @@ extern "C" {
 #define SCREEN_SENSORS      0x11
 #define SCREEN_DRIVE_DIST   0x12
 #define SCREEN_MAP          0x13
+#define SCREEN_ROUND_SUMMARY 0x14
 
 // Max payload length (fits in a uint8 LEN field).
 #define MAX_PAYLOAD 255

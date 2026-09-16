@@ -97,6 +97,13 @@ ST_MAP_AVAILABLE = 0x4A  # 1 when a course map is loaded
 # --- Alert / notification (downlink) ---
 ST_ALERT = 0x4B          # active alert code (0 = none)
 
+# --- Round summary (downlink, after End round) ---
+ST_ROUND_ACTIVE = 0x4C   # 1 while a round is in progress
+ST_ROUND_DISTANCE = 0x4D # round distance (uint16, m)
+ST_ROUND_ENERGY = 0x4E   # round energy (uint16, Wh x10)
+ST_ROUND_DURATION = 0x4F # round duration (uint16, s)
+ST_ROUND_AVG_SPEED = 0x50  # round avg speed (uint16, cm/s)
+
 # Alert codes (ST_ALERT values).
 ALERT_NONE = 0
 ALERT_BATTERY_LOW = 1
@@ -136,6 +143,7 @@ SCREEN_ENERGY = 0x10
 SCREEN_SENSORS = 0x11
 SCREEN_DRIVE_DIST = 0x12
 SCREEN_MAP = 0x13
+SCREEN_ROUND_SUMMARY = 0x14
 
 
 def _crc16(data: bytes) -> int:
@@ -261,7 +269,9 @@ def _encode_value(state_id: int, value: int) -> bytes:
         return struct.pack('<h', value)          # int16
     if state_id in (ST_GPS_SPEED, ST_OBSTACLE_NEAREST_M,
                     ST_HOLE_DISTANCE_M, ST_HOLE_REMAINING_M, ST_TIME_HHMM,
-                    ST_RANGE_M, ST_RETURN_M, ST_MAP_X, ST_MAP_Y):
+                    ST_RANGE_M, ST_RETURN_M, ST_MAP_X, ST_MAP_Y,
+                    ST_ROUND_DISTANCE, ST_ROUND_ENERGY, ST_ROUND_DURATION,
+                    ST_ROUND_AVG_SPEED):
         return struct.pack('<H', value)          # uint16
     if state_id in (ST_MAP_HEADING,):
         return struct.pack('<h', value)          # int16

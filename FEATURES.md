@@ -377,6 +377,14 @@ features are added.
 - `trip_math.hpp` + unit tests
 - See `docs/features/trip-logging.md`
 
+### HMI Round Summary Screen
+- New `SCR_ROUND_SUMMARY` screen showing the just-finished round's stats
+  (distance, energy, time, avg speed)
+- `ST_ROUND_ACTIVE/DISTANCE/ENERGY/DURATION/AVG_SPEED` (0x4C-0x50) downlink
+- `handle_gateway` subscribes `/trip/summary`; when a round ends
+  (`active=false`) it navigates to the summary screen with the final stats
+- See `docs/features/hmi-round-summary.md`
+
 ### Deployment (Option D, Hybrid)
 - `systemd/` — systemd units per service, auto-start on boot + restart on crash:
   `golfcart-core`, `golfcart-teleop`, `golfcart-localization`, `golfcart-mapping`,

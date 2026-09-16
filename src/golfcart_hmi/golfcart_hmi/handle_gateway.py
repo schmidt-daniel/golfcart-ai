@@ -29,7 +29,7 @@ from golfcart_msgs.msg import MotionRequest, BatteryState, GpsFix, ImuData
 from golfcart_msgs.msg import ObstacleState, GeofenceStatus, SpeedZoneStatus
 from golfcart_msgs.msg import SlopeStatus, NavigationStatus, HoleSession, CourseList, CourseMap
 from golfcart_msgs.msg import HandleForce, ModeState, AssistConfig, RangeStatus, SlipStatus
-from golfcart_msgs.msg import CapabilityStatus, SegmentationStatus
+from golfcart_msgs.msg import CapabilityStatus, SegmentationStatus, TripSummary
 from nav_msgs.msg import Odometry
 
 from golfcart_hmi import protocol as p
@@ -137,6 +137,8 @@ class HandleGatewayNode(Node):
             SegmentationStatus, 'segmentation/status', self.on_segmentation, 10)
         self.odom_sub = self.create_subscription(
             Odometry, 'odometry/filtered', self.on_odometry, 10)
+        self.trip_sub = self.create_subscription(
+            TripSummary, 'trip/summary', self.on_trip_summary, 10)
 
         # ---- Screen state (for MENU_SELECT interpretation) ----
         self.screen = p.SCREEN_SPLASH
@@ -630,6 +632,18 @@ class HandleGatewayNode(Node):
     def on_segmentation(self, msg):
         if msg.valid:
             self._send_state(p.ST_SEGMENTATION, 1 if msg.active else 0)
+
+    def on_trip_summary(self, msg):
+        # When a round ends (active=false), show the round summary screen with
+        # the final stats. While active, just track the live values.
+        self._send_state(p.ST_ROUND_ACTIVE, 1 if msg.active else 0)
+        self._send_state(p.ST_ROUND_DISTANCE, int(msg.distance_m))
+        self._send_state(p.ST_ROUND_ENERGY, int(msg.energy_wh * 10))
+        self._send_state(p.ST_ROUND_DURATION, int(msg.duration_s))
+        self._send_state(p.ST_ROUND_AVG_SPEED, int(msg.avg_speed_mps * 100))
+        if not msg.active:
+            # Round just ended -> show the summary screen.
+            self._nav(p.SCREEN_ROUND_SUMMARY)
 
     # ------------------------------------------------------------------
     # Serial send helpers

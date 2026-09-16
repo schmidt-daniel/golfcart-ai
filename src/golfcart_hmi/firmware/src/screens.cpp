@@ -62,6 +62,11 @@ typedef struct {
   int16_t map_heading;        // trolley heading (deg x10)
   uint8_t map_available;      // 1 when a course map is loaded
   uint8_t alert;              // active alert code (ALERT_*)
+  uint8_t round_active;       // 1 while a round is in progress
+  uint16_t round_distance;    // round distance (m)
+  uint16_t round_energy;      // round energy (Wh x10)
+  uint16_t round_duration;    // round duration (s)
+  uint16_t round_avg_speed;   // round avg speed (cm/s)
 } HandleState;
 
 static HandleState g_state;
@@ -236,6 +241,10 @@ typedef struct {
 #define LABEL_HOLES_REMAINING 24
 #define LABEL_MAP_POS     25
 #define LABEL_MAP_AVAIL   26
+#define LABEL_ROUND_DIST  27
+#define LABEL_ROUND_ENERGY 28
+#define LABEL_ROUND_TIME  29
+#define LABEL_ROUND_AVG   30
 
 static LabelRef g_labels[MAX_LABELS];
 static int g_label_count = 0;
@@ -377,6 +386,20 @@ static void set_label_text(LabelRef *lr)
     case LABEL_MAP_AVAIL:
       snprintf(buf, sizeof(buf), "%s", g_state.map_available ? "MAP" : "No map");
       break;
+    case LABEL_ROUND_DIST:
+      snprintf(buf, sizeof(buf), "%d m", g_state.round_distance);
+      break;
+    case LABEL_ROUND_ENERGY:
+      snprintf(buf, sizeof(buf), "%.1f Wh", g_state.round_energy / 10.0);
+      break;
+    case LABEL_ROUND_TIME: {
+      uint16_t s = g_state.round_duration;
+      snprintf(buf, sizeof(buf), "%d:%02d", s / 60, s % 60);
+      break;
+    }
+    case LABEL_ROUND_AVG:
+      snprintf(buf, sizeof(buf), "%.2f m/s", g_state.round_avg_speed / 100.0);
+      break;
     default:
       return;
   }
@@ -472,6 +495,29 @@ static void build_map(void)
   add_label(avail, LABEL_MAP_AVAIL);
   make_button(scr, "Main Menu", 12, 460, 296, 20, C_SURFACE2);
   add_hit(12, 460, 308, 480, 0);
+}
+
+// Round summary (SCR_ROUND_SUMMARY).
+// Shows the just-finished round's stats (distance, energy, time, avg speed).
+// The Pi navigates here when a round ends (TripSummary active=false).
+static void build_round_summary(void)
+{
+  scr = make_screen();
+  make_header("Round Summary");
+  make_label(scr, "Distance", 20, 60, 180, 24, C_TEXT_DIM);
+  lv_obj_t *dist = make_label(scr, "-- m", 220, 60, 80, 24, C_TEXT);
+  add_label(dist, LABEL_ROUND_DIST);
+  make_label(scr, "Energy", 20, 108, 180, 24, C_TEXT_DIM);
+  lv_obj_t *energy = make_label(scr, "-- Wh", 220, 108, 80, 24, C_TEXT);
+  add_label(energy, LABEL_ROUND_ENERGY);
+  make_label(scr, "Time", 20, 156, 180, 24, C_TEXT_DIM);
+  lv_obj_t *time = make_label(scr, "--:--", 220, 156, 80, 24, C_TEXT);
+  add_label(time, LABEL_ROUND_TIME);
+  make_label(scr, "Avg Speed", 20, 204, 180, 24, C_TEXT_DIM);
+  lv_obj_t *avg = make_label(scr, "-- m/s", 220, 204, 80, 24, C_TEXT);
+  add_label(avg, LABEL_ROUND_AVG);
+  make_button(scr, "Main Menu", 20, 260, 280, 40, C_SURFACE2);
+  add_hit(20, 260, 300, 300, 0);
 }
 
 // Mode selection (SCR_MODE).
@@ -776,7 +822,7 @@ static void build_splash(void)
 // ---------------------------------------------------------------------------
 typedef void (*ScreenBuilder)(void);
 
-static ScreenBuilder screen_builders[20] = {
+static ScreenBuilder screen_builders[21] = {
   build_splash,         // 0x00 SCR_SPLASH
   build_course,         // 0x01 SCR_COURSE
   build_tee,            // 0x02 SCR_TEE
@@ -797,6 +843,7 @@ static ScreenBuilder screen_builders[20] = {
   build_sensors,        // 0x11 SCR_SENSORS
   build_drive_dist,     // 0x12 SCR_DRIVE_DIST
   build_map,            // 0x13 SCR_MAP
+  build_round_summary,  // 0x14 SCR_ROUND_SUMMARY
 };
 
 // ---------------------------------------------------------------------------
@@ -829,7 +876,7 @@ void screens_init(void)
 void screens_show(uint8_t screen_id)
 {
   g_current_screen = screen_id;
-  if (screen_id < 20 && screen_builders[screen_id] != NULL) {
+  if (screen_id < 21 && screen_builders[screen_id] != NULL) {
     screen_builders[screen_id]();
   }
 }
@@ -1009,6 +1056,11 @@ void screens_set_state(uint8_t id, int32_t value)
     case ST_MAP_HEADING: g_state.map_heading = (int16_t)value; break;
     case ST_MAP_AVAILABLE: g_state.map_available = (uint8_t)value; break;
     case ST_ALERT: screens_set_alert((uint8_t)value); break;
+    case ST_ROUND_ACTIVE: g_state.round_active = (uint8_t)value; break;
+    case ST_ROUND_DISTANCE: g_state.round_distance = (uint16_t)value; break;
+    case ST_ROUND_ENERGY: g_state.round_energy = (uint16_t)value; break;
+    case ST_ROUND_DURATION: g_state.round_duration = (uint16_t)value; break;
+    case ST_ROUND_AVG_SPEED: g_state.round_avg_speed = (uint16_t)value; break;
     default: break;
   }
   screens_refresh();

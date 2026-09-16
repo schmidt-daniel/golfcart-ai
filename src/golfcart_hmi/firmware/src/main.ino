@@ -154,6 +154,11 @@ static void on_frame(uint8_t type, const uint8_t *payload, size_t len, uint8_t s
           case ST_MAP_HEADING: screens_set_state(id, (int16_t)(payload[1] | (payload[2] << 8))); break;
           case ST_MAP_AVAILABLE: screens_set_state(id, payload[1]); break;
           case ST_ALERT: screens_set_state(id, payload[1]); break;
+          case ST_ROUND_ACTIVE: screens_set_state(id, payload[1]); break;
+          case ST_ROUND_DISTANCE: screens_set_state(id, (uint16_t)(payload[1] | (payload[2] << 8))); break;
+          case ST_ROUND_ENERGY: screens_set_state(id, (uint16_t)(payload[1] | (payload[2] << 8))); break;
+          case ST_ROUND_DURATION: screens_set_state(id, (uint16_t)(payload[1] | (payload[2] << 8))); break;
+          case ST_ROUND_AVG_SPEED: screens_set_state(id, (uint16_t)(payload[1] | (payload[2] << 8))); break;
           default: break;  // unknown id: ignore
         }
       }

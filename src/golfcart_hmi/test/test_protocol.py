@@ -87,6 +87,13 @@ def test_state_value_encodings():
     # alert is uint8
     assert p._encode_value(p.ST_ALERT, p.ALERT_OBSTACLE) == bytes([p.ALERT_OBSTACLE])
     assert p._encode_value(p.ST_ALERT, p.ALERT_NONE) == bytes([0])
+    # round summary: distance/energy/duration/avg are uint16
+    assert p._encode_value(p.ST_ROUND_DISTANCE, 1234) == b'\xd2\x04'
+    assert p._encode_value(p.ST_ROUND_ENERGY, 250) == b'\xfa\x00'
+    assert p._encode_value(p.ST_ROUND_DURATION, 3600) == b'\x10\x0e'
+    assert p._encode_value(p.ST_ROUND_AVG_SPEED, 80) == b'\x50\x00'
+    # round active is uint8
+    assert p._encode_value(p.ST_ROUND_ACTIVE, 1) == bytes([1])
 
 
 def test_map_frame_build():
