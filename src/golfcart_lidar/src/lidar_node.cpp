@@ -20,6 +20,10 @@ public:
   {
     const std::string impl = declare_parameter<std::string>("implementation", "mock");
     const std::string device = declare_parameter<std::string>("device", "/dev/ttyUSB0");
+    // Blind spot: an angular window to ignore (e.g. the bag behind the
+    // trolley). Center + half-width in radians; 0 = disabled.
+    blind_center_rad_ = declare_parameter<double>("blind_spot_center_rad", M_PI);
+    blind_half_rad_ = declare_parameter<double>("blind_spot_half_angle_rad", 0.0);
 
     if (impl == "mock") {
       mock_ = std::make_shared<MockLidarSensor>();
@@ -40,6 +44,17 @@ public:
   }
 
 private:
+  // True if the given angle (rad) falls inside the blind-spot window.
+  bool in_blind_spot(double angle) const
+  {
+    if (blind_half_rad_ <= 0.0) {
+      return false;
+    }
+    double d = std::abs(angle - blind_center_rad_);
+    d = std::min(d, 2.0 * M_PI - d);  // wrap-around
+    return d <= blind_half_rad_;
+  }
+
   void publish_scan()
   {
     const LidarScan scan = sensor_->read();
@@ -53,11 +68,18 @@ private:
     msg.range_max = 12.0;
     msg.ranges.reserve(scan.points.size());
     for (const auto & p : scan.points) {
-      msg.ranges.push_back(p.valid ? static_cast<float>(p.range_m) : std::numeric_limits<float>::infinity());
+      // Mask the blind spot (bag behind the trolley) to infinity.
+      if (in_blind_spot(p.angle_rad)) {
+        msg.ranges.push_back(std::numeric_limits<float>::infinity());
+      } else {
+        msg.ranges.push_back(p.valid ? static_cast<float>(p.range_m) : std::numeric_limits<float>::infinity());
+      }
     }
     pub_->publish(msg);
   }
 
+  double blind_center_rad_;
+  double blind_half_rad_;
   std::shared_ptr<LidarSensor> sensor_;
   std::shared_ptr<MockLidarSensor> mock_;
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr pub_;

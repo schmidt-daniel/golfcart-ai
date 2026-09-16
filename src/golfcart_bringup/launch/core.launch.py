@@ -118,6 +118,7 @@ def generate_launch_description():
         package='golfcart_lidar',
         executable='lidar_node',
         name='lidar_node',
+        parameters=[_node_params(cfg, 'lidar_node')],
         output='screen',
     )
 

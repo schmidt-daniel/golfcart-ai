@@ -57,6 +57,13 @@ features are added.
 - Safety Controller stops motion on obstacle in the stopping zone
 - **Note:** real FHL-LD19P driver is a scaffold (uses mock until implemented)
 
+### LiDAR Blind-Spot Masking
+- `lidar_node` masks a configurable angular window to infinity so downstream
+  nodes (obstacle/person detection) ignore it completely
+- Config: `blind_spot_center_rad` (default π = behind) + `blind_spot_half_angle_rad`
+  (0 = disabled) — for the bag behind the trolley
+- See `docs/features/lidar-blind-spot.md`
+
 ### Auto-Shutdown
 - `golfcart_power` package — `auto_shutdown_node` (watchdog)
 - Shuts down after configurable idle period
