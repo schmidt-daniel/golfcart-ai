@@ -10,6 +10,140 @@ works.
 > `docs/pi-hat-pcb.md` (HAT), `cases_mounts/SENSOR_STACK.md` (mounting),
 > `docs/features/camera-vision.md` (sensor decisions).
 
+## Bring-up commands
+
+Run these commands on the Pi after sourcing ROS 2 and the workspace in every
+terminal:
+
+```bash
+source /opt/ros/lyrical/setup.bash
+cd ~/golfcart-ai
+source install/setup.bash
+```
+
+### Check the ODrive
+
+Keep the drive wheels off the ground for the first test. Before starting ROS,
+confirm that Linux sees the ODrive and identify its stable serial path:
+
+```bash
+lsusb
+ls -l /dev/serial/by-id/
+dmesg --follow
+```
+
+In a second terminal, run only the ODrive node, replacing the device path with
+the path found above:
+
+```bash
+ros2 run golfcart_odrive odrive_node --ros-args \
+   -p implementation:=odrive \
+   -p device:=/dev/serial/by-id/USB-ODrive
+```
+
+In a third terminal, inspect the state and fault fields:
+
+```bash
+ros2 topic hz /motor/state
+ros2 topic echo --once /motor/state --qos-reliability best_effort
+```
+
+A healthy idle result should update at about 20 Hz, report `state: idle`, an
+empty `fault`, and stable encoder positions. Rotate each wheel by hand and
+repeat the echo; the corresponding position/velocity should change. Do not
+publish a non-zero motor command until the motor direction and emergency stop
+have been verified:
+
+```bash
+ros2 topic echo /motor/state --qos-reliability best_effort
+```
+
+The current driver reads ODrive state through its JSON serial protocol, but it
+does not configure or tune the axes. The motors and encoders must already be
+configured on the ODrive; an `idle` state proves communication, not that a
+motor can safely drive. Stop the test with `Ctrl-C`.
+
+### Check ROS nodes and sensor topics
+
+Start the base stack in a separate terminal:
+
+```bash
+ros2 launch golfcart_bringup core.launch.py implementation:=odrive
+```
+
+The launch file currently uses mock implementations for the IMU, GPS, and
+LiDAR unless their nodes are started separately with `implementation:=real`.
+Check that nodes, publishers, and rates exist:
+
+```bash
+ros2 node list
+ros2 topic list
+ros2 topic hz /motor/state
+ros2 topic hz /battery/state
+ros2 topic hz /imu/data
+ros2 topic hz /gps/fix
+ros2 topic hz /scan
+ros2 topic hz /camera/image
+```
+
+For a representative message from each topic:
+
+```bash
+ros2 topic echo --once /motor/state --qos-reliability best_effort
+ros2 topic echo --once /battery/state --qos-reliability best_effort
+ros2 topic echo --once /imu/data --qos-reliability best_effort
+ros2 topic echo --once /gps/fix --qos-reliability best_effort
+ros2 topic echo --once /scan --qos-reliability best_effort
+ros2 topic echo --once /camera/image --qos-reliability best_effort
+```
+
+For real sensor checks, stop the mock node from the full launch first, then
+start the relevant node directly:
+
+```bash
+# IMU on the HAT I2C bus
+ros2 run golfcart_imu imu_node --ros-args \
+   -p implementation:=real -p device:=/dev/i2c-1
+
+# GPSD owns the USB serial device; use the actual /dev/serial/by-id path
+sudo apt install gpsd gpsd-clients
+sudo systemctl stop gpsd.socket gpsd
+sudo gpsd -N -n /dev/serial/by-id/USB-GPS
+
+# In another terminal, verify gpsd receives NMEA and emits TPV/SKY JSON.
+cgps -s
+gpspipe -w
+
+# The ROS node connects to gpsd on localhost:2947.
+ros2 run golfcart_gps gps_node --ros-args \
+   -p implementation:=real -p device:=/dev/serial/by-id/USB-GPS
+
+# LiDAR; use a unique device path for each LiDAR
+ros2 run golfcart_lidar lidar_node --ros-args \
+   -p implementation:=real -p device:=/dev/serial/by-id/USB-LiDAR
+```
+
+Then run the matching `ros2 topic hz` and `ros2 topic echo --once` commands
+above. Expected rates are approximately 50 Hz for IMU, 1 Hz for GPS, 10 Hz
+for LiDAR, and 1 Hz for the battery monitor. A topic that exists but reports
+`valid: false`, zero values, or never changes is not a successful hardware
+check.
+
+For the HAT and camera hardware, use the Linux-level checks as well:
+
+```bash
+# INA219 and IMU should appear at their configured, different I2C addresses.
+sudo i2cdetect -y 1
+
+# Pi Camera Module 3 should be listed by the Raspberry Pi camera stack.
+rpicam-hello --list-cameras
+```
+
+`/camera/image` is currently published by `camera_node` as a placeholder when
+no capture backend is connected, so a topic rate alone does not prove that the
+camera is producing real images. Confirm the camera with `rpicam-hello` and a
+non-blank image before accepting the camera checkpoint.
+
 ---
 
 ## Principle: build bottom-up, test each stage
@@ -36,8 +170,10 @@ fix.
 5. Add the braking resistor to the ODrive `BRN`/`BRP` terminals
    (~10–15 Ω, ≥150 W, ≥60 V — see `wiring.md` §3.1).
 
-**Checkpoint:** power the ODrive, verify it enumerates over USB and both
-encoders read. (Software: `odrive_node` + `motion_controller_node`.)
+**Checkpoint:** power the ODrive, verify it enumerates over USB, then follow
+the ODrive commands in [Bring-up commands](#check-the-odrive). Both axes must
+report no fault and both encoders must change when their wheels are rotated by
+hand. (Software: `odrive_node` + `motion_controller_node`.)
 
 > **Verify before power-on:** motor phase + encoder wiring against the ODrive
 > docs, and the differential-drive sign convention (forward/left/right).
@@ -77,7 +213,9 @@ encoders read. (Software: `odrive_node` + `motion_controller_node`.)
 4. Connect `SDA` → GPIO 2, `SCL` → GPIO 3, `VCC` → 3.3 V, `GND` → GND.
 
 **Checkpoint:** `battery_node` publishes a sane voltage/current on
-`/battery/state`. (Software: `battery_node`.)
+`/battery/state`; check it with `ros2 topic hz /battery/state` and
+`ros2 topic echo --once /battery/state --qos-reliability best_effort`.
+(Software: `battery_node`.)
 
 > **Note:** the measured voltage is scaled ×2 in `battery_node` to undo the
 > divider. The current (shunt) measurement is unaffected.
@@ -108,7 +246,8 @@ report to the Pi. (Software: `handle_gateway` + firmware.)
 1. Mount the **USB GPS dongle** in the top GPS module (clear sky view).
 2. Plug it into a Pi USB port.
 
-**Checkpoint:** `gps_node` publishes a valid `/gps/fix` with satellites.
+**Checkpoint:** `gps_node` publishes a valid `/gps/fix` with satellites; check
+it with `ros2 topic echo --once /gps/fix --qos-reliability best_effort`.
 (Software: `gps_node`.)
 
 > **Tip:** test outdoors with a clear sky — GPS needs a fix before it reports
@@ -126,7 +265,10 @@ report to the Pi. (Software: `handle_gateway` + firmware.)
 2. Wire it to the HAT's I2C connector (GPIO 2/3, distinct address from INA219 —
    e.g. MPU-6050 `0x68` / BNO055 `0x28`).
 
-**Checkpoint:** `imu_node` publishes valid roll/pitch. (Software: `imu_node`.)
+**Checkpoint:** `imu_node` publishes valid roll/pitch; check it with
+`ros2 topic hz /imu/data` and `ros2 topic echo --once /imu/data
+--qos-reliability best_effort` while gently tilting the cart. (Software:
+`imu_node`.)
 
 > **Note:** the IMU and INA219 share the I2C bus (GPIO 2/3) — they MUST have
 > different addresses.
@@ -142,8 +284,11 @@ report to the Pi. (Software: `handle_gateway` + firmware.)
 1. Mount **LiDAR 1** (horizontal) in its module.
 2. Wire it to the HAT's **UART0** connector (GPIO 14 TXD / GPIO 15 RXD).
 
-**Checkpoint:** `lidar_node` publishes a `/scan`; `obstacle_detection_node`
-reports obstacles. (Software: `lidar_node` + `obstacle_detection_node`.)
+**Checkpoint:** `lidar_node` publishes a changing `/scan`; check it with
+`ros2 topic hz /scan` and `ros2 topic echo --once /scan
+--qos-reliability best_effort` while placing an object in front of the sensor.
+`obstacle_detection_node` should also be running. (Software: `lidar_node` +
+`obstacle_detection_node`.)
 
 ---
 
@@ -157,7 +302,9 @@ reports obstacles. (Software: `lidar_node` + `obstacle_detection_node`.)
 2. Wire it to the HAT's **UART2** connector (GPIO 0 TXD / GPIO 1 RXD).
 
 **Checkpoint:** both LiDARs publish `/scan`; the tilted one reads the ground
-plane. (Software: `lidar_node` ×2.)
+plane. Check the scan rate and ranges with `ros2 topic hz /scan` and
+`ros2 topic echo --once /scan --qos-reliability best_effort`. Run each LiDAR
+with its own serial device path. (Software: `lidar_node` ×2.)
 
 > **Note:** the tilted LiDAR's scan plane must read the ground ahead — verify
 > the ~25° angle with a gauge before finalizing the mount.
@@ -173,8 +320,11 @@ plane. (Software: `lidar_node` ×2.)
 1. Mount the **Pi Camera Module 3** in the Camera+IMU module (forward-facing).
 2. Connect it to the Pi's **CSI** port.
 
-**Checkpoint:** `camera_node` publishes `/camera/image`; the web hazard view
-shows a live feed. (Software: `camera_node` + `web_teleop_server`.)
+**Checkpoint:** `rpicam-hello --list-cameras` finds the camera,
+`camera_node` publishes `/camera/image`, and the web hazard view shows a live,
+non-blank feed. Check the topic with `ros2 topic hz /camera/image`; see the
+camera caveat in [Bring-up commands](#check-ros-nodes-and-sensor-topics).
+(Software: `camera_node` + `web_teleop_server`.)
 
 > **Open item:** the camera mounting angle for detection/segmentation is not
 > yet decided (`camera-vision.md`).

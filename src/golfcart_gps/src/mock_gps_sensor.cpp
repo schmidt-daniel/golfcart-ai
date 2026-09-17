@@ -18,6 +18,11 @@ GpsSample MockGpsSensor::read()
   s.speed_mps = 0.0;
   s.heading_rad = 0.0;
   s.valid = true;
+  s.fix_type = 3;
+  s.satellites = 8;
+  s.hdop = 1.0;
+  s.vdop = 1.5;
+  s.pdop = 1.8;
   return s;
 }
 

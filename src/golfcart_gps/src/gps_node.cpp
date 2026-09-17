@@ -19,12 +19,14 @@ public:
   {
     const std::string impl = declare_parameter<std::string>("implementation", "mock");
     const std::string device = declare_parameter<std::string>("device", "/dev/ttyUSB0");
+    const std::string gpsd_host = declare_parameter<std::string>("gpsd_host", "127.0.0.1");
+    const int gpsd_port = declare_parameter<int>("gpsd_port", 2947);
 
     if (impl == "mock") {
       mock_ = std::make_shared<MockGpsSensor>();
       sensor_ = mock_;
     } else if (impl == "real") {
-      sensor_ = std::make_shared<GpsSensorImpl>(device);
+      sensor_ = std::make_shared<GpsSensorImpl>(device, gpsd_host, gpsd_port);
     } else {
       RCLCPP_FATAL(get_logger(), "Unknown implementation '%s'", impl.c_str());
       throw std::runtime_error("Unknown GPS implementation");
@@ -49,6 +51,11 @@ private:
     msg.speed_mps = s.speed_mps;
     msg.heading_rad = s.heading_rad;
     msg.valid = s.valid;
+    msg.fix_type = s.fix_type;
+    msg.satellites = s.satellites;
+    msg.hdop = static_cast<float>(s.hdop);
+    msg.vdop = static_cast<float>(s.vdop);
+    msg.pdop = static_cast<float>(s.pdop);
     msg.timestamp = now();
     pub_->publish(msg);
   }

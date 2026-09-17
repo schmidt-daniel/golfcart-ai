@@ -46,9 +46,9 @@ features are added.
 - **Note:** real IMU I2C driver is a scaffold (uses mock until implemented)
 
 ### GPS Integration
-- `golfcart_gps` package — `GpsSensor` interface, `MockGpsSensor`, `GpsSensorImpl` (scaffold), `gps_node`
-- Publishes `GpsFix` (lat/lon/alt/speed/heading) on `/gps/fix` at 1 Hz
-- **Note:** real GPS NMEA driver is a scaffold (uses mock until implemented)
+- `golfcart_gps` package — `GpsSensor` interface, `MockGpsSensor`, gpsd-backed `GpsSensorImpl`, `gps_node`
+- Publishes `GpsFix` (lat/lon/alt/speed/heading/fix type/satellites/DOP) on `/gps/fix` at 1 Hz
+- The real path expects gpsd to own the USB GPS and exposes invalid/stale fixes safely
 
 ### LiDAR + Obstacle Detection
 - `golfcart_lidar` package — `LidarSensor` interface, `MockLidarSensor`, `LidarSensorImpl` (scaffold), `lidar_node`

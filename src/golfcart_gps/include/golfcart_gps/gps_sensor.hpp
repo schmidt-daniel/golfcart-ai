@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace golfcart
 {
 
@@ -13,6 +15,11 @@ struct GpsSample
   double speed_mps = 0.0;
   double heading_rad = 0.0;
   bool valid = false;
+  uint8_t fix_type = 0;
+  uint8_t satellites = 0;
+  double hdop = 0.0;
+  double vdop = 0.0;
+  double pdop = 0.0;
 };
 
 class GpsSensor

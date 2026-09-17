@@ -11,6 +11,9 @@ TEST(MockGps, DefaultPosition)
   EXPECT_TRUE(s.valid);
   EXPECT_NEAR(s.latitude_deg, 51.5, 1e-6);
   EXPECT_NEAR(s.longitude_deg, -0.12, 1e-6);
+  EXPECT_EQ(s.fix_type, 3);
+  EXPECT_EQ(s.satellites, 8);
+  EXPECT_NEAR(s.hdop, 1.0, 1e-6);
 }
 
 TEST(MockGps, SetPosition)
@@ -29,6 +32,7 @@ TEST(MockGps, CustomInit)
   EXPECT_NEAR(s.latitude_deg, 40.0, 1e-6);
   EXPECT_NEAR(s.longitude_deg, -74.0, 1e-6);
   EXPECT_NEAR(s.altitude_m, 10.0, 1e-6);
+  EXPECT_EQ(s.fix_type, 3);
 }
 
 int main(int argc, char ** argv)
