@@ -10,7 +10,7 @@
 //
 // NOTE: This is the firmware skeleton. It compiles standalone (the protocol
 // layer is complete and testable); the LVGL screen definitions and the
-// FT6336U/HX711 drivers are stubbed and filled in as the hardware is wired.
+// FT6336U/HX711 drivers are implemented and filled in as the hardware is wired.
 
 #include <Arduino.h>
 #include <HardwareSerial.h>

@@ -29,8 +29,10 @@ pio run -e esp32s3 -t upload
 
 - **Protocol layer:** complete and testable (framing, CRC-16, byte-stuffing,
   message/state tables).
-- **LVGL screens, FT6336U touch, HX711:** stubbed — filled in as the hardware
-  is wired (see `TODO` markers in `main.ino`).
+- **LVGL screens, FT6336U touch, HX711:** implemented — the FT6336U is
+  registered as LVGL's pointer input device; the HX711 load cell is read via
+  the HX711 library. Pin/register assignments should be confirmed against the
+  actual hardware wiring.
 
 ## Protocol
 

@@ -21,9 +21,8 @@
 #define LV_FONT_DEFAULT &lv_font_montserrat_16
 #define LV_FONT_MONTSERRAT_16 1
 
-/* Touch input is handled by the FT6336U driver in sensors.cpp and mapped to
- * menu items locally; LVGL's own input device is not used yet (see the TODO
- * in screens_init). Keep the default (no LVGL touch driver). */
+/* Touch input is handled by the FT6336U driver in sensors.cpp and registered
+ * as LVGL's pointer input device in screens_init (see touch_read_cb). */
 
 /* Memory: the ESP32-S3 has 320 KB RAM; give LVGL a generous heap. */
 #define LV_MEM_SIZE (48 * 1024)

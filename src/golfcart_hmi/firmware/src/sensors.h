@@ -3,8 +3,8 @@
 // Wraps the FT6336U capacitive touch (I2C) and the HX711 load cell. The ESP32
 // samples these and forwards raw data to the Pi over the serial protocol.
 //
-// NOTE: The FT6336U and HX711 register addresses / pin assignments are
-// placeholders to be confirmed against the actual hardware wiring.
+// NOTE: The FT6336U register addresses and HX711 pin assignments should be
+// confirmed against the actual hardware wiring.
 
 #ifndef HANDLE_SENSORS_H
 #define HANDLE_SENSORS_H

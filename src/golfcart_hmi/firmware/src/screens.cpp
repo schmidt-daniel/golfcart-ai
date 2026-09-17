@@ -3,6 +3,7 @@
 
 #include "screens.h"
 #include "handle_protocol.h"
+#include "sensors.h"
 
 // ---------------------------------------------------------------------------
 // LVGL includes (TFT_eSPI backend for the ST7796).
@@ -909,6 +910,26 @@ static ScreenBuilder screen_builders[23] = {
 };
 
 // ---------------------------------------------------------------------------
+// LVGL touch input (FT6336U via sensors.cpp).
+// ---------------------------------------------------------------------------
+static lv_indev_t *g_touch_indev;
+
+// LVGL pointer read callback: polls the FT6336U and reports the touch point
+// in display coordinates. This lets LVGL widgets receive taps directly.
+static void touch_read_cb(lv_indev_t *indev, lv_indev_data_t *data)
+{
+  (void)indev;
+  int x = 0, y = 0, gesture = 0;
+  if (sensors_poll_touch(&x, &y, &gesture)) {
+    data->point.x = x;
+    data->point.y = y;
+    data->state = LV_INDEV_STATE_PRESSED;
+  } else {
+    data->state = LV_INDEV_STATE_RELEASED;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 static lv_disp_draw_buf_t draw_buf;
@@ -932,7 +953,11 @@ void screens_init(void)
   disp_drv.flush_cb = disp_flush;
   disp = lv_disp_drv_register(&disp_drv);
 
-  // TODO: register FT6336U touch driver with lv_indev.
+  // Register the FT6336U as LVGL's pointer input device so LVGL widgets can
+  // receive taps directly. The read callback polls sensors_poll_touch().
+  g_touch_indev = lv_indev_create();
+  lv_indev_set_type(g_touch_indev, LV_INDEV_TYPE_POINTER);
+  lv_indev_set_read_cb(g_touch_indev, touch_read_cb);
 }
 
 void screens_show(uint8_t screen_id)
