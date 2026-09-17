@@ -203,6 +203,15 @@ features are added.
 - Pure math in `geofence_math.hpp` (point-in-polygon, distance-to-boundary) — unit-tested
 - `scripts/geofence_check.sh` + `scripts/gps_fix_pub.py` (headless smoke test)
 
+### Map Editor → ROS Integration (Course Reload)
+- `course_registry_node` scans a directory of course Zips (exported by the map
+  editor) and publishes `CourseMap` on `/course/map` + costmap on `/map`
+  (Nav2 `static_layer`); serves `/course/select`
+- `CourseReload.srv` + `/course/reload` service — re-scans the courses dir and
+  re-publishes `/course/list`, so a newly deployed course Zip is picked up
+  without restarting the node
+- See `docs/features/course-reload.md`
+
 ### GPS-Denied Dead-Reckoning Fallback
 - `localization_quality_node` (`golfcart_localization`) — now publishes
   `OK` / `DEGRADED` / `LOST` on `/localization/quality` (LOST = no valid GPS fix

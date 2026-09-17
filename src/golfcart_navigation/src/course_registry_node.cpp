@@ -6,6 +6,7 @@
 #include "golfcart_msgs/msg/course_list.hpp"
 #include "golfcart_msgs/msg/course_map.hpp"
 #include "golfcart_msgs/msg/course_selected.hpp"
+#include "golfcart_msgs/srv/course_reload.hpp"
 #include "golfcart_msgs/srv/course_select.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -48,6 +49,18 @@ public:
         handle_select(req, resp);
       });
 
+    reload_srv_ = create_service<golfcart_msgs::srv::CourseReload>(
+      "course/reload",
+      [this](const std::shared_ptr<golfcart_msgs::srv::CourseReload::Request>,
+             std::shared_ptr<golfcart_msgs::srv::CourseReload::Response> resp) {
+        scan_courses();
+        publish_list();
+        resp->success = true;
+        resp->message = "Course registry reloaded";
+        RCLCPP_INFO(get_logger(), "Course registry reloaded (%zu courses)",
+                    courses_.size());
+      });
+
     scan_courses();
     publish_list();
   }
@@ -59,6 +72,7 @@ private:
   rclcpp::Publisher<golfcart_msgs::msg::CourseSelected>::SharedPtr selected_pub_;
   rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr costmap_pub_;
   rclcpp::Service<golfcart_msgs::srv::CourseSelect>::SharedPtr select_srv_;
+  rclcpp::Service<golfcart_msgs::srv::CourseReload>::SharedPtr reload_srv_;
 
   // course_id -> zip path
   std::vector<std::pair<std::string, std::string>> courses_;

@@ -1,0 +1,6 @@
+# Reload the course registry (course_registry_node).
+# Re-scans the courses directory and re-publishes /course/list, so a newly
+# deployed course Zip is picked up without restarting the node.
+---
+bool success
+string message

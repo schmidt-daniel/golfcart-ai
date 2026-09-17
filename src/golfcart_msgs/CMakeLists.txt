@@ -52,6 +52,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/FollowTrigger.srv"
   "srv/GeofenceTrigger.srv"
   "srv/CourseSelect.srv"
+  "srv/CourseReload.srv"
   "srv/HoleSelect.srv"
   "srv/DriveDistance.srv"
   "srv/EndRound.srv"
