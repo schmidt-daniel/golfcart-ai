@@ -410,10 +410,15 @@ drive_distance_node:
 # -----------------------------------------------------------------------------
 # Segmentation (golfcart_vision/segmentation_node)
 # Live course segmentation (fairway/rough/water/bunkers/etc.) on the camera
-# feed. Gated on camera + Coral capability. Publishes /segmentation/status.
+# feed. CPU fallback works with camera alone; Coral acceleration is optional.
+# Publishes /segmentation/status.
 # -----------------------------------------------------------------------------
 segmentation_node:
   publish_rate_hz: 5.0              # segmentation status publish rate (Hz)
+  # CPU fallback works without Coral; keep this lower than camera FPS on Pi 5.
+  processing_width: 160
+  processing_height: 90
+  min_confidence: 0.35
 
 # -----------------------------------------------------------------------------
 # Trip Logger (golfcart_navigation/trip_logger_node)

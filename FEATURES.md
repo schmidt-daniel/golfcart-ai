@@ -31,7 +31,6 @@ features are added.
 - `battery_node` (INA219 over I2C, publishes `BatteryState` on `/battery/state`)
 - Safety Controller stops motion on critical battery
 - **Voltage divider required:** INA219 max bus voltage is 26 V, but the 36 V battery reaches ~42 V. A divider (e.g. R1=R2=100k, divide by 2)keeps VBUS ≤ 26 V; `battery_node` scales the measured voltage via the `voltage_scale` param (default 2.0).
-- **Note:** INA219 I2C register read is a scaffold (returns `valid=false` until `/dev/i2c-N` read implemented)
 
 ### ODrive Driver (implemented, pending hardware validation)
 - USB serial, ODrive 0.5.6 native protocol (CRC32, endpoint hash, JSON framing)
@@ -345,9 +344,12 @@ features are added.
 
 ### Live Course Segmentation
 - `SegmentationStatus.msg` + `segmentation_node` (subscribes `/camera/image`,
-  gated on camera + Coral capability)
+  works with camera alone)
+- CPU fallback performs reduced-resolution color classification at a lower rate
+  and works without Coral
 - HMI Camera debug screen shows Camera OK/MISSING + Segmentation ON/OFF
-- Model inference (zero-shot SAM / fine-tuned) abstracted for hardware phase
+- Learned Coral model backend still requires a selected/validated model and
+  EdgeTPU runtime
 - See `docs/features/segmentation.md`
 
 ### Hazard Camera View

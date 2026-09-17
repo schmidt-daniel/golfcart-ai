@@ -3,9 +3,8 @@
 Label the camera view into golf-course classes (fairway, rough, water, bunkers,
 etc.) so the trolley understands the terrain around it.
 
-> **Status:** Implemented (node + capability gating). The model inference
-> (zero-shot SAM / fine-tuned model on the Coral NPU) is abstracted for the
-> hardware phase.
+> **Status:** CPU baseline implemented; learned-model acceleration remains
+> hardware/model validation work.
 
 ## Purpose
 
@@ -16,7 +15,7 @@ water, and bunkers.
 ## Overview
 
 ```text
-Pi Camera (RGB) → /camera/image → segmentation_node (Coral NPU)
+Pi Camera (RGB) → /camera/image → segmentation_node (CPU baseline / Coral later)
         ↓  /segmentation/status (SegmentationStatus)
         ↓
    HMI (Segmentation ON/OFF) + future semantic layer
@@ -26,13 +25,14 @@ Pi Camera (RGB) → /camera/image → segmentation_node (Coral NPU)
 
 - **`segmentation_node`** subscribes to `/camera/image` (RGB from the Pi
   Camera) and `/capability/status`.
-- **Gated on camera + Coral** capability: segmentation is `active` only when
-  both are present AND frames are arriving.
+- Works with the camera alone: the node downsamples RGB frames and performs a
+  low-cost water/bunker/fairway/rough classification at a configurable rate.
+- The current result is a coarse visual hint, not a safety decision. The
+  tilted LiDAR remains the source for ditch/stream stopping.
 - Publishes `SegmentationStatus` (`active`, `class_count`, `confidence`) on
   `/segmentation/status`.
-- The **model inference** (zero-shot SAM first, fine-tune only if needed) is
-  abstracted — the node reports status; the actual model runs in the hardware
-  phase.
+- Coral acceleration still requires selecting and validating a concrete model,
+  tensor contract, and EdgeTPU runtime; no learned model is bundled yet.
 
 ## Model strategy
 
@@ -48,7 +48,10 @@ See `config/golfcart.yaml`:
 
 ```yaml
 segmentation_node:
-  publish_rate_hz: 5.0
+  publish_rate_hz: 1.0
+  processing_width: 160
+  processing_height: 90
+  min_confidence: 0.35
 ```
 
 ## HMI
