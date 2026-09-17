@@ -70,12 +70,13 @@ terrain_hazard_node:
   forward_half_angle_rad: 0.61     # inspect the forward ~70 degree sector
   min_range_m: 0.1
   max_range_m: 12.0
-  drop_off_range_m: 6.0             # long/no returns indicate a drop-off
-  near_hazard_range_m: 0.35         # near returns indicate rough/blocked ground
+  mount_height_m: 0.65              # tilted LiDAR height above ground (m)
+  tilt_rad: 0.436                   # ~25 deg downward tilt (rad)
+  drop_off_residual_m: 0.5          # positive residual => ground drops away
+  obstacle_residual_m: 0.5          # negative residual => ground rises
   min_valid_fraction: 0.5
   hazard_fraction: 0.25
   roughness_threshold_m: 0.35
-  range_jump_threshold_m: 1.0
   confirm_scans: 3
   clear_scans: 3
 

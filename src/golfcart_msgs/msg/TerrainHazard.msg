@@ -4,6 +4,7 @@ uint8 DROP_OFF=1
 uint8 ROUGH_GROUND=2
 uint8 OBSTRUCTION=3
 uint8 NO_RETURN=4
+uint8 BUNKER=5
 
 uint8 hazard_type
 bool hazard

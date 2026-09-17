@@ -18,14 +18,14 @@ target_include_directories(golfcart_lidar PUBLIC
   $<INSTALL_INTERFACE:include>)
 target_link_libraries(golfcart_lidar PUBLIC rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
 
+add_executable(terrain_hazard_node src/terrain_hazard_node.cpp)
+target_link_libraries(terrain_hazard_node golfcart_lidar rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
+
 add_executable(lidar_node src/lidar_node.cpp)
 target_link_libraries(lidar_node golfcart_lidar rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
 
 add_executable(ldlidar_bridge_node src/ldlidar_bridge_node.cpp)
 target_link_libraries(ldlidar_bridge_node rclcpp::rclcpp sensor_msgs::sensor_msgs)
-
-add_executable(terrain_hazard_node src/terrain_hazard_node.cpp)
-target_link_libraries(terrain_hazard_node rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
 
 add_executable(obstacle_detection_node src/obstacle_detection_node.cpp)
 target_link_libraries(obstacle_detection_node rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
@@ -41,6 +41,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_mock_lidar test/test_mock_lidar.cpp)
   if(TARGET test_mock_lidar)
     target_link_libraries(test_mock_lidar golfcart_lidar)
+  endif()
+  ament_add_gtest(test_terrain_math test/test_terrain_math.cpp)
+  if(TARGET test_terrain_math)
+    target_link_libraries(test_terrain_math golfcart_lidar)
   endif()
 endif()
 

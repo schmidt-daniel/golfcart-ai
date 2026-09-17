@@ -1,11 +1,11 @@
 #include <algorithm>
 #include <cmath>
-#include <limits>
+#include <cstdint>
 #include <memory>
-#include <numeric>
 #include <string>
 #include <vector>
 
+#include "golfcart_lidar/terrain_math.hpp"
 #include "golfcart_msgs/msg/terrain_hazard.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
@@ -25,12 +25,13 @@ public:
       "forward_half_angle_rad", 0.61);
     min_range_m_ = declare_parameter<double>("min_range_m", 0.1);
     max_range_m_ = declare_parameter<double>("max_range_m", 12.0);
-    drop_off_range_m_ = declare_parameter<double>("drop_off_range_m", 6.0);
-    near_hazard_range_m_ = declare_parameter<double>("near_hazard_range_m", 0.35);
+    mount_height_m_ = declare_parameter<double>("mount_height_m", 0.65);
+    tilt_rad_ = declare_parameter<double>("tilt_rad", 0.436);
+    drop_off_residual_m_ = declare_parameter<double>("drop_off_residual_m", 0.5);
+    obstacle_residual_m_ = declare_parameter<double>("obstacle_residual_m", 0.5);
     min_valid_fraction_ = declare_parameter<double>("min_valid_fraction", 0.5);
     hazard_fraction_ = declare_parameter<double>("hazard_fraction", 0.25);
     roughness_threshold_m_ = declare_parameter<double>("roughness_threshold_m", 0.35);
-    range_jump_threshold_m_ = declare_parameter<double>("range_jump_threshold_m", 1.0);
     confirm_scans_ = declare_parameter<int>("confirm_scans", 3);
     clear_scans_ = declare_parameter<int>("clear_scans", 3);
 
@@ -44,102 +45,33 @@ public:
   }
 
 private:
-  struct Assessment
+  void process_scan(const sensor_msgs::msg::LaserScan::SharedPtr scan)
   {
-    uint8_t type = golfcart_msgs::msg::TerrainHazard::NONE;
-    double confidence = 0.0;
-    double coverage = 0.0;
-    double nearest_range_m = 0.0;
-    bool candidate = false;
-  };
-
-  Assessment assess_scan(const sensor_msgs::msg::LaserScan & scan) const
-  {
-    Assessment assessment;
     std::vector<double> ranges;
-    size_t considered = 0;
-    size_t far_count = 0;
-    size_t near_count = 0;
-    size_t jump_count = 0;
-    double previous_range = 0.0;
-    bool have_previous = false;
+    std::vector<double> angles;
+    ranges.reserve(scan->ranges.size());
+    angles.reserve(scan->ranges.size());
 
-    for (size_t index = 0; index < scan.ranges.size(); ++index) {
-      const double angle = scan.angle_min + index * scan.angle_increment;
+    for (size_t index = 0; index < scan->ranges.size(); ++index) {
+      const double angle = scan->angle_min + index * scan->angle_increment;
       double wrapped = std::abs(angle);
       wrapped = std::min(wrapped, 2.0 * M_PI - wrapped);
       if (wrapped > forward_half_angle_rad_) {
         continue;
       }
-      ++considered;
-      const double range = scan.ranges[index];
+      const double range = scan->ranges[index];
       if (!std::isfinite(range) || range < min_range_m_ || range > max_range_m_) {
         continue;
       }
-
       ranges.push_back(range);
-      assessment.nearest_range_m =
-        ranges.size() == 1 ? range : std::min(assessment.nearest_range_m, range);
-      if (range >= drop_off_range_m_) {
-        ++far_count;
-      }
-      if (range <= near_hazard_range_m_) {
-        ++near_count;
-      }
-      if (have_previous && std::abs(range - previous_range) >= range_jump_threshold_m_) {
-        ++jump_count;
-      }
-      previous_range = range;
-      have_previous = true;
+      angles.push_back(angle);
     }
 
-    if (considered == 0) {
-      return assessment;
-    }
-    assessment.coverage = static_cast<double>(ranges.size()) / considered;
-    const double far_fraction = static_cast<double>(far_count) / considered;
-    const double near_fraction = static_cast<double>(near_count) / considered;
-    const double jump_fraction =
-      ranges.size() > 1 ? static_cast<double>(jump_count) / (ranges.size() - 1) : 0.0;
+    const TerrainAssessment assessment = assess_terrain(
+      ranges, angles, mount_height_m_, tilt_rad_, drop_off_residual_m_,
+      obstacle_residual_m_, min_valid_fraction_, hazard_fraction_,
+      roughness_threshold_m_);
 
-    if (assessment.coverage < min_valid_fraction_) {
-      assessment.type = golfcart_msgs::msg::TerrainHazard::NO_RETURN;
-      assessment.confidence = 1.0 - assessment.coverage;
-      assessment.candidate = true;
-      return assessment;
-    }
-    if (far_fraction >= hazard_fraction_) {
-      assessment.type = golfcart_msgs::msg::TerrainHazard::DROP_OFF;
-      assessment.confidence = far_fraction;
-      assessment.candidate = true;
-      return assessment;
-    }
-    if (near_fraction >= hazard_fraction_) {
-      assessment.type = golfcart_msgs::msg::TerrainHazard::OBSTRUCTION;
-      assessment.confidence = near_fraction;
-      assessment.candidate = true;
-      return assessment;
-    }
-
-    const double mean = std::accumulate(ranges.begin(), ranges.end(), 0.0) / ranges.size();
-    double variance = 0.0;
-    for (const double range : ranges) {
-      const double delta = range - mean;
-      variance += delta * delta;
-    }
-    const double roughness = std::sqrt(variance / ranges.size());
-    if (roughness >= roughness_threshold_m_ || jump_fraction >= hazard_fraction_) {
-      assessment.type = golfcart_msgs::msg::TerrainHazard::ROUGH_GROUND;
-      assessment.confidence = std::min(
-        1.0, std::max(roughness / roughness_threshold_m_, jump_fraction / hazard_fraction_));
-      assessment.candidate = true;
-    }
-    return assessment;
-  }
-
-  void process_scan(const sensor_msgs::msg::LaserScan::SharedPtr scan)
-  {
-    const Assessment assessment = assess_scan(*scan);
     if (assessment.candidate) {
       ++hazard_streak_;
       clear_streak_ = 0;
@@ -171,12 +103,13 @@ private:
   double forward_half_angle_rad_ = 0.61;
   double min_range_m_ = 0.1;
   double max_range_m_ = 12.0;
-  double drop_off_range_m_ = 6.0;
-  double near_hazard_range_m_ = 0.35;
+  double mount_height_m_ = 0.65;
+  double tilt_rad_ = 0.436;
+  double drop_off_residual_m_ = 0.5;
+  double obstacle_residual_m_ = 0.5;
   double min_valid_fraction_ = 0.5;
   double hazard_fraction_ = 0.25;
   double roughness_threshold_m_ = 0.35;
-  double range_jump_threshold_m_ = 1.0;
   int confirm_scans_ = 3;
   int clear_scans_ = 3;
   int hazard_streak_ = 0;
