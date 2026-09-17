@@ -27,6 +27,11 @@ if [[ ! -d "$SYSTEMD_DIR" ]]; then
   exit 1
 fi
 
+if [[ ! -f /etc/golfcart/golfcart.env ]]; then
+  echo "WARN: /etc/golfcart/golfcart.env is missing. Core will use mock GPS/LiDAR." >&2
+  echo "      Run scripts/install_hardware_deps.sh before starting hardware services." >&2
+fi
+
 echo "==> Installing systemd units from $SYSTEMD_DIR"
 sudo cp "$SYSTEMD_DIR"/*.service /etc/systemd/system/
 sudo systemctl daemon-reload

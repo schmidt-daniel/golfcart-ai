@@ -83,6 +83,7 @@ ros2 topic hz /battery/state
 ros2 topic hz /imu/data
 ros2 topic hz /gps/fix
 ros2 topic hz /scan
+ros2 topic hz /scan_tilted
 ros2 topic hz /camera/image
 ```
 
@@ -94,6 +95,7 @@ ros2 topic echo --once /battery/state --qos-reliability best_effort
 ros2 topic echo --once /imu/data --qos-reliability best_effort
 ros2 topic echo --once /gps/fix --qos-reliability best_effort
 ros2 topic echo --once /scan --qos-reliability best_effort
+ros2 topic echo --once /scan_tilted --qos-reliability best_effort
 ros2 topic echo --once /camera/image --qos-reliability best_effort
 ```
 
@@ -118,10 +120,31 @@ gpspipe -w
 ros2 run golfcart_gps gps_node --ros-args \
    -p implementation:=real -p device:=/dev/serial/by-id/USB-GPS
 
-# LiDAR; use a unique device path for each LiDAR
-ros2 run golfcart_lidar lidar_node --ros-args \
-   -p implementation:=real -p device:=/dev/serial/by-id/USB-LiDAR
+# Install the upstream LDROBOT ROS 2 driver once (outside this workspace).
+mkdir -p ~/ldlidar_ros2_ws/src
+git clone https://github.com/ldrobotSensorTeam/ldlidar_ros2.git \
+   ~/ldlidar_ros2_ws/src/ldlidar_ros2
+cd ~/ldlidar_ros2_ws
+rosdep install --from-paths src --ignore-src -r -y
+colcon build
+source install/setup.bash
+
+# Start the real LD19 driver through the cart bringup.
+cd ~/golfcart-ai
+source install/setup.bash
+ros2 launch golfcart_bringup core.launch.py \
+   implementation:=odrive \
+   lidar_driver:=ldlidar \
+   lidar_device_horizontal:=/dev/serial/by-id/USB-LiDAR-HORIZONTAL \
+   lidar_device_tilted:=/dev/serial/by-id/USB-LiDAR-TILTED
 ```
+
+`ldlidar_ros2` runs two independent LD19 nodes, one per serial port. The
+horizontal bridge publishes `/scan` for obstacle/person detection; the tilted
+bridge publishes `/scan_tilted` for ground, ditch, and stream processing. Both
+bridges apply their configured TF frame, and the horizontal bridge applies the
+cart blind-spot policy. Do not start the mock `lidar_node` at the same time as
+the real drivers.
 
 Then run the matching `ros2 topic hz` and `ros2 topic echo --once` commands
 above. Expected rates are approximately 50 Hz for IMU, 1 Hz for GPS, 10 Hz
@@ -301,10 +324,19 @@ it with `ros2 topic echo --once /gps/fix --qos-reliability best_effort`.
 1. Mount **LiDAR 2** at **~25° down** in its module.
 2. Wire it to the HAT's **UART2** connector (GPIO 0 TXD / GPIO 1 RXD).
 
-**Checkpoint:** both LiDARs publish `/scan`; the tilted one reads the ground
-plane. Check the scan rate and ranges with `ros2 topic hz /scan` and
-`ros2 topic echo --once /scan --qos-reliability best_effort`. Run each LiDAR
-with its own serial device path. (Software: `lidar_node` ×2.)
+**Checkpoint:** the horizontal LiDAR publishes `/scan` and the tilted LiDAR
+publishes `/scan_tilted`; the tilted one reads the ground plane. Check both
+scan rates and ranges with:
+
+```bash
+ros2 topic hz /scan
+ros2 topic hz /scan_tilted
+ros2 topic echo --once /scan --qos-reliability best_effort
+ros2 topic echo --once /scan_tilted --qos-reliability best_effort
+```
+
+Run each LiDAR with its own serial device path. (Software:
+`ldlidar_ros2_node` ×2 + `ldlidar_bridge_node` ×2.)
 
 > **Note:** the tilted LiDAR's scan plane must read the ground ahead — verify
 > the ~25° angle with a gauge before finalizing the mount.

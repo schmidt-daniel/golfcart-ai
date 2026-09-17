@@ -3,7 +3,6 @@
 #include <string>
 
 #include "golfcart_lidar/lidar_sensor.hpp"
-#include "golfcart_lidar/lidar_sensor_impl.hpp"
 #include "golfcart_lidar/mock_lidar_sensor.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
@@ -19,7 +18,6 @@ public:
   : Node("lidar_node")
   {
     const std::string impl = declare_parameter<std::string>("implementation", "mock");
-    const std::string device = declare_parameter<std::string>("device", "/dev/ttyUSB0");
     // Blind spot: an angular window to ignore (e.g. the bag behind the
     // trolley). Center + half-width in radians; 0 = disabled.
     blind_center_rad_ = declare_parameter<double>("blind_spot_center_rad", M_PI);
@@ -28,10 +26,11 @@ public:
     if (impl == "mock") {
       mock_ = std::make_shared<MockLidarSensor>();
       sensor_ = mock_;
-    } else if (impl == "real") {
-      sensor_ = std::make_shared<LidarSensorImpl>(device);
     } else {
-      RCLCPP_FATAL(get_logger(), "Unknown implementation '%s'", impl.c_str());
+      RCLCPP_FATAL(
+        get_logger(),
+        "Unknown implementation '%s'; use ldlidar_ros2_node for hardware",
+        impl.c_str());
       throw std::runtime_error("Unknown LiDAR implementation");
     }
 
@@ -58,6 +57,11 @@ private:
   void publish_scan()
   {
     const LidarScan scan = sensor_->read();
+    if (scan.points.empty()) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 5000, "LiDAR scan contains no points");
+      return;
+    }
     sensor_msgs::msg::LaserScan msg;
     msg.header.stamp = now();
     msg.header.frame_id = "lidar_link";

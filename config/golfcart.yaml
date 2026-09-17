@@ -48,15 +48,15 @@ common:
   sector_half_angle_rad: 1.0472     # forward sector half-width (±60 deg)
 
 # -----------------------------------------------------------------------------
-# LiDAR Node (golfcart_lidar/lidar_node)
-# Reads the LiDAR and publishes a standard LaserScan on /scan.
+# LiDAR Node (golfcart_lidar/lidar_node + ldlidar_bridge_node)
+# The horizontal LiDAR publishes /scan. The tilted LiDAR publishes
+# /scan_tilted when lidar_driver:=ldlidar is selected in core.launch.py.
 # Blind spot: the LiDARs are mounted at the front, so the bag behind the
 # trolley is a backwards blind spot. Mask that angular window to infinity so
 # downstream nodes (obstacle/person detection) ignore it completely.
 # -----------------------------------------------------------------------------
 lidar_node:
-  implementation: mock              # mock | real
-  device: /dev/ttyUSB0              # serial device (real implementation)
+  implementation: mock              # mock; hardware uses lidar_driver:=ldlidar
   blind_spot_center_rad: 3.14159    # blind-spot center angle (rad); 0 = forward
   blind_spot_half_angle_rad: 0.0    # blind-spot half-width (rad); 0 = disabled
 

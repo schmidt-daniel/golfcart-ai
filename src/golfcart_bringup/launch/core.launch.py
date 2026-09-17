@@ -20,7 +20,8 @@ import os
 import yaml
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+from launch.conditions import IfCondition, UnlessCondition
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 
@@ -50,7 +51,42 @@ def generate_launch_description():
         'implementation', default_value='mock',
         description='Motor controller implementation: mock or odrive')
 
+    lidar_driver_arg = DeclareLaunchArgument(
+        'lidar_driver', default_value='mock',
+        description='LiDAR driver: mock or ldlidar')
+
+    lidar_device_horizontal_arg = DeclareLaunchArgument(
+        'lidar_device_horizontal', default_value='/dev/ttyUSB0',
+        description='Serial device used by the horizontal ldlidar_ros2')
+
+    lidar_device_tilted_arg = DeclareLaunchArgument(
+        'lidar_device_tilted', default_value='/dev/ttyUSB1',
+        description='Serial device used by the tilted ldlidar_ros2')
+
+    gps_implementation_arg = DeclareLaunchArgument(
+        'gps_implementation', default_value='mock',
+        description='GPS implementation: mock or real (gpsd)')
+
+    gps_device_arg = DeclareLaunchArgument(
+        'gps_device', default_value='/dev/ttyUSB0',
+        description='GPS device selected by gpsd')
+
+    gpsd_host_arg = DeclareLaunchArgument(
+        'gpsd_host', default_value='127.0.0.1',
+        description='gpsd host')
+
+    gpsd_port_arg = DeclareLaunchArgument(
+        'gpsd_port', default_value='2947',
+        description='gpsd TCP port')
+
     implementation = LaunchConfiguration('implementation')
+    lidar_driver = LaunchConfiguration('lidar_driver')
+    lidar_device_horizontal = LaunchConfiguration('lidar_device_horizontal')
+    lidar_device_tilted = LaunchConfiguration('lidar_device_tilted')
+    gps_implementation = LaunchConfiguration('gps_implementation')
+    gps_device = LaunchConfiguration('gps_device')
+    gpsd_host = LaunchConfiguration('gpsd_host')
+    gpsd_port = LaunchConfiguration('gpsd_port')
 
     odrive_node = Node(
         package='golfcart_odrive',
@@ -111,6 +147,12 @@ def generate_launch_description():
         package='golfcart_gps',
         executable='gps_node',
         name='gps_node',
+        parameters=[{
+            'implementation': gps_implementation,
+            'device': gps_device,
+            'gpsd_host': gpsd_host,
+            'gpsd_port': gpsd_port,
+        }],
         output='screen',
     )
 
@@ -122,11 +164,86 @@ def generate_launch_description():
         output='screen',
     )
 
-    lidar_node = Node(
+    mock_lidar_node = Node(
         package='golfcart_lidar',
         executable='lidar_node',
         name='lidar_node',
         parameters=[_node_params(cfg, 'lidar_node')],
+        condition=UnlessCondition(PythonExpression(["'", lidar_driver, "' == 'ldlidar'"])),
+        output='screen',
+    )
+
+    ldlidar_horizontal_node = Node(
+        package='ldlidar_ros2',
+        executable='ldlidar_ros2_node',
+        name='ldlidar_horizontal_node',
+        parameters=[{
+            'product_name': 'LDLiDAR_LD19',
+            'laser_scan_topic_name': 'ldlidar/horizontal_scan',
+            'point_cloud_2d_topic_name': 'ldlidar/horizontal_pointcloud2d',
+            'frame_id': 'lidar_link',
+            'port_name': lidar_device_horizontal,
+            'serial_baudrate': 230400,
+            'laser_scan_dir': True,
+            'enable_angle_crop_func': False,
+            'angle_crop_min': 135.0,
+            'angle_crop_max': 225.0,
+            'range_min': 0.1,
+            'range_max': 12.0,
+        }],
+        condition=IfCondition(PythonExpression(["'", lidar_driver, "' == 'ldlidar'"])),
+        output='screen',
+    )
+
+    ldlidar_tilted_node = Node(
+        package='ldlidar_ros2',
+        executable='ldlidar_ros2_node',
+        name='ldlidar_tilted_node',
+        parameters=[{
+            'product_name': 'LDLiDAR_LD19',
+            'laser_scan_topic_name': 'ldlidar/tilted_scan',
+            'point_cloud_2d_topic_name': 'ldlidar/tilted_pointcloud2d',
+            'frame_id': 'lidar_tilted_link',
+            'port_name': lidar_device_tilted,
+            'serial_baudrate': 230400,
+            'laser_scan_dir': True,
+            'enable_angle_crop_func': False,
+            'angle_crop_min': 135.0,
+            'angle_crop_max': 225.0,
+            'range_min': 0.1,
+            'range_max': 12.0,
+        }],
+        condition=IfCondition(PythonExpression(["'", lidar_driver, "' == 'ldlidar'"])),
+        output='screen',
+    )
+
+    ldlidar_horizontal_bridge = Node(
+        package='golfcart_lidar',
+        executable='ldlidar_bridge_node',
+        name='ldlidar_horizontal_bridge',
+        parameters=[{
+            'input_topic': 'ldlidar/horizontal_scan',
+            'output_topic': 'scan',
+            'output_frame': 'lidar_link',
+            'blind_spot_center_rad': cfg.get('lidar_node', {}).get(
+                'blind_spot_center_rad', 3.14159),
+            'blind_spot_half_angle_rad': cfg.get('lidar_node', {}).get(
+                'blind_spot_half_angle_rad', 0.0),
+        }],
+        condition=IfCondition(PythonExpression(["'", lidar_driver, "' == 'ldlidar'"])),
+        output='screen',
+    )
+
+    ldlidar_tilted_bridge = Node(
+        package='golfcart_lidar',
+        executable='ldlidar_bridge_node',
+        name='ldlidar_tilted_bridge',
+        parameters=[{
+            'input_topic': 'ldlidar/tilted_scan',
+            'output_topic': 'scan_tilted',
+            'output_frame': 'lidar_tilted_link',
+        }],
+        condition=IfCondition(PythonExpression(["'", lidar_driver, "' == 'ldlidar'"])),
         output='screen',
     )
 
@@ -188,6 +305,13 @@ def generate_launch_description():
 
     return LaunchDescription([
         impl_arg,
+        lidar_driver_arg,
+        lidar_device_horizontal_arg,
+        lidar_device_tilted_arg,
+        gps_implementation_arg,
+        gps_device_arg,
+        gpsd_host_arg,
+        gpsd_port_arg,
         odrive_node,
         capability_node,
         sensor_health_logger,
@@ -198,7 +322,11 @@ def generate_launch_description():
         gps_node,
         auto_shutdown,
         energy_saver,
-        lidar_node,
+        mock_lidar_node,
+        ldlidar_horizontal_node,
+        ldlidar_tilted_node,
+        ldlidar_horizontal_bridge,
+        ldlidar_tilted_bridge,
         obstacle_detection,
         hill_rollback,
         push_assist,

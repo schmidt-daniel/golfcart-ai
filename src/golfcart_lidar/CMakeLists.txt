@@ -12,7 +12,6 @@ find_package(golfcart_msgs REQUIRED)
 
 add_library(golfcart_lidar
   src/mock_lidar_sensor.cpp
-  src/lidar_sensor_impl.cpp
 )
 target_include_directories(golfcart_lidar PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -22,13 +21,16 @@ target_link_libraries(golfcart_lidar PUBLIC rclcpp::rclcpp sensor_msgs::sensor_m
 add_executable(lidar_node src/lidar_node.cpp)
 target_link_libraries(lidar_node golfcart_lidar rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
 
+add_executable(ldlidar_bridge_node src/ldlidar_bridge_node.cpp)
+target_link_libraries(ldlidar_bridge_node rclcpp::rclcpp sensor_msgs::sensor_msgs)
+
 add_executable(obstacle_detection_node src/obstacle_detection_node.cpp)
 target_link_libraries(obstacle_detection_node rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
 
 add_executable(person_detection_node src/person_detection_node.cpp)
 target_link_libraries(person_detection_node rclcpp::rclcpp sensor_msgs::sensor_msgs golfcart_msgs::golfcart_msgs)
 
-install(TARGETS lidar_node obstacle_detection_node person_detection_node
+install(TARGETS lidar_node ldlidar_bridge_node obstacle_detection_node person_detection_node
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

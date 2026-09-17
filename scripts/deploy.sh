@@ -15,6 +15,10 @@
 #   ./scripts/deploy.sh --pi pi@192.168.1.50
 #   ./scripts/deploy.sh --pi pi@192.168.1.50 --map-dir ./maps
 #   ./scripts/deploy.sh --pi pi@192.168.1.50 --no-build   # skip Docker build
+#   ./scripts/deploy.sh --pi pi@192.168.1.50 --hardware \
+#     --gps-device /dev/serial/by-id/USB-GPS \
+#     --lidar-horizontal /dev/serial/by-id/USB-LiDAR-HORIZONTAL \
+#     --lidar-tilted /dev/serial/by-id/USB-LiDAR-TILTED
 #
 # Requirements:
 #   - Docker available on this machine (for the build step).
@@ -27,6 +31,10 @@ set -euo pipefail
 PI_USER_HOST=""
 MAP_DIR=""
 DO_BUILD=1
+INSTALL_HARDWARE=0
+GPS_DEVICE=""
+LIDAR_HORIZONTAL="/dev/ttyUSB0"
+LIDAR_TILTED="/dev/ttyUSB1"
 REMOTE_DIR="golfcart-ai"
 REMOTE_HOME=""
 SYSTEMD_DIR="systemd"
@@ -37,9 +45,13 @@ while [[ $# -gt 0 ]]; do
     --pi) PI_USER_HOST="$2"; shift 2 ;;
     --map-dir) MAP_DIR="$2"; shift 2 ;;
     --no-build) DO_BUILD=0; shift ;;
+    --hardware) INSTALL_HARDWARE=1; shift ;;
+    --gps-device) GPS_DEVICE="$2"; shift 2 ;;
+    --lidar-horizontal) LIDAR_HORIZONTAL="$2"; shift 2 ;;
+    --lidar-tilted) LIDAR_TILTED="$2"; shift 2 ;;
     --remote-dir) REMOTE_DIR="$2"; shift 2 ;;
     -h|--help)
-      echo "Usage: $0 --pi <user@host> [--map-dir <path>] [--no-build] [--remote-dir <name>]"
+      echo "Usage: $0 --pi <user@host> [--hardware --gps-device <path>] [--map-dir <path>] [--no-build] [--remote-dir <name>]"
       exit 0 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
@@ -96,15 +108,30 @@ else
   echo "==> No --map-dir provided; skipping map sync."
 fi
 
-# ---- 5. Build on the Pi (if not already built) ----
+# ---- 5. Install hardware dependencies (optional) ----
+if [[ "$INSTALL_HARDWARE" == "1" ]]; then
+  if [[ -z "$GPS_DEVICE" ]]; then
+    echo "ERROR: --hardware requires --gps-device" >&2
+    exit 1
+  fi
+  echo "==> Installing gpsd and ldlidar_ros2 on the Pi..."
+  ssh "$PI_USER_HOST" "cd $REMOTE_WORKSPACE && bash scripts/install_hardware_deps.sh \
+    --gps-device '$GPS_DEVICE' \
+    --lidar-horizontal '$LIDAR_HORIZONTAL' \
+    --lidar-tilted '$LIDAR_TILTED'"
+else
+  echo "==> Skipping hardware dependency install (use --hardware on the Pi)."
+fi
+
+# ---- 6. Build on the Pi (if not already built) ----
 echo "==> Building on the Pi..."
 ssh "$PI_USER_HOST" "cd $REMOTE_WORKSPACE && source /opt/ros/\${ROS_DISTRO}/setup.bash && colcon build"
 
-# ---- 6. Install/update systemd units ----
+# ---- 7. Install/update systemd units ----
 echo "==> Installing systemd units..."
 ssh "$PI_USER_HOST" "cd $REMOTE_WORKSPACE && sudo cp $SYSTEMD_DIR/*.service /etc/systemd/system/ && sudo systemctl daemon-reload"
 
-# ---- 7. Enable + restart services ----
+# ---- 8. Enable + restart services ----
 echo "==> Enabling and restarting services..."
 ssh "$PI_USER_HOST" "cd $REMOTE_WORKSPACE && for svc in $SYSTEMD_DIR/*.service; do \
   name=\$(basename \$svc); \

@@ -12,7 +12,8 @@
 
   All dimensions are xacro parameters — edit them with the correct measurements later.
   Frames follow REP-103 (X forward, Y left, Z up) and the architecture's
-  frame tree: base_link -> {lidar_link, camera_link, imu_link, gps_link}.
+  frame tree: base_link -> {lidar_link, lidar_tilted_link, camera_link,
+  imu_link, gps_link}.
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="golfcart">
 
@@ -240,6 +241,28 @@
     <parent link="mast"/>
     <child link="lidar_link"/>
     <origin xyz="0 0 ${mast_z + lidar_offset_z}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Tilted LiDAR for ground, ditch, and stream detection. -->
+  <link name="lidar_tilted_link">
+    <visual>
+      <geometry>
+        <cylinder radius="0.05" length="0.04"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="sensor_mat"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.05" length="0.04"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </collision>
+  </link>
+  <joint name="lidar_tilted_joint" type="fixed">
+    <parent link="mast"/>
+    <child link="lidar_tilted_link"/>
+    <origin xyz="0 0 ${mast_z + lidar_offset_z + 0.08}" rpy="0 0.436332 0"/>
   </joint>
 
   <!-- Camera -->

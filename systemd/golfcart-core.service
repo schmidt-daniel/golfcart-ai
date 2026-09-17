@@ -1,7 +1,9 @@
 [Unit]
 Description=Golf Cart Core Control Pipeline (odrive, motion, safety, sensors)
 Wants=network.target
-After=network.target
+Wants=gpsd.service
+After=network.target gpsd.service
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
@@ -10,11 +12,16 @@ Group=pi
 WorkingDirectory=/home/pi/golfcart-ai
 Environment="ROS_DISTRO=lyrical"
 Environment="RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
+Environment="GPS_IMPLEMENTATION=mock"
+Environment="LIDAR_DRIVER=mock"
+Environment="LIDAR_DEVICE_HORIZONTAL=/dev/ttyUSB0"
+Environment="LIDAR_DEVICE_TILTED=/dev/ttyUSB1"
+Environment="LDLIDAR_SETUP="
+EnvironmentFile=-/etc/golfcart/golfcart.env
 ExecStartPre=/bin/bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && source /home/pi/golfcart-ai/install/setup.bash'
-ExecStart=/bin/bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && source /home/pi/golfcart-ai/install/setup.bash && exec ros2 launch golfcart_bringup core.launch.py implementation:=odrive'
+ExecStart=/bin/bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && source /home/pi/golfcart-ai/install/setup.bash && if [[ -n "${LDLIDAR_SETUP}" && -f "${LDLIDAR_SETUP}" ]]; then source "${LDLIDAR_SETUP}"; fi && exec ros2 launch golfcart_bringup core.launch.py implementation:=odrive gps_implementation:=${GPS_IMPLEMENTATION} lidar_driver:=${LIDAR_DRIVER} lidar_device_horizontal:=${LIDAR_DEVICE_HORIZONTAL} lidar_device_tilted:=${LIDAR_DEVICE_TILTED}'
 Restart=on-failure
 RestartSec=5
-StartLimitIntervalSec=0
 
 [Install]
 WantedBy=multi-user.target

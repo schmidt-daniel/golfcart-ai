@@ -15,7 +15,7 @@ define an angular window to ignore completely.
 
 ## How it works
 
-- **`lidar_node`** reads the scan and, for every point whose angle falls inside
+- **`ldlidar_bridge_node`** reads the horizontal scan and, for every point whose angle falls inside
   the blind-spot window, sets the range to **infinity** (the same as "no
   return"). Downstream nodes (`obstacle_detection_node`,
   `person_detection_node`) then treat that region as empty.
@@ -28,8 +28,7 @@ See `config/golfcart.yaml`:
 
 ```yaml
 lidar_node:
-  implementation: mock              # mock | real
-  device: /dev/ttyUSB0              # serial device (real implementation)
+  implementation: mock              # mock; hardware uses lidar_driver:=ldlidar
   blind_spot_center_rad: 3.14159    # blind-spot center angle (rad); 0 = forward
   blind_spot_half_angle_rad: 0.0    # blind-spot half-width (rad); 0 = disabled
 ```
@@ -41,6 +40,6 @@ lidar_node:
 
 ## Files
 
-- `src/golfcart_lidar/src/lidar_node.cpp` — `in_blind_spot()` + masking
+- `src/golfcart_lidar/src/ldlidar_bridge_node.cpp` — `in_blind_spot()` + masking
 - `config/golfcart.yaml` — `lidar_node` params
-- `src/golfcart_bringup/launch/core.launch.py` — passes `lidar_node` params
+- `src/golfcart_bringup/launch/core.launch.py` — starts both LD19 drivers and bridges

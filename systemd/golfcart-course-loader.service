@@ -2,6 +2,7 @@
 Description=Golf Cart Course Loader (publishes CourseMap)
 Wants=network.target
 After=network.target golfcart-core.service
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
@@ -16,7 +17,6 @@ ExecStartPre=/bin/bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && source /h
 ExecStart=/bin/bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && source /home/pi/golfcart-ai/install/setup.bash && exec ros2 run golfcart_navigation course_loader_node --ros-args -p course_zip:="${COURSE_ZIP:-}"'
 Restart=on-failure
 RestartSec=5
-StartLimitIntervalSec=0
 
 [Install]
 WantedBy=multi-user.target

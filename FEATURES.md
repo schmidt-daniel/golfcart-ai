@@ -51,11 +51,11 @@ features are added.
 - The real path expects gpsd to own the USB GPS and exposes invalid/stale fixes safely
 
 ### LiDAR + Obstacle Detection
-- `golfcart_lidar` package — `LidarSensor` interface, `MockLidarSensor`, `LidarSensorImpl` (scaffold), `lidar_node`
-- `lidar_node` publishes standard `sensor_msgs/LaserScan` on `/scan` at 10 Hz
+- `golfcart_lidar` package — `MockLidarSensor`, `ldlidar_bridge_node`, `lidar_node`
+- The upstream `ldlidar_ros2` LD19 driver publishes through the bridge as standard `sensor_msgs/LaserScan` on `/scan`
 - `obstacle_detection_node` publishes `ObstacleState` on `/obstacles/state` (stopping zone)
 - Safety Controller stops motion on obstacle in the stopping zone
-- **Note:** real FHL-LD19P driver is a scaffold (uses mock until implemented)
+- Hardware setup and launch instructions are in `docs/hardware-assembly.md`
 
 ### LiDAR Blind-Spot Masking
 - `lidar_node` masks a configurable angular window to infinity so downstream
