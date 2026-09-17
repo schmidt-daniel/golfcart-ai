@@ -4,8 +4,8 @@ Control the trolley with hand gestures instead of voice or the phone — wave to
 summon, hand signals to stop/follow. More appropriate than shouting across the
 course.
 
-> **Status:** Spec (not implemented). Part of the camera-enabled roadmap batch.
-> Requires the Pi Camera Module 3 + Coral USB Accelerator (see
+> **Status:** Implemented. CPU skin-based keypoint source with an optional
+> Coral pose backend. Requires the Pi Camera Module 3 (see
 > `docs/features/camera-vision.md`).
 
 ## Purpose
@@ -19,7 +19,9 @@ acceptable.
 ## Overview
 
 ```text
-Pi Camera (RGB) → gesture_recognition_node (Coral NPU)
+Pi Camera (RGB) → coral_pose_node (Coral) → /pose/keypoints
+        ↓  (or CPU skin estimator fallback)
+   gesture_recognition_node
         ↓  /gesture/command (GestureCommand)
         ↓
    gesture_controller_node

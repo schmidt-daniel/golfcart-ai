@@ -356,11 +356,26 @@ camera_node:
 # Controller).
 # -----------------------------------------------------------------------------
 gesture_recognition_node:
-  model: "mediapipe_pose"           # full-body keypoints on the Coral NPU
+  model: "cpu_skin"                 # CPU skin-based keypoints (no Coral needed)
   confidence_threshold: 0.7         # min confidence to accept a gesture
   debounce_frames: 15               # frames a gesture must persist (~0.5 s)
   publish_rate_hz: 10               # gesture publish rate (Hz)
+  processing_width: 160             # keypoint estimation resolution (px)
+  processing_height: 90             # keypoint estimation resolution (px)
   summon_hold_s: 1.0                # hold time to confirm SUMMON (windmill + hold)
+
+# -----------------------------------------------------------------------------
+# Coral Pose (golfcart_vision/coral_pose_node)
+# Optional MediaPipe-style pose on the Coral EdgeTPU. Publishes /pose/keypoints
+# when Coral + a model are present; gesture_recognition_node falls back to CPU.
+# -----------------------------------------------------------------------------
+coral_pose_node:
+  model_file: ""                    # path to a Coral-compatible pose .tflite
+  input_topic: camera/image
+  output_topic: pose/keypoints
+  input_width: 224
+  input_height: 224
+  min_confidence: 0.5
 
 # -----------------------------------------------------------------------------
 # Gesture Controller (golfcart_vision/gesture_controller_node)

@@ -40,6 +40,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/RangeStatus.msg"
   "msg/SlipStatus.msg"
   "msg/TerrainHazard.msg"
+  "msg/PoseKeypoints.msg"
   "msg/HandleForce.msg"
   "msg/AssistConfig.msg"
   "msg/ModeState.msg"

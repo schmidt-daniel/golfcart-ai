@@ -43,6 +43,14 @@ def generate_launch_description():
         output='screen',
     )
 
+    coral_pose = Node(
+        package='golfcart_vision',
+        executable='coral_pose_node.py',
+        name='coral_pose_node',
+        parameters=[_node_params(cfg, 'coral_pose_node')],
+        output='screen',
+    )
+
     gesture_recognition = Node(
         package='golfcart_vision',
         executable='gesture_recognition_node',
@@ -69,6 +77,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         camera,
+        coral_pose,
         gesture_recognition,
         gesture_controller,
         segmentation,
