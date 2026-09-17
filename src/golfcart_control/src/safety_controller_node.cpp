@@ -11,6 +11,7 @@
 #include "golfcart_msgs/msg/obstacle_state.hpp"
 #include "golfcart_msgs/msg/slope_status.hpp"
 #include "golfcart_msgs/msg/speed_zone_status.hpp"
+#include "golfcart_msgs/msg/terrain_hazard.hpp"
 #include "golfcart_control/safety_math.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -99,6 +100,12 @@ public:
           obstacle_in_zone_ = msg->obstacle_in_zone;
           nearest_obstacle_m_ = msg->nearest_distance_m;
         }
+      });
+
+    terrain_hazard_sub_ = create_subscription<golfcart_msgs::msg::TerrainHazard>(
+      "terrain/hazard", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::TerrainHazard::SharedPtr msg) {
+        terrain_hazard_ = msg->valid && msg->hazard;
       });
 
     // Operating mode: in MANUAL mode the operator has full control, so the
@@ -210,6 +217,15 @@ public:
             publish_safe(0.0, 0.0);
           }
         }
+        // Tilted-LiDAR terrain hazard: ditch, drop-off, bunker, or rough
+        // ground ahead. Autonomous modes stop; manual mode leaves the choice
+        // to the operator, like the horizontal obstacle policy.
+        if (terrain_hazard_ && !manual_mode_) {
+          if (state_ == SafetyState::MOVING || state_ == SafetyState::LIMITED) {
+            state_ = SafetyState::READY;
+            publish_safe(0.0, 0.0);
+          }
+        }
         // If no motion request has arrived recently, stop.
         if (state_ == SafetyState::MOVING || state_ == SafetyState::LIMITED) {
           const double age = (now() - last_request_time_).seconds();
@@ -239,6 +255,7 @@ private:
   float predicted_roll_ = 0.0f;
   float predicted_pitch_ = 0.0f;
   bool obstacle_in_zone_ = false;
+  bool terrain_hazard_ = false;
   float nearest_obstacle_m_ = 0.0f;
   bool manual_mode_ = true;  // default MANUAL: operator has full control
   bool odrive_available_ = false;
@@ -251,6 +268,7 @@ private:
   rclcpp::Subscription<golfcart_msgs::msg::ImuData>::SharedPtr imu_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::SlopeStatus>::SharedPtr slope_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::ObstacleState>::SharedPtr obstacle_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::TerrainHazard>::SharedPtr terrain_hazard_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::CapabilityStatus>::SharedPtr cap_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::ModeState>::SharedPtr mode_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::SpeedZoneStatus>::SharedPtr speed_zone_sub_;

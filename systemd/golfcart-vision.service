@@ -1,0 +1,20 @@
+[Unit]
+Description=Golf Cart Camera and Vision Pipeline
+Wants=network.target golfcart-core.service
+After=network.target golfcart-core.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/golfcart-ai
+Environment="ROS_DISTRO=lyrical"
+Environment="RMW_IMPLEMENTATION=rmw_cyclonedds_cpp"
+ExecStartPre=/bin/bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && source /home/pi/golfcart-ai/install/setup.bash'
+ExecStart=/bin/bash -c 'source /opt/ros/${ROS_DISTRO}/setup.bash && source /home/pi/golfcart-ai/install/setup.bash && exec ros2 launch golfcart_vision vision.launch.py'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

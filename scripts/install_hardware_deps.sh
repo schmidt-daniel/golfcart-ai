@@ -44,6 +44,11 @@ fi
 sudo apt-get update
 sudo apt-get install -y gpsd gpsd-clients i2c-tools git python3-rosdep python3-colcon-common-extensions
 
+if ! command -v rpicam-still >/dev/null 2>&1; then
+  echo "WARN: rpicam-still is not installed; /camera/image will remain silent." >&2
+  echo "      Install the Raspberry Pi libcamera/rpicam application package." >&2
+fi
+
 # gpsd owns the GPS serial device; gps_node connects to gpsd on localhost:2947.
 sudo install -d -m 0755 /etc/golfcart
 sudo tee /etc/default/gpsd >/dev/null <<EOF

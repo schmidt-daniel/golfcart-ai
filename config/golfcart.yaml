@@ -61,6 +61,25 @@ lidar_node:
   blind_spot_half_angle_rad: 0.0    # blind-spot half-width (rad); 0 = disabled
 
 # -----------------------------------------------------------------------------
+# Tilted LiDAR terrain hazard detection (golfcart_lidar/terrain_hazard_node)
+# A confirmed hazard publishes /terrain/hazard and forces a stop in autonomous
+# modes. Manual mode leaves the decision to the operator.
+# -----------------------------------------------------------------------------
+terrain_hazard_node:
+  input_topic: scan_tilted
+  forward_half_angle_rad: 0.61     # inspect the forward ~70 degree sector
+  min_range_m: 0.1
+  max_range_m: 12.0
+  drop_off_range_m: 6.0             # long/no returns indicate a drop-off
+  near_hazard_range_m: 0.35         # near returns indicate rough/blocked ground
+  min_valid_fraction: 0.5
+  hazard_fraction: 0.25
+  roughness_threshold_m: 0.35
+  range_jump_threshold_m: 1.0
+  confirm_scans: 3
+  clear_scans: 3
+
+# -----------------------------------------------------------------------------
 # Safety Controller (golfcart_control/safety_controller_node)
 # The central authority for movement. Gates all MotionRequests.
 # -----------------------------------------------------------------------------
@@ -326,6 +345,7 @@ camera_node:
   publish_rate_hz: 5.0              # camera publish rate (Hz)
   width: 640                        # capture width (px)
   height: 480                       # capture height (px)
+  capture_binary: rpicam-still      # Raspberry Pi libcamera CLI
 
 # -----------------------------------------------------------------------------
 # Gesture Recognition (golfcart_vision/gesture_recognition_node)

@@ -247,6 +247,14 @@ def generate_launch_description():
         output='screen',
     )
 
+    terrain_hazard = Node(
+        package='golfcart_lidar',
+        executable='terrain_hazard_node',
+        name='terrain_hazard_node',
+        parameters=[_node_params(cfg, 'terrain_hazard_node')],
+        output='screen',
+    )
+
     obstacle_detection = Node(
         package='golfcart_lidar',
         executable='obstacle_detection_node',
@@ -327,6 +335,7 @@ def generate_launch_description():
         ldlidar_tilted_node,
         ldlidar_horizontal_bridge,
         ldlidar_tilted_bridge,
+        terrain_hazard,
         obstacle_detection,
         hill_rollback,
         push_assist,
