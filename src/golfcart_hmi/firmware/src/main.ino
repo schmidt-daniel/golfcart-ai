@@ -173,10 +173,30 @@ static void on_frame(uint8_t type, const uint8_t *payload, size_t len, uint8_t s
       }
       break;
     case DL_DEBUG_SUMMARY:
-      // TODO: render debug summary.
+      // Payload: debug id (1 byte) + summary payload. The summary is a
+      // series of state-id/value pairs that populate the debug screens
+      // (System / GPS / LiDAR / Camera / IMU / Navigation). Forward each
+      // pair through the same state path as STATE_UPDATE.
+      if (len >= 3) {
+        // payload[0] = debug id (which debug view); the rest are pairs.
+        for (size_t i = 1; i + 1 < len; i += 2) {
+          screens_set_state(payload[i], payload[i + 1]);
+        }
+      }
       break;
     case DL_CONFIG:
-      // TODO: apply config (e.g. assist level).
+      // Payload: config id (1 byte) + value (1 byte). Apply the config.
+      // Backlight is applied directly; other configs map to state values
+      // (e.g. assist level) and flow through the normal state path.
+      if (len >= 2) {
+        uint8_t cfg_id = payload[0];
+        uint8_t value = payload[1];
+        if (cfg_id == ST_BACKLIGHT) {
+          screens_set_backlight(value);
+        } else {
+          screens_set_state(cfg_id, value);
+        }
+      }
       break;
     case DL_ACK:
       // Heartbeat from the Pi.
