@@ -202,6 +202,9 @@ battery_node:
   low_voltage_v: 30.0               # "low battery" warning threshold (V)
   critical_voltage_v: 28.0          # critical (safety stop) threshold (V)
   full_voltage_v: 42.0              # full-charge voltage (V)
+  voltage_scale: 2.0                # 100k/100k divider correction
+  shunt_resistance_ohm: 0.01        # INA219 shunt value
+  max_current_a: 40.0               # expected maximum current for calibration
 
 # -----------------------------------------------------------------------------
 # Auto Shutdown (golfcart_power/auto_shutdown_node)

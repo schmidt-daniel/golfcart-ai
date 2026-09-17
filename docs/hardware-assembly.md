@@ -235,6 +235,18 @@ hand. (Software: `odrive_node` + `motion_controller_node`.)
    - `VIN+` → battery +; `VIN-` → ODrive power input
 4. Connect `SDA` → GPIO 2, `SCL` → GPIO 3, `VCC` → 3.3 V, `GND` → GND.
 
+Before starting ROS, confirm the INA219 is visible at address `0x40`:
+
+```bash
+sudo i2cdetect -y 1
+```
+
+The configured software assumes a `0.01 Ω` shunt and a maximum expected
+current of `40 A`; set `battery_node.shunt_resistance_ohm` and
+`battery_node.max_current_a` to the actual board and cart limits before
+trusting the current value. Battery discharge current should be positive with
+the documented `VIN+`/`VIN-` orientation.
+
 **Checkpoint:** `battery_node` publishes a sane voltage/current on
 `/battery/state`; check it with `ros2 topic hz /battery/state` and
 `ros2 topic echo --once /battery/state --qos-reliability best_effort`.

@@ -42,7 +42,7 @@ if [[ ! -f "/opt/ros/${ROS_DISTRO}/setup.bash" ]]; then
 fi
 
 sudo apt-get update
-sudo apt-get install -y gpsd gpsd-clients git python3-rosdep python3-colcon-common-extensions
+sudo apt-get install -y gpsd gpsd-clients i2c-tools git python3-rosdep python3-colcon-common-extensions
 
 # gpsd owns the GPS serial device; gps_node connects to gpsd on localhost:2947.
 sudo install -d -m 0755 /etc/golfcart
