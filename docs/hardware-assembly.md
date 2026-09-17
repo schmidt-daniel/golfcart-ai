@@ -259,6 +259,90 @@ shows a live feed. (Software: `camera_node` + `web_teleop_server`.)
 
 ---
 
+## Compile & Flash
+
+This section covers how to build and flash the software onto the hardware.
+Two pieces of software need to be built:
+
+1. **The ROS 2 workspace** (runs on the Raspberry Pi 5).
+2. **The ESP32 handle-unit firmware** (runs on the ESP32-S3).
+
+### Prerequisites
+
+- A host with Docker (the build container `golfcart:lyrical` includes ROS 2
+  Lyrical + PlatformIO). See `README.md` → "Build".
+- The Pi 5 and ESP32 connected to the host (or the Pi itself used as the host).
+
+### 1. Build the ROS 2 workspace
+
+**Option A — Docker (recommended):**
+
+```bash
+# Build the image (first time) + colcon build & tests:
+./docker/build.sh test
+
+# Or just build (no tests):
+./docker/build.sh
+```
+
+**Option B — Native (on the Pi):**
+
+```bash
+source /opt/ros/lyrical/setup.bash
+cd <workspace>
+colcon build
+source install/setup.bash
+```
+
+> **OOM protection:** the build host has limited RAM. Use the memory-limited
+> helper for ad-hoc builds:
+> ```bash
+> ./docker/docker_run.sh golfcart:lyrical /workspace \
+>     'source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build'
+> ```
+
+### 2. Build & flash the ESP32 firmware
+
+The firmware lives in `src/golfcart_hmi/firmware`.
+
+**Build (two levels):**
+
+```bash
+cd src/golfcart_hmi/firmware
+
+# Fast: compile the pure-C protocol layer only (no deps):
+bash build_firmware.sh protocol
+
+# Full: complete PlatformIO build (downloads ESP32 toolchain + LVGL/TFT_eSPI/
+# HX711 on first run):
+bash build_firmware.sh full
+```
+
+**Flash (upload) to the ESP32:**
+
+```bash
+cd src/golfcart_hmi/firmware
+pio run -e esp32s3 -t upload
+```
+
+> The ESP32 connects to the host over USB. PlatformIO auto-detects the serial
+> port; if it doesn't, set it in `platformio.ini` (`upload_port`).
+
+### 3. Deploy the workspace to the Pi
+
+Once built, deploy the ROS 2 workspace to the Pi (see `docs/architecture.md`
+§34.1 for the deployment options). The standard flow uses `rsync` + systemd
+units.
+
+### 4. Verify
+
+- **ESP32:** the HMI boots to the splash screen; the Pi's `handle_gateway`
+  connects over serial.
+- **Pi:** `ros2 node list` shows the expected nodes; `ros2 topic list` shows
+  the sensor topics.
+
+---
+
 ## Notes & open items
 
 - **E-stop** is recommended but not part of the MVP (see `architecture.md` §34).
