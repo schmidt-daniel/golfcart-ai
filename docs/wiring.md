@@ -4,6 +4,9 @@ This document describes the physical wiring for the joystick-control MVP.
 
 > **Physical mounting:** the sensors and compute unit are housed in a 3D-printed
 > tower — see [`cases_mounts/SENSOR_STACK.md`](../cases_mounts/SENSOR_STACK.md).
+>
+> **Assembly order:** see [`hardware-assembly.md`](hardware-assembly.md) for the
+> recommended build sequence (bottom-up, each stage testable on its own).
 
 ## Scope
 
