@@ -210,10 +210,12 @@
     var setGoalSrv = new ROSLIB.Service({ ros: ros, name: '/set_goal_geo', serviceType: 'golfcart_msgs/srv/SetGoal' });
     var cancelSrv = new ROSLIB.Service({ ros: ros, name: '/safety/stop', serviceType: 'std_srvs/srv/Trigger' });
 
-    document.getElementById('summonBtn').onclick = function () {
+    // Send the tapped target to the navigation stack. Returns true if a target
+    // was set; false if the operator must tap the map first.
+    function sendTarget(source) {
       if (targetLat === null || targetLon === null) {
         alert('Set a target on the map first.');
-        return;
+        return false;
       }
       var req = new ROSLIB.ServiceRequest({
         goal: {
@@ -221,14 +223,19 @@
           y: targetLon,
           theta: 0,
           frame_id: 'map',
-          source: 'web',
+          source: source,
           timestamp: { sec: Math.floor(Date.now() / 1000), nanosec: 0 }
         }
       });
       setGoalSrv.callService(req, function (resp) {
-        console.log('set_goal_geo:', resp.message);
+        console.log(source + ':', resp.message);
         if (!resp.success) { alert('Navigation failed: ' + resp.message); }
       });
+      return true;
+    }
+
+    document.getElementById('summonBtn').onclick = function () {
+      sendTarget('web');
     };
 
     // Cancel navigation (stop).
@@ -259,10 +266,11 @@
     document.getElementById('stopMove').onclick = function () { publishMotion(0, 0); };
 
     // ---- Obstacle interaction (unexpected obstacle mid-route) ----
-    // NOTE: The navigation stack is not implemented yet. This modal is a
-    // placeholder that will be triggered by a /navigation/obstacle topic or
-    // service once navigation is built. The buttons will call the appropriate
-    // navigation services.
+    // Shown when an unexpected obstacle blocks the route. RETRY re-sends the
+    // current target so Nav2 re-plans around the obstacle; REPLAN does the same
+    // but is labelled for the operator as a fresh plan. STOP halts motion.
+    // The modal is triggered by calling window.showObstacleModal() (e.g. from a
+    // /navigation/status ERROR state or an obstacle topic).
     var obstacleModal = document.getElementById('obstacleModal');
     function showObstacleModal() {
       obstacleModal.style.display = 'flex';
@@ -272,12 +280,12 @@
     }
     document.getElementById('obstacleRetry').onclick = function () {
       console.log('Obstacle: retry');
-      // TODO: call navigation retry service.
+      sendTarget('web_retry');
       hideObstacleModal();
     };
     document.getElementById('obstacleReplan').onclick = function () {
       console.log('Obstacle: replan');
-      // TODO: call navigation replan service.
+      sendTarget('web_replan');
       hideObstacleModal();
     };
     document.getElementById('obstacleStop').onclick = function () {
@@ -286,7 +294,8 @@
       hideObstacleModal();
     };
 
-    // Placeholder: expose showObstacleModal for future wiring to a topic.
+    // Expose showObstacleModal so other code (e.g. a navigation status
+    // subscription) can trigger the modal when an obstacle blocks the route.
     window.showObstacleModal = showObstacleModal;
   </script>
 </body>
