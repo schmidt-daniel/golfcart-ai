@@ -50,7 +50,7 @@ class CoralPoseNode(Node):
 
     def _load_interpreter(self):
         if not self.model_file or not os.path.exists(self.model_file):
-            self.get_logger().warn(
+            self.get_logger().warning(
                 f'No pose model at {self.model_file!r}; Coral pose disabled')
             return
         try:
@@ -59,7 +59,7 @@ class CoralPoseNode(Node):
             self.interpreter.allocate_tensors()
             self.get_logger().info('Loaded Coral pose model')
         except Exception as exc:  # noqa: BLE001
-            self.get_logger().warn(f'Coral pose runtime unavailable: {exc}')
+            self.get_logger().warning(f'Coral pose runtime unavailable: {exc}')
 
     def _on_capability(self, msg):
         self.coral_available = msg.coral
