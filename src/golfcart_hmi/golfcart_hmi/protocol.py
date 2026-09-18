@@ -119,6 +119,10 @@ ALERT_RANGE_CAUTION = 7
 ALERT_RANGE_CRITICAL = 8
 ALERT_NAV_ERROR = 9
 
+# --- Config IDs (downlink CONFIG payload: config id + value) ---
+CFG_WIFI_SSID = 0x01   # WiFi hotspot SSID (string)
+CFG_WIFI_PASS = 0x02   # WiFi hotspot password (string)
+
 # --- Capabilities bitmask (uplink HELLO) ---
 CAP_JOYSTICK = 0x01
 CAP_TOUCH = 0x02
@@ -285,6 +289,17 @@ def _encode_value(state_id: int, value: int) -> bytes:
 
 def build_config(config_id: int, value: int) -> bytes:
     return bytes([config_id, value & 0xFF])
+
+
+def build_wifi_config(config_id: int, text: str) -> bytes:
+    """Build a DL_CONFIG payload carrying a WiFi credential string.
+
+    Payload: config id (1 byte) + length (1 byte) + UTF-8 text (<= 63 bytes).
+    Used for CFG_WIFI_SSID / CFG_WIFI_PASS so the ESP32 can render the
+    hotspot credentials and a scannable QR code on the WiFi screen.
+    """
+    data = text.encode('utf-8', 'replace')[:63]
+    return bytes([config_id & 0xFF, len(data)]) + data
 
 
 def build_boot_status(text: str, progress: int = 0) -> bytes:

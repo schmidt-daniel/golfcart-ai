@@ -444,3 +444,9 @@ segmentation_node:
 # -----------------------------------------------------------------------------
 trip_logger_node:
   log_file: /var/lib/golfcart/trips.json   # round history log (JSON Lines)
+
+# Handle-unit gateway (ESP32 HMI). WiFi credentials shown on the WiFi screen
+# and encoded into the scannable QR code.
+handle_gateway:
+  wifi_ssid: golfcart-xxxx
+  wifi_pass: "12345678"

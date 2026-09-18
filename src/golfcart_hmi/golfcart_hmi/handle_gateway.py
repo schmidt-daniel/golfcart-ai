@@ -66,6 +66,8 @@ class HandleGatewayNode(Node):
         self.declare_parameter('deadzone', 0.05)
         self.declare_parameter('force_zero_offset', 0.0)
         self.declare_parameter('force_gain', 1.0)
+        self.declare_parameter('wifi_ssid', 'golfcart-xxxx')
+        self.declare_parameter('wifi_pass', '12345678')
 
         port = self.get_parameter('port').value
         baud = self.get_parameter('baud').value
@@ -73,6 +75,8 @@ class HandleGatewayNode(Node):
         self.max_angular = self.get_parameter('max_angular').value
         self.deadzone = self.get_parameter('deadzone').value
         self.force_zero = self.get_parameter('force_zero_offset').value
+        self.wifi_ssid = self.get_parameter('wifi_ssid').value
+        self.wifi_pass = self.get_parameter('wifi_pass').value
         self.force_gain = self.get_parameter('force_gain').value
 
         # ---- Serial ----
@@ -312,6 +316,7 @@ class HandleGatewayNode(Node):
             self._nav(p.SCREEN_COURSE)
         elif item == 9:    # WIFI
             self._nav(p.SCREEN_WIFI)
+            self._send_wifi_config()
         elif item == 10:   # END ROUND
             self._call_end_round()
         elif item == 11:   # DEBUG
@@ -732,6 +737,11 @@ class HandleGatewayNode(Node):
 
     def _send_state(self, state_id, value):
         self._send(p.DL_STATE_UPDATE, p.build_state_update(state_id, value))
+
+    def _send_wifi_config(self):
+        """Push the hotspot SSID/password to the ESP32 (WiFi screen + QR)."""
+        self._send(p.DL_CONFIG, p.build_wifi_config(p.CFG_WIFI_SSID, self.wifi_ssid))
+        self._send(p.DL_CONFIG, p.build_wifi_config(p.CFG_WIFI_PASS, self.wifi_pass))
 
     def _send(self, mtype, payload):
         frame = p.encode(mtype, payload, self._seq)

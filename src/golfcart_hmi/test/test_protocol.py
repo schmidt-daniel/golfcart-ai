@@ -78,6 +78,24 @@ def test_state_value_encodings():
     assert p._encode_value(p.ST_HOLE_DISTANCE_M, 380) == b'\x7c\x01'
     # int32
     assert p._encode_value(p.ST_GPS_LAT, 481234500) == b'\x44\x0e\xaf\x1c'
+
+
+def test_build_wifi_config():
+    """WiFi config payloads carry id + length + UTF-8 text."""
+    ssid = p.build_wifi_config(p.CFG_WIFI_SSID, 'golfcart-abc')
+    assert ssid[0] == p.CFG_WIFI_SSID
+    assert ssid[1] == len('golfcart-abc')
+    assert ssid[2:].decode() == 'golfcart-abc'
+
+    pw = p.build_wifi_config(p.CFG_WIFI_PASS, 'secret123')
+    assert pw[0] == p.CFG_WIFI_PASS
+    assert pw[1] == len('secret123')
+    assert pw[2:].decode() == 'secret123'
+
+    # Long text is truncated to 63 bytes.
+    long_ssid = p.build_wifi_config(p.CFG_WIFI_SSID, 'x' * 100)
+    assert long_ssid[1] == 63
+    assert len(long_ssid) == 65
     # backlight is uint8
     assert p._encode_value(p.ST_BACKLIGHT, 200) == bytes([200])
     # steering assist is uint8

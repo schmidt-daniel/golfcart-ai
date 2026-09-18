@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 #include <lvgl.h>
 #include <TFT_eSPI.h>
+#include <qrcode.h>  // ricmoo/QRCode: pure-C QR matrix generation
 
 // ---------------------------------------------------------------------------
 // Display + LVGL setup
@@ -73,6 +74,22 @@ typedef struct {
 
 static HandleState g_state;
 static uint8_t g_current_screen = SCR_COURSE;
+
+// ---------------------------------------------------------------------------
+// WiFi credentials (from DL_CONFIG) for the WiFi screen + QR code.
+// ---------------------------------------------------------------------------
+static char g_wifi_ssid[64] = "golfcart-xxxx";
+static char g_wifi_pass[64] = "12345678";
+
+// ---------------------------------------------------------------------------
+// Cached course-map bitmap (from DL_MAP_FRAME). Rendered on both the map
+// (SCR_MAP) and hole (SCR_HOLE) screens. 148x190 RGB565 = ~56 KB.
+// ---------------------------------------------------------------------------
+#define MAP_CACHE_MAX_W 160
+#define MAP_CACHE_MAX_H 200
+static uint8_t g_map_cache[MAP_CACHE_MAX_W * MAP_CACHE_MAX_H * 2];
+static uint16_t g_map_w = 0;
+static uint16_t g_map_h = 0;
 
 // ---------------------------------------------------------------------------
 // LVGL display flush callback (TFT_eSPI).
@@ -460,6 +477,9 @@ static void build_tee(void)
 }
 
 // Map / Hole view (SCR_HOLE).
+static void render_map_bitmap(void);  // fwd decl (defined below)
+static void render_wifi_qr(int x0, int y0, int size);  // fwd decl (defined below)
+
 static void build_hole(void)
 {
   scr = make_screen();
@@ -469,13 +489,15 @@ static void build_hole(void)
   add_label(dist, LABEL_HOLE_DIST);
   lv_obj_t *rem = make_label(scr, "Rem: -- m", 168, 52, 140, 24, C_TEXT);
   add_label(rem, LABEL_HOLE_REM);
-  // Map area (placeholder; the Pi sends the hole layout via DEBUG_SUMMARY).
+  // Map area (the Pi sends the hole layout via DL_MAP_FRAME; the cached
+  // bitmap is blitted here).
   lv_obj_t *map = lv_obj_create(scr);
   lv_obj_set_pos(map, 12, 80);
   lv_obj_set_size(map, 296, 372);
   lv_obj_set_style_bg_color(map, C_SURFACE, 0);
   lv_obj_set_style_border_width(map, 2, 0);
   lv_obj_set_style_border_color(map, C_TEXT, 0);
+  render_map_bitmap();
 }
 
 // Map view (SCR_MAP).
@@ -494,6 +516,7 @@ static void build_map(void)
   lv_obj_set_style_bg_color(map, C_SURFACE, 0);
   lv_obj_set_style_border_width(map, 2, 0);
   lv_obj_set_style_border_color(map, C_TEXT, 0);
+  render_map_bitmap();
   // Trolley position label (bottom).
   lv_obj_t *pos = make_label(scr, "x: --  y: --", 12, 428, 200, 24, C_TEXT);
   add_label(pos, LABEL_MAP_POS);
@@ -719,13 +742,18 @@ static void build_wifi(void)
 {
   scr = make_screen();
   make_header("WiFi");
-  make_label(scr, "SSID: golfcart-xxxx", 20, 44, 280, 24, C_TEXT);
-  make_label(scr, "Pass: 12345678", 20, 76, 280, 24, C_TEXT);
-  // QR placeholder.
+  char ssid_label[80];
+  snprintf(ssid_label, sizeof(ssid_label), "SSID: %s", g_wifi_ssid);
+  make_label(scr, ssid_label, 20, 44, 280, 24, C_TEXT);
+  char pass_label[80];
+  snprintf(pass_label, sizeof(pass_label), "Pass: %s", g_wifi_pass);
+  make_label(scr, pass_label, 20, 76, 280, 24, C_TEXT);
+  // QR code encoding WIFI:S:<ssid>;P:<pass>;; (scannable with a phone).
   lv_obj_t *qr = lv_obj_create(scr);
   lv_obj_set_pos(qr, 110, 120);
   lv_obj_set_size(qr, 100, 100);
   lv_obj_set_style_bg_color(qr, C_SURFACE2, 0);
+  render_wifi_qr(110, 120, 100);
   make_button(scr, "Main Menu", 20, 240, 280, 40, C_SURFACE2);
   add_hit(20, 240, 300, 280, 0);
 }
@@ -1036,28 +1064,100 @@ void screens_set_backlight(uint8_t brightness)
 
 // ---------------------------------------------------------------------------
 // Map bitmap (called from main.ino on_frame when a DL_MAP_FRAME arrives).
-// Blits a packed RGB565 bitmap into the map area of the map screen.
+// Caches the packed RGB565 bitmap and blits it into the map area of the
+// current screen (SCR_MAP or SCR_HOLE).
 // ---------------------------------------------------------------------------
 void screens_set_map_bitmap(const uint8_t *data, size_t len,
                             uint16_t map_w, uint16_t map_h)
 {
-  if (g_current_screen != SCR_MAP) {
-    return;  // only render when the map screen is visible
-  }
   if (data == NULL || len < (size_t)map_w * map_h * 2) {
     return;
   }
-  // The map area is at (12, 40) sized 296x380. Center the bitmap in it.
-  int x0 = 12 + (296 - (int)map_w) / 2;
-  int y0 = 40 + (380 - (int)map_h) / 2;
-  if (x0 < 0) x0 = 0;
-  if (y0 < 0) y0 = 0;
-  // Push each pixel as RGB565 (little-endian) to the TFT.
-  for (uint16_t y = 0; y < map_h; ++y) {
-    for (uint16_t x = 0; x < map_w; ++x) {
-      size_t i = ((size_t)y * map_w + x) * 2;
-      uint16_t rgb565 = (uint16_t)(data[i] | (data[i + 1] << 8));
+  if (map_w > MAP_CACHE_MAX_W || map_h > MAP_CACHE_MAX_H) {
+    return;  // too large to cache; ignore
+  }
+  // Cache the bitmap so it can be re-rendered when the screen changes.
+  memcpy(g_map_cache, data, (size_t)map_w * map_h * 2);
+  g_map_w = map_w;
+  g_map_h = map_h;
+  // Render now if a map-bearing screen is visible.
+  if (g_current_screen == SCR_MAP || g_current_screen == SCR_HOLE) {
+    render_map_bitmap();
+  }
+}
+
+// Blit the cached map bitmap into the current screen's map area.
+static void render_map_bitmap(void)
+{
+  if (g_map_w == 0 || g_map_h == 0) {
+    return;
+  }
+  // Map area differs per screen: SCR_MAP at (12,40) 296x380; SCR_HOLE at
+  // (12,80) 296x372. Center the bitmap in the active screen's area.
+  int area_x = 12;
+  int area_y = (g_current_screen == SCR_HOLE) ? 80 : 40;
+  int area_w = 296;
+  int area_h = (g_current_screen == SCR_HOLE) ? 372 : 380;
+  int x0 = area_x + (area_w - (int)g_map_w) / 2;
+  int y0 = area_y + (area_h - (int)g_map_h) / 2;
+  if (x0 < area_x) x0 = area_x;
+  if (y0 < area_y) y0 = area_y;
+  for (uint16_t y = 0; y < g_map_h; ++y) {
+    for (uint16_t x = 0; x < g_map_w; ++x) {
+      size_t i = ((size_t)y * g_map_w + x) * 2;
+      uint16_t rgb565 = (uint16_t)(g_map_cache[i] | (g_map_cache[i + 1] << 8));
       tft.drawPixel(x0 + (int)x, y0 + (int)y, rgb565);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// WiFi config (called from main.ino on_frame when a DL_CONFIG arrives).
+// Stores the SSID/password and re-renders the WiFi screen + QR code.
+// ---------------------------------------------------------------------------
+void screens_set_wifi_config(uint8_t config_id, const char *text)
+{
+  if (text == NULL) {
+    return;
+  }
+  if (config_id == CFG_WIFI_SSID) {
+    snprintf(g_wifi_ssid, sizeof(g_wifi_ssid), "%s", text);
+  } else if (config_id == CFG_WIFI_PASS) {
+    snprintf(g_wifi_pass, sizeof(g_wifi_pass), "%s", text);
+  } else {
+    return;
+  }
+  if (g_current_screen == SCR_WIFI) {
+    build_wifi();
+  }
+}
+
+// Render a scannable QR code encoding the WiFi credentials into the given
+// area. Uses the ricmoo/QRCode library (pure C, stack-based).
+static void render_wifi_qr(int x0, int y0, int size)
+{
+  // WIFI:S:<ssid>;P:<pass>;; (per docs/hmi-spec.md §6.9).
+  char payload[160];
+  snprintf(payload, sizeof(payload), "WIFI:S:%s;P:%s;;",
+           g_wifi_ssid, g_wifi_pass);
+
+  QRCode qrcode;
+  uint8_t qrcode_data[qrcode_getBufferSize(4)];
+  if (qrcode_initText(&qrcode, qrcode_data, 4, ECC_MEDIUM, payload) != 0) {
+    return;
+  }
+  // Scale each module to fit the requested size.
+  int module_px = size / qrcode.size;
+  if (module_px < 1) module_px = 1;
+  int qr_px = qrcode.size * module_px;
+  int ox = x0 + (size - qr_px) / 2;
+  int oy = y0 + (size - qr_px) / 2;
+  for (uint8_t y = 0; y < qrcode.size; ++y) {
+    for (uint8_t x = 0; x < qrcode.size; ++x) {
+      if (qrcode_getModule(&qrcode, x, y)) {
+        tft.fillRect(ox + (int)x * module_px, oy + (int)y * module_px,
+                     module_px, module_px, TFT_BLACK);
+      }
     }
   }
 }

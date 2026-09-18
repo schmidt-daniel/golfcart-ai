@@ -185,16 +185,27 @@ static void on_frame(uint8_t type, const uint8_t *payload, size_t len, uint8_t s
       }
       break;
     case DL_CONFIG:
-      // Payload: config id (1 byte) + value (1 byte). Apply the config.
-      // Backlight is applied directly; other configs map to state values
-      // (e.g. assist level) and flow through the normal state path.
+      // Payload: config id (1 byte) + value. Two forms:
+      //   - single-byte value (e.g. backlight) -> apply directly.
+      //   - WiFi credential: id + length + UTF-8 text (CFG_WIFI_*).
       if (len >= 2) {
         uint8_t cfg_id = payload[0];
-        uint8_t value = payload[1];
-        if (cfg_id == ST_BACKLIGHT) {
-          screens_set_backlight(value);
+        if (cfg_id == CFG_WIFI_SSID || cfg_id == CFG_WIFI_PASS) {
+          // Length-prefixed string: id + len + text.
+          if (len >= 3) {
+            uint8_t n = payload[1];
+            if (n > 63) n = 63;
+            if ((size_t)n + 2 <= len) {
+              char text[64];
+              memcpy(text, payload + 2, n);
+              text[n] = '\0';
+              screens_set_wifi_config(cfg_id, text);
+            }
+          }
+        } else if (cfg_id == ST_BACKLIGHT) {
+          screens_set_backlight(payload[1]);
         } else {
-          screens_set_state(cfg_id, value);
+          screens_set_state(cfg_id, payload[1]);
         }
       }
       break;

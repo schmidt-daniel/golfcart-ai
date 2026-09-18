@@ -61,6 +61,11 @@ void screens_set_map_bitmap(const uint8_t *data, size_t len,
 // on the current screen; alert 0 clears it.
 void screens_set_alert(uint8_t alert);
 
+// Set a WiFi credential (from a DL_CONFIG frame). config_id is a CFG_* id
+// from handle_protocol.h; text is the SSID or password. The WiFi screen
+// renders these and a scannable QR code encoding WIFI:S:<ssid>;P:<pass>;;.
+void screens_set_wifi_config(uint8_t config_id, const char *text);
+
 // Update the boot-status line shown on the splash screen (from a
 // DL_BOOT_STATUS frame). progress is 0-100; text is a short status string.
 void screens_set_boot_status(uint8_t progress, const char *text);

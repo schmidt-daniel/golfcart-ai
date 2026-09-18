@@ -169,6 +169,21 @@ active screen when one it cares about changes.
 
 ---
 
+## 4.1 Config Values (downlink `CONFIG`)
+
+The Pi pushes named config values. The ESP32 applies them (e.g. backlight) or
+stores them for screen rendering (e.g. WiFi credentials).
+
+| ID | Name | Payload | Notes |
+| --- | --- | --- | --- |
+| `0x01` | `WIFI_SSID` | length (1 byte) + UTF-8 text (≤63 bytes) | Hotspot SSID for the WiFi screen + QR |
+| `0x02` | `WIFI_PASS` | length (1 byte) + UTF-8 text (≤63 bytes) | Hotspot password for the WiFi screen + QR |
+
+The WiFi screen renders a scannable QR code encoding
+`WIFI:S:<ssid>;P:<pass>;;` (see `docs/hmi-spec.md` §6.9).
+
+---
+
 ## 5. Input Events (uplink)
 
 ### 5.1 Joystick (`0x82`)

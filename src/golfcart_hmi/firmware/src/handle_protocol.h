@@ -111,6 +111,10 @@ extern "C" {
 #define CAP_FORCE    0x04
 #define CAP_DISPLAY  0x08
 
+// Config IDs (DL_CONFIG payload: config id + value).
+#define CFG_WIFI_SSID 0x01  // WiFi hotspot SSID (string)
+#define CFG_WIFI_PASS 0x02  // WiFi hotspot password (string)
+
 // Screen IDs.
 #define SCREEN_SPLASH       0x00
 #define SCREEN_COURSE       0x01
