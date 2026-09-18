@@ -251,6 +251,7 @@ typedef struct {
 #define LABEL_SAFETY      15
 #define LABEL_MODE        16
 #define LABEL_STEERING_ASSIST 17
+#define LABEL_HILL_ASSIST 32
 #define LABEL_RANGE_M     18
 #define LABEL_RETURN_M    19
 #define LABEL_RANGE_STATE 20
@@ -363,6 +364,10 @@ static void set_label_text(LabelRef *lr)
     case LABEL_STEERING_ASSIST:
       snprintf(buf, sizeof(buf), "%s",
                g_state.steering_assist_enabled ? "ON" : "OFF");
+      break;
+    case LABEL_HILL_ASSIST:
+      snprintf(buf, sizeof(buf), "%s",
+               g_state.hill_assist_enabled ? "ON" : "OFF");
       break;
     case LABEL_RANGE_M:
       snprintf(buf, sizeof(buf), "%d m", g_state.range_m);
@@ -631,7 +636,8 @@ static void build_assist(void)
   make_label(scr, "3", 220, 92, 80, 24, C_TEXT);
   add_hit(20, 92, 300, 116, 1);
   make_label(scr, "Hill Assist", 20, 140, 180, 24, C_TEXT);
-  make_label(scr, "OFF", 220, 140, 80, 24, C_TEXT_DIM);
+  lv_obj_t *ha = make_label(scr, "OFF", 220, 140, 80, 24, C_TEXT_DIM);
+  add_label(ha, LABEL_HILL_ASSIST);
   add_hit(20, 140, 300, 164, 2);
   make_label(scr, "Steering Assist", 20, 188, 180, 24, C_TEXT);
   lv_obj_t *sa = make_label(scr, "ON", 220, 188, 80, 24, C_TEXT_DIM);

@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include "golfcart_msgs/msg/assist_config.hpp"
 #include "golfcart_msgs/msg/imu_data.hpp"
 #include "golfcart_msgs/msg/motion_request.hpp"
 #include "golfcart_msgs/msg/motor_state.hpp"
@@ -53,6 +54,14 @@ public:
       "motor/state", rclcpp::SensorDataQoS(),
       [this](const golfcart_msgs::msg::MotorState::SharedPtr msg) {
         wheel_velocity_ = (msg->left_velocity + msg->right_velocity) / 2.0;
+      });
+
+    // Assist config: the operator can enable/disable hill assist from the
+    // HMI Assist screen (via the handle gateway -> /assist/config).
+    assist_sub_ = create_subscription<golfcart_msgs::msg::AssistConfig>(
+      "assist/config", rclcpp::SensorDataQoS(),
+      [this](const golfcart_msgs::msg::AssistConfig::SharedPtr msg) {
+        hill_assist_enabled_ = msg->hill_assist_enabled;
       });
 
     // Publisher for behavior motion requests.
@@ -130,8 +139,9 @@ private:
     }
 
     // --- Hill Assist ---
-    // On an uphill slope, provide propulsion assistance.
-    if (slope == SlopeState::UPHILL) {
+    // On an uphill slope, provide propulsion assistance. Only when the
+    // operator has enabled it from the HMI Assist screen.
+    if (slope == SlopeState::UPHILL && hill_assist_enabled_) {
       publish_request(assist_speed_mps_, 0.0, "hill_assist", 2);
       publish_status("HILL_ASSIST");
       return;
@@ -166,12 +176,14 @@ private:
   double hysteresis_rad_ = 0.03;
   bool brake_hold_enabled_ = true;
   double brake_hold_threshold_mps_ = 0.02;
+  bool hill_assist_enabled_ = true;  // from /assist/config (HMI Assist screen)
 
   double pitch_ = 0.0;
   double wheel_velocity_ = 0.0;
 
   rclcpp::Subscription<golfcart_msgs::msg::ImuData>::SharedPtr imu_sub_;
   rclcpp::Subscription<golfcart_msgs::msg::MotorState>::SharedPtr motor_sub_;
+  rclcpp::Subscription<golfcart_msgs::msg::AssistConfig>::SharedPtr assist_sub_;
   rclcpp::Publisher<golfcart_msgs::msg::MotionRequest>::SharedPtr req_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   rclcpp::TimerBase::SharedPtr timer_;

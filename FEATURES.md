@@ -167,6 +167,9 @@ features are added.
 - HMI toggle: `AssistConfig.msg` + `/assist/config`; gateway `_menu_assist`
   toggles steering assist; `steering_assist_node` only nudges when enabled; HMI
   Assist screen reflects ON/OFF via `ST_STEERING_ASSIST`
+- Hill Assist toggle: gateway `_menu_assist` toggles `hill_assist_enabled` on
+  `/assist/config`; `hill_rollback_node` only provides uphill propulsion when
+  enabled; HMI Assist screen reflects ON/OFF via `ST_HILL_ASSIST_ENABLED`
 - `golfcart_msgs` — `ModeState.msg`, `AssistConfig.msg`
 - Pure nudge math in `test_steering_assist.cpp` — unit-tested
 

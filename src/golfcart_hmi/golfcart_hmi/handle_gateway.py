@@ -98,6 +98,7 @@ class HandleGatewayNode(Node):
         # ---- Assist state (from the HMI Assist screen) ----
         self.steering_assist_enabled = True
         self.push_assist_enabled = True
+        self.hill_assist_enabled = True
         self.assist_level = 3
 
         # ---- Clients ----
@@ -389,8 +390,9 @@ class HandleGatewayNode(Node):
         elif item == 1:    # Assist Level (cycle 0-5)
             self.assist_level = (self.assist_level + 1) % 6
             self._publish_assist_config()
-        elif item == 2:    # Hill Assist (not wired to a node yet)
-            self.get_logger().info('Hill Assist toggle (not wired)')
+        elif item == 2:    # Hill Assist toggle
+            self.hill_assist_enabled = not self.hill_assist_enabled
+            self._publish_assist_config()
         elif item == 3:    # Steering Assist toggle
             self.steering_assist_enabled = not self.steering_assist_enabled
             self._publish_assist_config()
@@ -402,14 +404,17 @@ class HandleGatewayNode(Node):
         msg = AssistConfig()
         msg.steering_assist_enabled = self.steering_assist_enabled
         msg.push_assist_enabled = self.push_assist_enabled
+        msg.hill_assist_enabled = self.hill_assist_enabled
         msg.assist_level = self.assist_level
         msg.timestamp = self.get_clock().now().to_msg()
         self.assist_pub.publish(msg)
-        # Reflect the steering-assist state back on the HMI Assist screen.
+        # Reflect the assist states back on the HMI Assist screen.
         self._send_state(p.ST_STEERING_ASSIST, 1 if self.steering_assist_enabled else 0)
+        self._send_state(p.ST_HILL_ASSIST_ENABLED, 1 if self.hill_assist_enabled else 0)
         self.get_logger().info(
             f'Assist config: steering={self.steering_assist_enabled} '
-            f'push={self.push_assist_enabled} level={self.assist_level}')
+            f'push={self.push_assist_enabled} hill={self.hill_assist_enabled} '
+            f'level={self.assist_level}')
 
     def _menu_debug(self, item):
         # item 0..6 = debug view; 7 = Main Menu.
