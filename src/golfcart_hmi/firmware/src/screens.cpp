@@ -82,6 +82,14 @@ static char g_wifi_ssid[64] = "golfcart-xxxx";
 static char g_wifi_pass[64] = "12345678";
 
 // ---------------------------------------------------------------------------
+// Course list (from DL_COURSE_LIST) for the course-selection screen.
+// ---------------------------------------------------------------------------
+#define MAX_COURSES 8
+#define COURSE_NAME_MAX 32
+static char g_courses[MAX_COURSES][COURSE_NAME_MAX];
+static uint8_t g_course_count = 0;
+
+// ---------------------------------------------------------------------------
 // Cached course-map bitmap (from DL_MAP_FRAME). Rendered on both the map
 // (SCR_MAP) and hole (SCR_HOLE) screens. 148x190 RGB565 = ~56 KB.
 // ---------------------------------------------------------------------------
@@ -459,13 +467,23 @@ static void build_course(void)
 {
   scr = make_screen();
   make_header("Select Course");
-  // Placeholder list; the Pi sends the actual course list via CONFIG.
-  make_button(scr, "Course 1", 20, 44, 280, 40, C_SURFACE2);
-  add_hit(20, 44, 300, 84, 0);
-  make_button(scr, "Course 2", 20, 92, 280, 40, C_SURFACE2);
-  add_hit(20, 92, 300, 132, 1);
-  make_button(scr, "Main Menu", 20, 140, 280, 40, C_SURFACE2);
-  add_hit(20, 140, 300, 180, 2);
+  // Render the course list sent by the Pi via DL_COURSE_LIST. Fall back to a
+  // placeholder if none have arrived yet.
+  int y = 44;
+  int n = (g_course_count > 0) ? g_course_count : 2;
+  for (int i = 0; i < n; ++i) {
+    char label[COURSE_NAME_MAX];
+    if (g_course_count > 0) {
+      snprintf(label, sizeof(label), "%s", g_courses[i]);
+    } else {
+      snprintf(label, sizeof(label), "Course %d", i + 1);
+    }
+    make_button(scr, label, 20, y, 280, 40, C_SURFACE2);
+    add_hit(20, y, 300, y + 40, i);
+    y += 48;
+  }
+  make_button(scr, "Main Menu", 20, y, 280, 40, C_SURFACE2);
+  add_hit(20, y, 300, y + 40, n);
 }
 
 // Tee selection (SCR_TEE).
@@ -1152,6 +1170,39 @@ void screens_set_wifi_config(uint8_t config_id, const char *text)
   }
   if (g_current_screen == SCR_WIFI) {
     build_wifi();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Course list (called from main.ino on_frame when a DL_COURSE_LIST arrives).
+// Stores the course names and re-renders the course-selection screen.
+// ---------------------------------------------------------------------------
+void screens_set_course_list(const uint8_t *data, size_t len)
+{
+  if (data == NULL || len < 1) {
+    return;
+  }
+  uint8_t count = data[0];
+  if (count > MAX_COURSES) {
+    count = MAX_COURSES;
+  }
+  size_t i = 1;
+  g_course_count = 0;
+  for (uint8_t c = 0; c < count && i < len; ++c) {
+    uint8_t n = data[i++];
+    if (n > COURSE_NAME_MAX - 1) {
+      n = COURSE_NAME_MAX - 1;
+    }
+    if (i + n > len) {
+      break;
+    }
+    memcpy(g_courses[c], data + i, n);
+    g_courses[c][n] = '\0';
+    i += n;
+    ++g_course_count;
+  }
+  if (g_current_screen == SCR_COURSE) {
+    build_course();
   }
 }
 

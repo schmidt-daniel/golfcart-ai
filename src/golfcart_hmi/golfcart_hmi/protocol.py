@@ -34,6 +34,7 @@ DL_CONFIG = 0x05
 DL_ACK = 0x06
 DL_BOOT_STATUS = 0x07
 DL_MAP_FRAME = 0x08
+DL_COURSE_LIST = 0x09
 
 # --- Message types (uplink: ESP32 -> Pi) ---
 UL_HELLO = 0x81
@@ -315,6 +316,22 @@ def build_boot_status(text: str, progress: int = 0) -> bytes:
 
 def build_ack(acked_seq: int, status: int = 0) -> bytes:
     return bytes([acked_seq & 0xFF, status & 0xFF])
+
+
+def build_course_list(courses: List[str]) -> bytes:
+    """Build a DL_COURSE_LIST payload: count + length-prefixed course names.
+
+    Payload: count (1 byte) + for each course: name_len (1 byte) + UTF-8
+    name (<= 31 bytes). The ESP32 renders these on the course-selection
+    screen (SCR_COURSE). Capped at 8 courses (fits the screen).
+    """
+    courses = courses[:8]
+    out = bytearray([len(courses) & 0xFF])
+    for name in courses:
+        data = name.encode('utf-8', 'replace')[:31]
+        out.append(len(data))
+        out += data
+    return bytes(out)
 
 
 def build_map_frame(map_w: int, map_h: int, rgb565: bytes) -> bytes:

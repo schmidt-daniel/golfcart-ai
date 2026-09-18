@@ -319,6 +319,7 @@ class HandleGatewayNode(Node):
             self._nav(p.SCREEN_CHANGE_HOLE)
         elif item == 8:    # SELECT COURSE
             self._nav(p.SCREEN_COURSE)
+            self._send_course_list()
         elif item == 9:    # WIFI
             self._nav(p.SCREEN_WIFI)
             self._send_wifi_config()
@@ -514,6 +515,12 @@ class HandleGatewayNode(Node):
     def on_course_list(self, msg):
         self.courses = [(c.id, c.name) for c in msg.courses]
         self.get_logger().info(f'Courses: {[n for _, n in self.courses]}')
+        self._send_course_list()
+
+    def _send_course_list(self):
+        """Push the course names to the ESP32 (course-selection screen)."""
+        names = [name for _, name in self.courses]
+        self._send(p.DL_COURSE_LIST, p.build_course_list(names))
 
     def on_course_map(self, msg):
         self.tees = list(zip(msg.tee_ids, msg.tee_names))

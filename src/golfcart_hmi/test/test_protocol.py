@@ -98,6 +98,22 @@ def test_build_wifi_config():
     long_ssid = p.build_wifi_config(p.CFG_WIFI_SSID, 'x' * 100)
     assert long_ssid[1] == 63
     assert len(long_ssid) == 65
+
+
+def test_build_course_list():
+    """Course list payloads carry count + length-prefixed names."""
+    payload = p.build_course_list(['A', 'B', 'C'])
+    assert payload[0] == 3
+    assert payload[1] == 1 and payload[2:3].decode() == 'A'
+    assert payload[3] == 1 and payload[4:5].decode() == 'B'
+    assert payload[5] == 1 and payload[6:7].decode() == 'C'
+
+    # Empty list.
+    assert p.build_course_list([]) == bytes([0])
+
+    # Capped at 8 courses.
+    many = p.build_course_list([f'c{i}' for i in range(12)])
+    assert many[0] == 8
     # backlight is uint8
     assert p._encode_value(p.ST_BACKLIGHT, 200) == bytes([200])
     # steering assist is uint8

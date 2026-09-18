@@ -111,6 +111,7 @@ ROS nodes (battery, GPS, IMU,               LVGL screens (menu, hole, debug)
 | `0x05` | `CONFIG` | config id (1 byte) + value |
 | `0x06` | `ACK` | acked seq (1 byte) + status (1 byte) |
 | `0x07` | `BOOT_STATUS` | progress (1 byte, 0–100) + status text (≤31 bytes) |
+| `0x09` | `COURSE_LIST` | count (1 byte) + length-prefixed course names (≤8) |
 
 ### 3.2 Uplink (ESP32 → Pi)
 

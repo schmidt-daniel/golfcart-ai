@@ -172,6 +172,10 @@ static void on_frame(uint8_t type, const uint8_t *payload, size_t len, uint8_t s
         screens_set_map_bitmap(payload + 4, len - 4, map_w, map_h);
       }
       break;
+    case DL_COURSE_LIST:
+      // Payload: count (1 byte) + length-prefixed course names.
+      screens_set_course_list(payload, len);
+      break;
     case DL_DEBUG_SUMMARY:
       // Payload: debug id (1 byte) + summary payload. The summary is a
       // series of state-id/value pairs that populate the debug screens

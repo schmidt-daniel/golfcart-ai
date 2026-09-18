@@ -35,6 +35,7 @@ extern "C" {
 #define DL_ACK           0x06
 #define DL_BOOT_STATUS   0x07
 #define DL_MAP_FRAME     0x08
+#define DL_COURSE_LIST   0x09
 
 // Uplink (ESP32 -> Pi).
 #define UL_HELLO       0x81

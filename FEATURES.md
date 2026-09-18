@@ -392,6 +392,13 @@ features are added.
   `config/golfcart.yaml`) via `DL_CONFIG` (`CFG_WIFI_SSID`/`CFG_WIFI_PASS`)
 - The ESP32 renders the QR with the `ricmoo/QRCode` library
 
+### HMI Course Selection
+- `SCR_COURSE` renders the actual course list (from `/course/list` via
+  `CourseList`) instead of a hardcoded placeholder
+- `handle_gateway` sends the course names via `DL_COURSE_LIST` when the list
+  arrives and when the course screen is opened
+- The ESP32 falls back to "Course N" placeholders until the list arrives
+
 ### HMI Alert / Notification Queue
 - `ST_ALERT` (0x4B) downlink carries the highest-priority active alert
   (0 = none); alert codes for battery low/critical, geofence near/crossed,

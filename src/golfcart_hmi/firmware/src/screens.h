@@ -67,6 +67,11 @@ void screens_set_alert(uint8_t alert);
 // renders these and a scannable QR code encoding WIFI:S:<ssid>;P:<pass>;;.
 void screens_set_wifi_config(uint8_t config_id, const char *text);
 
+// Set the course list (from a DL_COURSE_LIST frame). data is a count byte
+// followed by length-prefixed course names. The course-selection screen
+// (SCR_COURSE) renders these.
+void screens_set_course_list(const uint8_t *data, size_t len);
+
 // Update the boot-status line shown on the splash screen (from a
 // DL_BOOT_STATUS frame). progress is 0-100; text is a short status string.
 void screens_set_boot_status(uint8_t progress, const char *text);
