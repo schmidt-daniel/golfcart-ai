@@ -316,13 +316,16 @@ features are added.
 - `test_protocol.py` encode tests; firmware builds (RAM 29.7%, Flash 15.5%)
 
 ### Gesture Control
-- `golfcart_vision` package — `gesture_recognition_node` (MediaPipe Pose
+- `golfcart_vision` package — `gesture_recognition_node` (keypoint
   classification + debounce) and `gesture_controller_node` (maps gestures to
   summon/mode/safety, windmill+hold confirmation)
 - `GestureCommand.msg` (NONE/SUMMON/STOP/FOLLOW/SLOW)
 - Gesture set: windmill+hold (SUMMON), double palm up (STOP), choo-choo
   (FOLLOW), repeated pat-down (SLOW); all sustained/repetitive
 - `gesture_math.hpp` + unit tests; gated on camera capability
+- `coral_pose_node` (optional) runs a MoveNet single-pose model on the Coral
+  EdgeTPU and publishes `/pose/keypoints`; `gesture_recognition_node` uses
+  these when they arrive, else falls back to the CPU skin-based estimator
 - See `docs/features/gesture-control.md`
 
 ### Hardware Capability Detection + Feature Gating

@@ -366,15 +366,15 @@ gesture_recognition_node:
 
 # -----------------------------------------------------------------------------
 # Coral Pose (golfcart_vision/coral_pose_node)
-# Optional MediaPipe-style pose on the Coral EdgeTPU. Publishes /pose/keypoints
+# Optional MoveNet single-pose on the Coral EdgeTPU. Publishes /pose/keypoints
 # when Coral + a model are present; gesture_recognition_node falls back to CPU.
 # -----------------------------------------------------------------------------
 coral_pose_node:
-  model_file: ""                    # path to a Coral-compatible pose .tflite
+  model_file: ""                    # path to a Coral-compatible MoveNet .tflite
   input_topic: camera/image
   output_topic: pose/keypoints
-  input_width: 224
-  input_height: 224
+  input_width: 192                  # MoveNet native input size
+  input_height: 192
   min_confidence: 0.5
 
 # -----------------------------------------------------------------------------

@@ -156,10 +156,11 @@ builtin_interfaces/Time stamp
   to avoid conflicts with natural walking/carrying.
 - ~~Whether SUMMON should require confirmation~~ — **resolved:** SUMMON requires
   a **windmill + hold** (~1 s) to confirm intent.
-- ~~Model choice~~ — **resolved:** **MediaPipe Pose** (full-body keypoints),
-  because the windmill/choo-choo are defined by arm geometry
-  (shoulder–elbow–wrist), not hand shape. Runs on the Coral NPU at ~10–30 FPS
-  on the Pi 5.
+- ~~Model choice~~ — **resolved:** **MoveNet single-pose** (full-body
+  keypoints, COCO 17-keypoint layout), because the windmill/choo-choo are
+  defined by arm geometry (shoulder–elbow–wrist), not hand shape. Runs on the
+  Coral NPU at ~10–30 FPS on the Pi 5. (MediaPipe Pose is an equivalent
+  alternative — same keypoint layout.)
 - **New:** whether STOP (double palm) and SLOW (repeated pat-down) need a
   distinct hand classifier, or whether the arm pose alone is sufficient.
   — **resolved:** **arm pose alone is sufficient.** STOP and SLOW are defined by

@@ -55,6 +55,8 @@ if(BUILD_TESTING)
   if(TARGET test_gesture_math)
     target_link_libraries(test_gesture_math golfcart_vision)
   endif()
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(test_coral_pose test/test_coral_pose.py)
 endif()
 
 ament_export_dependencies(rclcpp golfcart_msgs)
