@@ -372,7 +372,16 @@ features are added.
   (`/odometry/filtered`) to the map view
 - `handle_gateway` renders the map (Pillow) + subscribes `/odometry/filtered`;
   the MAP main-menu item now opens the map screen
+- The ESP32 caches the bitmap and renders it on both `SCR_MAP` and the hole
+  view (`SCR_HOLE`)
 - See `docs/features/hmi-map-view.md`
+
+### HMI WiFi QR Code
+- `SCR_WIFI` shows the hotspot SSID/password and a scannable QR code encoding
+  `WIFI:S:<ssid>;P:<pass>;;`
+- `handle_gateway` sends the credentials (`wifi_ssid`/`wifi_pass` params in
+  `config/golfcart.yaml`) via `DL_CONFIG` (`CFG_WIFI_SSID`/`CFG_WIFI_PASS`)
+- The ESP32 renders the QR with the `ricmoo/QRCode` library
 
 ### HMI Alert / Notification Queue
 - `ST_ALERT` (0x4B) downlink carries the highest-priority active alert

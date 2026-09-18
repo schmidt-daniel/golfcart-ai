@@ -31,9 +31,11 @@ CourseMap (/course/map) ──┐
   `DL_MAP_FRAME` downlink.
 - The trolley pose (`/odometry/filtered`) is sent as `ST_MAP_X/Y/HEADING`
   state values (cm / deg×10).
-- **`SCR_MAP`** screen on the ESP32 blits the bitmap into the map area and
-  shows the trolley x/y + a MAP/No-map indicator. The MAP main-menu item now
-  opens this screen.
+- **`SCR_MAP`** and **`SCR_HOLE`** screens on the ESP32 blit the cached bitmap
+  into their map areas and show the trolley x/y + a MAP/No-map indicator. The
+  MAP main-menu item opens `SCR_MAP`; the hole view (`SCR_HOLE`) shows the
+  same map alongside the hole distance/remaining. The bitmap is cached on the
+  ESP32 so it re-renders when either screen is shown.
 
 ## Protocol additions
 

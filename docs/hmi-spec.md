@@ -340,7 +340,8 @@ Mockup: [`docs/hmi/map.svg`](hmi/map.svg)
 > a simplified top-down course map (forbidden zones + features) that the Pi
 > downsamples from `CourseMap` to a compact RGB565 bitmap and blits to the
 > ESP32 via `DL_MAP_FRAME`; the trolley pose comes from `/odometry/filtered`
-> (`ST_MAP_X/Y/HEADING`). See `docs/features/hmi-map-view.md`. The full
+> (`ST_MAP_X/Y/HEADING`). The same cached bitmap is also shown on the hole
+> view (`SCR_HOLE`). See `docs/features/hmi-map-view.md`. The full
 > per-hole colorful render + speed bar above remain a future enhancement.
 
 **Speed bar:** lets the user select the speed in manual/push-assist mode. The
