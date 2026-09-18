@@ -139,6 +139,7 @@ extern "C" {
 #define SCREEN_ROUND_SUMMARY 0x14
 #define SCREEN_SPEED        0x15
 #define SCREEN_QUICK_SELECT 0x16
+#define SCREEN_SHUTDOWN     0x17
 
 // Max payload length (fits in a uint8 LEN field).
 #define MAX_PAYLOAD 255

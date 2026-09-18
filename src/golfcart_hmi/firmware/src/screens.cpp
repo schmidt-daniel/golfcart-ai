@@ -609,6 +609,22 @@ static void build_quick_select(void)
   add_hit(12, 200, 308, 240, 18);
 }
 
+// Shutdown confirmation (SCR_SHUTDOWN).
+// Asks the operator to confirm a system shutdown. Item 0 = confirm (shut
+// down), item 1 = cancel (back to main menu). The Pi triggers the actual
+// power-off when confirmed.
+static void build_shutdown(void)
+{
+  scr = make_screen();
+  make_header("Shutdown");
+  make_label(scr, "Shut down the system?", 20, 60, 280, 32, C_TEXT);
+  make_label(scr, "This powers off the trolley.", 20, 96, 280, 24, C_TEXT_DIM);
+  make_button(scr, "CONFIRM", 20, 160, 280, 48, C_DANGER);
+  add_hit(20, 160, 300, 208, 0);
+  make_button(scr, "Cancel", 20, 224, 280, 48, C_SURFACE2);
+  add_hit(20, 224, 300, 272, 1);
+}
+
 // Mode selection (SCR_MODE).
 static void build_mode(void)
 {
@@ -917,7 +933,7 @@ static void build_splash(void)
 // ---------------------------------------------------------------------------
 typedef void (*ScreenBuilder)(void);
 
-static ScreenBuilder screen_builders[23] = {
+static ScreenBuilder screen_builders[24] = {
   build_splash,         // 0x00 SCR_SPLASH
   build_course,         // 0x01 SCR_COURSE
   build_tee,            // 0x02 SCR_TEE
@@ -941,6 +957,7 @@ static ScreenBuilder screen_builders[23] = {
   build_round_summary,  // 0x14 SCR_ROUND_SUMMARY
   build_speed,          // 0x15 SCR_SPEED
   build_quick_select,   // 0x16 SCR_QUICK_SELECT
+  build_shutdown,       // 0x17 SCR_SHUTDOWN
 };
 
 // ---------------------------------------------------------------------------
@@ -999,7 +1016,7 @@ void screens_init(void)
 void screens_show(uint8_t screen_id)
 {
   g_current_screen = screen_id;
-  if (screen_id < 23 && screen_builders[screen_id] != NULL) {
+  if (screen_id < 24 && screen_builders[screen_id] != NULL) {
     screen_builders[screen_id]();
   }
 }

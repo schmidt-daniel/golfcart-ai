@@ -68,6 +68,7 @@ class HandleGatewayNode(Node):
         self.declare_parameter('force_gain', 1.0)
         self.declare_parameter('wifi_ssid', 'golfcart-xxxx')
         self.declare_parameter('wifi_pass', '12345678')
+        self.declare_parameter('shutdown_command', "echo 'hmi-shutdown'")
 
         port = self.get_parameter('port').value
         baud = self.get_parameter('baud').value
@@ -78,6 +79,7 @@ class HandleGatewayNode(Node):
         self.wifi_ssid = self.get_parameter('wifi_ssid').value
         self.wifi_pass = self.get_parameter('wifi_pass').value
         self.force_gain = self.get_parameter('force_gain').value
+        self.shutdown_command = self.get_parameter('shutdown_command').value
 
         # ---- Serial ----
         self.decoder = p.Decoder()
@@ -274,6 +276,8 @@ class HandleGatewayNode(Node):
             self._menu_quick_select(item)
         elif self.screen == p.SCREEN_DEBUG:
             self._menu_debug(item)
+        elif self.screen == p.SCREEN_SHUTDOWN:
+            self._menu_shutdown(item)
         else:
             self.get_logger().info(f'Menu select on screen 0x{self.screen:02x} '
                                    f'not handled yet (item={item})')
@@ -323,7 +327,7 @@ class HandleGatewayNode(Node):
         elif item == 11:   # DEBUG
             self._nav(p.SCREEN_DEBUG)
         elif item == 12:   # SHUTDOWN
-            self.get_logger().info('SHUTDOWN requested (not wired)')
+            self._nav(p.SCREEN_SHUTDOWN)
 
     def _menu_drive_dist(self, item):
         # item 0..4 = 10/20/30/40/50 m; 5 = Cancel; 6 = Main Menu.
@@ -427,6 +431,22 @@ class HandleGatewayNode(Node):
                              p.SCREEN_SENSORS]
             if 0 <= item < len(debug_screens):
                 self._nav(debug_screens[item])
+
+    def _menu_shutdown(self, item):
+        # Shutdown confirmation screen: 0 = confirm, 1 = cancel.
+        if item == 0:    # CONFIRM
+            self._trigger_shutdown()
+        else:            # Cancel (or anything else) -> back to main menu.
+            self._nav(p.SCREEN_MENU)
+
+    def _trigger_shutdown(self):
+        """Execute the configured shutdown command (graceful power off)."""
+        self.get_logger().warn('HMI shutdown confirmed - powering off')
+        try:
+            import subprocess
+            subprocess.Popen(self.shutdown_command, shell=True)
+        except Exception as exc:  # noqa: BLE001
+            self.get_logger().error(f'Shutdown command failed: {exc}')
 
     def _nav(self, screen_id):
         """Send SCREEN_NAV to the ESP32 and track the active screen."""

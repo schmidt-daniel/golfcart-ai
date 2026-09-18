@@ -69,6 +69,12 @@ features are added.
 - **Suppressed on roll-away risk** (slope from IMU, or motion detected)
 - Publishes `power/status`
 
+### HMI Shutdown
+- SHUTDOWN item in the main menu opens a confirmation screen (`SCR_SHUTDOWN`)
+- The operator confirms (or cancels) on the handle unit
+- On confirm, the gateway runs the configured `shutdown_command`
+  (`config/golfcart.yaml`; actual: `sudo shutdown -h now`)
+
 ### Energy-Saving Mode
 - `golfcart_power` package — `energy_saver_node`
 - Enters SLEEP after `sleep_timeout_s` idle; publishes `PowerState` on `/power/state`

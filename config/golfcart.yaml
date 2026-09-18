@@ -450,3 +450,4 @@ trip_logger_node:
 handle_gateway:
   wifi_ssid: golfcart-xxxx
   wifi_pass: "12345678"
+  shutdown_command: "echo 'hmi-shutdown'"   # actual: "sudo shutdown -h now"

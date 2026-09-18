@@ -29,9 +29,11 @@ def test_screen_ids_unique():
            p.SCREEN_DEBUG_GPS, p.SCREEN_DEBUG_LIDAR, p.SCREEN_DEBUG_CAMERA,
            p.SCREEN_DEBUG_IMU, p.SCREEN_DEBUG_NAV, p.SCREEN_ENERGY,
            p.SCREEN_SENSORS, p.SCREEN_DRIVE_DIST, p.SCREEN_MAP,
-           p.SCREEN_ROUND_SUMMARY, p.SCREEN_SPEED, p.SCREEN_QUICK_SELECT]
+           p.SCREEN_ROUND_SUMMARY, p.SCREEN_SPEED, p.SCREEN_QUICK_SELECT,
+           p.SCREEN_SHUTDOWN]
     assert len(ids) == len(set(ids))
     assert p.SCREEN_QUICK_SELECT == 0x16
+    assert p.SCREEN_SHUTDOWN == 0x17
 
 
 def test_byte_stuffing():
