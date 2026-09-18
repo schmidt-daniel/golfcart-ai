@@ -31,6 +31,8 @@ sensor topics (gps/fix, imu/data, battery/state, scan, motor/state)
 - Publishes `CapabilityStatus` on `/capability/status` with 8 booleans:
   `lidar_horizontal`, `lidar_tilted`, `gps`, `imu`, `battery`, `camera`,
   `coral`, `odrive`.
+- **Coral** is detected via the `/pose/keypoints` heartbeat (the Coral pose
+  node only publishes when the EdgeTPU + a model are working).
 - **Config overrides** (`-1` auto, `0` absent, `1` present) allow testing
   without hardware.
 

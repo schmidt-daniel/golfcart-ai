@@ -333,6 +333,8 @@ features are added.
   detection, config overrides for testing)
 - `CapabilityStatus.msg` (lidar_horizontal, lidar_tilted, gps, imu, battery,
   camera, coral, odrive)
+- Coral is detected via the `/pose/keypoints` heartbeat (Coral pose node
+  publishes only when the EdgeTPU + model are working)
 - Gates: mode (FOLLOW needs LiDAR, AUTONOMOUS needs GPS), summon (GPS),
   follow (LiDAR), safety enable (ODrive), gesture (camera), segmentation
   (camera + Coral)
